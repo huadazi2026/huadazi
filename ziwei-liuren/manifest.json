@@ -1,0 +1,17 @@
+{
+  "name": "紫微斗数 · 大六壬",
+  "short_name": "紫微六壬",
+  "description": "紫微斗数排盘与命盘解读、大六壬起课与断课建议。全部本地推算，不联网。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#100c1c",
+  "theme_color": "#150f24",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
