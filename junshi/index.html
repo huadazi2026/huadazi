@@ -61,6 +61,33 @@
     max-width:100%; font-size:15px;
   }
   .msg.user .bubble{background:var(--me); border-color:var(--me); color:#fff}
+  /* 消息里的图 */
+  .imgs{display:flex; flex-wrap:wrap; gap:6px}
+  .imgs img{
+    max-width:210px; max-height:210px; border-radius:10px; cursor:zoom-in;
+    border:1px solid var(--line); display:block; background:#0b0d12;
+  }
+  /* 待发送的图 */
+  #pending{display:none; gap:8px; padding:0 14px 8px; overflow-x:auto; flex:none}
+  #pending.show{display:flex}
+  #pending .pchip{position:relative; flex:none}
+  #pending .pchip img{
+    width:60px; height:60px; object-fit:cover; border-radius:10px;
+    border:1px solid var(--line); display:block; cursor:zoom-in;
+  }
+  #pending .pchip button{
+    position:absolute; top:-6px; right:-6px; width:20px; height:20px; padding:0;
+    border-radius:50%; background:var(--danger); color:#fff; border:2px solid var(--panel);
+    font-size:12px; line-height:1; cursor:pointer;
+  }
+  #pending .ptip{align-self:center; color:var(--dim); font-size:11.5px; white-space:nowrap}
+  /* 看图 */
+  #lightbox{
+    position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:99;
+    display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  #lightbox.show{display:flex}
+  #lightbox img{max-width:100%; max-height:100%; border-radius:8px}
   .acts{display:flex; gap:6px; flex-wrap:wrap}
   .acts button{
     background:transparent; border:1px solid var(--line); color:var(--dim);
@@ -91,6 +118,11 @@
   }
   footer button:disabled{opacity:.45}
   footer button.stop{background:var(--danger); color:#fff}
+  footer #btnImg{
+    background:var(--panel2); border:1px solid var(--line); color:var(--sub);
+    padding:11px 13px; font-size:16px; border-radius:12px; font-weight:400;
+  }
+  footer #btnImg:active{background:var(--line)}
   /* 设置 / 历史抽屉 */
   #overlay{
     position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
@@ -174,12 +206,17 @@
   <button data-q="我是不是在骗自己？直接说。">我是不是在骗自己</button>
   <button data-q="我该怎么回这条消息？">帮我回话</button>
   <button data-q="我这钱该怎么规划？">钱怎么规划</button>
+  <button data-q="看看这张图，说说你怎么看。">看图</button>
 </div>
 <div id="errbox"></div>
+<div id="pending"></div>
 <footer>
-  <textarea id="input" rows="1" placeholder="说点什么…"></textarea>
+  <textarea id="input" rows="1" placeholder="说点什么… / 也可以贴图"></textarea>
+  <button id="btnImg" type="button" title="加图片">🖼</button>
   <button id="btnSend">发送</button>
 </footer>
+<input type="file" id="filePick" accept="image/*" multiple style="display:none">
+<div id="lightbox"><img alt=""></div>
 
 <div id="overlay">
   <div id="settings">
@@ -194,7 +231,8 @@
       <label>模型名</label>
       <input id="cfgModel" placeholder="deepseek-chat">
       <div class="row"><button id="btnTest">🔌 测试连接</button></div>
-      <div class="hint">支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。</div>
+      <div class="hint">支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。<br>
+      <b>要看图，模型得支持视觉</b>：常见的如 <code>qwen-vl-max</code>（通义 / 硅基流动）、<code>glm-4v</code>（智谱）、<code>gpt-4o</code>。<b>注意 DeepSeek 官方的 <code>deepseek-chat</code> 只认文字，发图会被拒</b>（遇到这种情况我会自动去掉图、只用文字再问一次）。<span id="statStore"></span></div>
     </div>
     <div class="grp">
       <h2>🎭 人设（军师的性格）</h2>
@@ -281,6 +319,11 @@ let convs = [];            // [{id,title,createdAt,updatedAt,msgs:[{role,content
 let actId = "";
 let busy = false, abortCtl = null, lastUserText = "";
 let dirty = false;   // 设置面板里有改动还没保存
+let pendingImgs = [];          // 待发送的图片（压缩后的 dataURL）
+const MAX_IMGS = 4;            // 一条消息最多几张
+const IMG_MAX_EDGE = 896;      // 压缩后最长边
+const IMG_QUALITY  = 0.76;     // JPEG 起始质量
+const IMG_TARGET   = 300*1024; // 目标大小，超了就降质量
 
 const $ = id => document.getElementById(id);
 const chatEl = $("chat");
@@ -323,7 +366,7 @@ function saveConvs(){
     localStorage.setItem(LS_CONV, JSON.stringify(convs));
     localStorage.setItem(LS_ACT, actId);
   }catch(e){
-    showErr("存不下了 —— 浏览器本地存储满了。去「☰ 历史」删掉几个旧对话再聊。");
+    showErr("存不下了 —— 浏览器本地存储满了（图片占地方大）。去「☰ 历史」删掉几个带图的旧对话，文字部分会自动保留在当前会话里。");
   }
 }
 function saveMsgsLegacy(){ // 保留旧键：万一出问题，原始记录还在
@@ -422,11 +465,27 @@ function renderChat(){
     const col = document.createElement("div");
     col.className = "col";
 
-    const b = document.createElement("div");
-    b.className = "bubble";
-    b.dataset.raw = m.content;
-    b.innerHTML = mdLite(m.content);
-    col.appendChild(b);
+    // 图片放在气泡外面，这样复制文字时不会把一坨 base64 带进去
+    if(m.img && m.img.length){
+      const box = document.createElement("div");
+      box.className = "imgs";
+      m.img.forEach(d=>{
+        const im = document.createElement("img");
+        im.src = d;
+        im.alt = "图片";
+        im.addEventListener("click", ()=>openLightbox(d));
+        box.appendChild(im);
+      });
+      col.appendChild(box);
+    }
+
+    if(String(m.content || "").trim()){
+      const b = document.createElement("div");
+      b.className = "bubble";
+      b.dataset.raw = m.content;
+      b.innerHTML = mdLite(m.content);
+      col.appendChild(b);
+    }
 
     const acts = document.createElement("div");
     acts.className = "acts";
@@ -485,8 +544,12 @@ function renderHist(){
     const meta = document.createElement("div");
     meta.className = "hmeta";
     const last = c.msgs.length ? c.msgs[c.msgs.length-1] : null;
+    const lastTxt = last
+      ? (String(last.content || "").trim().replace(/\s+/g," ").slice(0,24)
+         || (last.img && last.img.length ? "🖼 图片" : ""))
+      : "";
     meta.textContent = (c.msgs.length ? c.msgs.length + " 条 · " : "") + rel(c.updatedAt)
-      + (last ? " · " + String(last.content).replace(/\s+/g," ").slice(0,24) : "");
+      + (lastTxt ? " · " + lastTxt : "");
     main.appendChild(t); main.appendChild(meta);
 
     const del = document.createElement("button");
@@ -508,6 +571,109 @@ function toast(msg, ok){
 }
 function showErr(msg){ toast(msg, false); }
 function grow(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 130) + "px"; }
+
+/* ---------- 图片 ---------- */
+function bytesOf(dataUrl){
+  const i = String(dataUrl).indexOf(",");
+  return Math.round((String(dataUrl).length - i - 1) * 0.75);
+}
+function kb(n){ return n < 1024 ? n + " B" : (n/1024).toFixed(n < 102400 ? 1 : 0) + " KB"; }
+function readFile(file){
+  return new Promise((res, rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = ()=>rej(new Error("读不了这个文件"));
+    r.readAsDataURL(file);
+  });
+}
+function loadImg(src){
+  return new Promise((res, rej)=>{
+    const im = new Image();
+    im.onload = ()=>res(im);
+    im.onerror = ()=>rej(new Error("这张图解不开"));
+    im.src = src;
+  });
+}
+// 压到最长边 IMG_MAX_EDGE，转 JPEG。手机拍的原图动辄 3-5MB，
+// 压完通常 100-300KB，不然 localStorage 几次就爆了。
+async function compressImage(file){
+  const raw = await readFile(file);
+  const im  = await loadImg(raw);
+  let w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
+  if(!w || !h) throw new Error("这张图没有有效尺寸");
+  const scale = Math.min(1, IMG_MAX_EDGE / Math.max(w, h));
+  w = Math.max(1, Math.round(w * scale));
+  h = Math.max(1, Math.round(h * scale));
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  const cx = cv.getContext("2d");
+  cx.fillStyle = "#ffffff";                 // PNG 透明底转 JPEG 会变黑，先铺白
+  cx.fillRect(0, 0, w, h);
+  cx.drawImage(im, 0, 0, w, h);
+  // 逐步降质量，直到压到目标大小以内（省流量、也省 localStorage）
+  let out = cv.toDataURL("image/jpeg", IMG_QUALITY);
+  for(let q = IMG_QUALITY; q > 0.4 && bytesOf(out) > IMG_TARGET; q -= 0.14){
+    out = cv.toDataURL("image/jpeg", q);
+  }
+  if(out.length < 2000) out = raw;          // 极小图/压缩异常，留原图
+  return out;
+}
+async function addFiles(list){
+  const files = Array.from(list || []).filter(f => /^image\//.test(f.type || ""));
+  if(!files.length){ showErr("只能加图片文件（jpg / png / 截屏都行）。"); return; }
+  for(const f of files){
+    if(pendingImgs.length >= MAX_IMGS){ showErr("一条消息最多 " + MAX_IMGS + " 张图。"); break; }
+    if(f.size > 12 * 1024 * 1024){ showErr("这张图太大了（" + kb(f.size) + "），先用手机截一下再发。"); continue; }
+    try{
+      const d = await compressImage(f);
+      pendingImgs.push(d);
+    }catch(e){
+      showErr("这张图没能处理：" + e.message);
+    }
+  }
+  renderPending();
+}
+function renderPending(){
+  const box = $("pending");
+  box.innerHTML = "";
+  if(!pendingImgs.length){ box.classList.remove("show"); return; }
+  box.classList.add("show");
+  pendingImgs.forEach((d, i)=>{
+    const chip = document.createElement("div");
+    chip.className = "pchip";
+    const im = document.createElement("img");
+    im.src = d;
+    im.alt = "待发送图片";
+    im.addEventListener("click", ()=>openLightbox(d));
+    const del = document.createElement("button");
+    del.type = "button"; del.textContent = "✕"; del.title = "去掉这张";
+    del.addEventListener("click", ()=>{ pendingImgs.splice(i,1); renderPending(); });
+    chip.appendChild(im); chip.appendChild(del);
+    box.appendChild(chip);
+  });
+  const tip = document.createElement("div");
+  tip.className = "ptip";
+  const total = pendingImgs.reduce((s, d)=>s + bytesOf(d), 0);
+  tip.textContent = pendingImgs.length + " 张 · " + kb(total) + "（发前会自动压过）";
+  box.appendChild(tip);
+}
+function openLightbox(src){
+  const lb = $("lightbox");
+  lb.querySelector("img").src = src;
+  lb.classList.add("show");
+}
+function closeLightbox(){ $("lightbox").classList.remove("show"); }
+
+/* ---------- 报错解析 ---------- */
+function msgOfError(raw){
+  try{
+    const j = JSON.parse(raw);
+    const e = j.error || j;
+    return (e.message || e.msg || e.code || raw || "").toString();
+  }catch(e){
+    return String(raw || "");
+  }
+}
 
 /* ---------- 消息操作 ---------- */
 function copyText(text){
@@ -554,6 +720,14 @@ function retryOne(i){
 }
 
 /* ---------- 发送 ---------- */
+// 带图的消息要转成 OpenAI 的多模态格式：content 从字符串变成数组
+function toApiMsg(m){
+  if(!m.img || !m.img.length) return {role:m.role, content:m.content};
+  return {role:m.role, content:[
+    ...m.img.map(u => ({type:"image_url", image_url:{url:u, detail:"auto"}})),
+    {type:"text", text:m.content}
+  ]};
+}
 function setBusy(on){
   busy = on;
   const b = $("btnSend");
@@ -568,21 +742,35 @@ async function send(text, opts){
   opts = opts || {};
   if(busy){ showErr("还在生成，等一下，或点「停止」。"); return; }
   text = (text||"").trim();
-  if(!text) return;
+  const sentImgs = Array.isArray(opts.img) ? opts.img.slice(0, MAX_IMGS)
+                 : (opts.noImg ? [] : pendingImgs.slice(0, MAX_IMGS));
+  const sentCount = sentImgs.length;
+  if(!text && !sentCount) return;
+  if(sentCount && !text) text = "看看这张图。";     // 纯图片也给模型一句话
   if(!cfg.key){ showErr("还没填 API Key —— 点右上角「设置」填一下。"); return; }
 
   const c = active(); if(!c) return;
   $("input").value = ""; grow($("input"));
+  if(!opts.noImg && !opts.keepUser){
+    // 只清真正要发出去的那几张；发失败时会把它们放回来
+    pendingImgs = pendingImgs.slice(sentCount);
+    renderPending();
+  }
   lastUserText = text;
-  c.msgs.push({role:"user", content:text, t:Date.now()});
-  c.updatedAt = Date.now();
-  autoTitle(c);
-  saveConvs(); saveMsgsLegacy(); renderAll();
+  if(!opts.keepUser){                     // 降级重试时消息已经在历史里了，别重复加
+    const userMsg = {role:"user", content:text, t:Date.now()};
+    if(sentCount) userMsg.img = sentImgs.slice();
+    c.msgs.push(userMsg);
+    c.updatedAt = Date.now();
+    autoTitle(c);
+    saveConvs(); saveMsgsLegacy(); renderAll();
+  }
 
   // 占位气泡
   const wrap = document.createElement("div");
   wrap.className = "msg ai";
-  wrap.innerHTML = '<div class="av">🧭</div><div class="col"><div class="bubble" data-streaming="1"><span class="typing">正在想…</span></div></div>';
+  wrap.innerHTML = '<div class="av">🧭</div><div class="col"><div class="bubble" data-streaming="1"><span class="typing">'
+    + (sentCount ? "正在看图…" : "正在想…") + '</span></div></div>';
   chatEl.appendChild(wrap);
   chatEl.scrollTop = chatEl.scrollHeight;
   const bubble = wrap.querySelector(".bubble");
@@ -591,16 +779,18 @@ async function send(text, opts){
   abortCtl = new AbortController();
 
   const sys = persona + SYS_NOTE + ctxText;
-  const history = c.msgs.slice(-MAX_CTX_MSGS).map(m=>({role:m.role, content:m.content}));
+  const history = c.msgs.slice(-MAX_CTX_MSGS).map(toApiMsg);
   const payload = {
     model: cfg.model,
     stream: true,
     temperature: 0.85,
     messages: [{role:"system", content:sys}, ...history]
   };
+  const lastImg = (c.msgs[c.msgs.length-1] && c.msgs[c.msgs.length-1].img) || null;
 
   let acc = "";
   let finalErr = "";
+  let retryAfterFinally = false;
   try{
     const url = cfg.base.replace(/\/+$/,"") + "/chat/completions";
     const res = await fetch(url, {
@@ -611,7 +801,10 @@ async function send(text, opts){
     });
     if(!res.ok){
       const t = await res.text();
-      throw new Error("HTTP " + res.status + " " + t.slice(0,200));
+      const err = new Error("HTTP " + res.status + " " + msgOfError(t).slice(0,200));
+      err.body = t;
+      err.status = res.status;
+      throw err;
     }
     const ct = (res.headers.get("content-type")||"");
     if(ct.includes("application/json")){
@@ -668,23 +861,38 @@ async function send(text, opts){
         showErr("已停止。");
       }
     }else{
-      // 失败就撤干净：把这句话从上下文里拿掉、还回输入框。
-      // 否则失败的消息会留在历史里污染后面的对话，而界面上却看不到它发成功过。
-      wrap.remove();
-      const tail = c.msgs[c.msgs.length - 1];
-      if(tail && tail.role === "user" && tail.content === text) c.msgs.pop();
-      if(!c.msgs.some(m => m.role === "user")) c.title = "";
-      c.updatedAt = Date.now();
-      saveConvs(); saveMsgsLegacy();
-      if(!$("input").value) $("input").value = text;
-      grow($("input"));
-      renderAll();
-      finalErr = "没发出去（" + (e && e.message ? e.message : e) + "）—— 话给你放回输入框了，检查一下接口地址 / Key / 网络再点发送。";
+      // 模型不认图片：把图撤掉、用纯文字再问一次，别让整条消息白费。
+      // 关键：必须等 finally 把 busy 复位之后再重试，否则会被“还在生成”挡住。
+      const looksLikeVision = !!lastImg && /image|vision|multi[- ]?modal|content.*(type|array)|图片|模态/i.test(String(e && e.body || ""));
+      if(looksLikeVision && !opts.noImg){
+        wrap.remove();
+        const lm = c.msgs[c.msgs.length-1];
+        if(lm && lm.role === "user") delete lm.img;
+        c.updatedAt = Date.now();
+        saveConvs(); saveMsgsLegacy(); renderAll();
+        retryAfterFinally = true;
+        finalErr = "这个模型好像不认图片，已经改成只用文字再问了一次。想让它真的看图，去「设置」里把模型换成支持视觉的（qwen-vl-max / glm-4v / gpt-4o 这类）。注意 DeepSeek 官方的 deepseek-chat 不支持图片。";
+      }else{
+        // 失败就撤干净：把这句话从上下文里拿掉、还回输入框。
+        // 否则失败的消息会留在历史里污染后面的对话，而界面上却看不到它发成功过。
+        wrap.remove();
+        const tail = c.msgs[c.msgs.length - 1];
+        if(tail && tail.role === "user" && tail.content === text) c.msgs.pop();
+        if(!c.msgs.some(m => m.role === "user")) c.title = "";
+        c.updatedAt = Date.now();
+        saveConvs(); saveMsgsLegacy();
+        if(sentCount && !pendingImgs.length) pendingImgs = sentImgs.slice();   // 图也还给用户
+        if(!$("input").value) $("input").value = text;
+        grow($("input")); renderPending();
+        renderAll();
+        finalErr = "没发出去（" + (e && e.message ? e.message : e) + "）—— 话和图片都给你放回输入框了，检查一下接口地址 / Key / 模型名 / 网络再点发送。";
+      }
     }
   }finally{
     abortCtl = null; setBusy(false);
-    if(!$("overlay").classList.contains("show")) $("input").focus();
-    if(finalErr) showErr(finalErr);   // 放在最后，避免被 renderAll 清掉
+    if(!retryAfterFinally && !$("overlay").classList.contains("show")) $("input").focus();
+    if(finalErr) showErr(finalErr);              // 放在最后，避免被 renderAll 清掉
+    if(retryAfterFinally) setTimeout(()=>send(text, {noImg:true, keepUser:true}), 60);
   }
 }
 
@@ -727,6 +935,10 @@ function confirmLeave(){
 function statLine(){
   $("statPersona").textContent = "　当前 " + persona.length + " 字";
   $("statCtx").textContent = "　当前 " + ctxText.length + " 字";
+  let used = 0;
+  try{ used = (localStorage.getItem(LS_CONV) || "").length + (localStorage.getItem(LS_MSG) || "").length; }catch(e){}
+  const pct = Math.round(used / 5242880 * 100);
+  $("statStore").innerHTML = "<br>本机已占用约 " + (used/1048576).toFixed(2) + " MB（上限约 5 MB，现在 " + pct + "%）。图片比较占地方，满了就在 ☰ 里删旧对话。";
 }
 async function testConn(){
   const base = ($("cfgBase").value.trim() || "https://api.deepseek.com/v1").replace(/\/+$/,"");
@@ -776,6 +988,33 @@ $("input").addEventListener("keydown", function(e){
   if(e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); if(!busy) send(this.value); }
 });
 $("input").addEventListener("input", function(){ grow(this); });
+/* ---- 图片：点按钮选、直接粘贴、拖进来 ---- */
+$("btnImg").addEventListener("click", ()=>$("filePick").click());
+$("filePick").addEventListener("change", function(){
+  addFiles(this.files);
+  this.value = "";                 // 允许连续选同一张
+});
+$("input").addEventListener("paste", e=>{
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  const pics = [];
+  for(const it of items){
+    if(it.kind === "file" && /^image\//.test(it.type || "")){
+      const f = it.getAsFile();
+      if(f) pics.push(f);
+    }
+  }
+  if(pics.length){ e.preventDefault(); addFiles(pics); }
+});
+document.addEventListener("dragover", e=>{ e.preventDefault(); });
+document.addEventListener("drop", e=>{
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if(files && files.length){ e.preventDefault(); addFiles(files); }
+});
+$("lightbox").addEventListener("click", closeLightbox);
+document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeLightbox(); });
+window.addEventListener("beforeunload", e=>{
+  if(pendingImgs.length){ e.preventDefault(); e.returnValue = ""; }
+});
 $("quick").addEventListener("click", e=>{
   if(e.target.tagName==="BUTTON" && !busy) send(e.target.dataset.q);
 });
