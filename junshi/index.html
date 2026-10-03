@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="军师">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<title>军师</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1e222d; --line:#2b303d;
+    --ink:#e6e8f0; --sub:#8f96a8; --dim:#5d6478;
+    --me:#3d6bff; --ai:#20242f; --accent:#ffb454; --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex; flex-direction:column; height:100vh; height:100dvh;
+    font-size:15px; line-height:1.65;
+  }
+  header{
+    display:flex; align-items:center; gap:10px; padding:12px 14px;
+    background:var(--panel); border-bottom:1px solid var(--line); flex:none;
+    padding-top:calc(12px + env(safe-area-inset-top));
+  }
+  header .logo{font-size:18px}
+  header h1{font-size:16px; margin:0; font-weight:600; letter-spacing:.5px}
+  header .sp{flex:1}
+  .iconbtn{
+    background:var(--panel2); border:1px solid var(--line); color:var(--sub);
+    border-radius:9px; padding:6px 11px; font-size:13px; cursor:pointer;
+  }
+  .iconbtn:active{background:var(--line)}
+  #chat{flex:1; overflow-y:auto; padding:16px 14px 8px; display:flex; flex-direction:column; gap:14px}
+  .msg{display:flex; gap:9px; max-width:100%}
+  .msg.user{flex-direction:row-reverse}
+  .av{
+    width:30px; height:30px; border-radius:9px; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:15px;
+    background:var(--panel2); border:1px solid var(--line);
+  }
+  .msg.user .av{background:var(--me); border-color:var(--me)}
+  .bubble{
+    background:var(--ai); border:1px solid var(--line); border-radius:13px;
+    padding:10px 13px; white-space:pre-wrap; word-break:break-word;
+    max-width:calc(100% - 50px); font-size:15px;
+  }
+  .msg.user .bubble{background:var(--me); border-color:var(--me); color:#fff}
+  .sys{
+    text-align:center; color:var(--dim); font-size:12.5px; padding:6px 0;
+  }
+  .quick{display:flex; gap:7px; flex-wrap:wrap; padding:0 14px 8px; flex:none}
+  .quick button{
+    background:var(--panel2); border:1px solid var(--line); color:var(--sub);
+    border-radius:20px; padding:6px 13px; font-size:12.5px; cursor:pointer;
+  }
+  .quick button:active{background:var(--line)}
+  footer{
+    flex:none; background:var(--panel); border-top:1px solid var(--line);
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    display:flex; gap:9px; align-items:flex-end;
+  }
+  footer textarea{
+    flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+    border-radius:12px; padding:10px 12px; font-family:inherit; font-size:15px;
+    resize:none; max-height:130px; line-height:1.5;
+  }
+  footer textarea:focus{outline:none; border-color:var(--accent)}
+  footer button{
+    background:var(--accent); color:#241a06; border:none; border-radius:12px;
+    padding:11px 16px; font-size:15px; font-weight:700; cursor:pointer; flex:none;
+  }
+  footer button:disabled{opacity:.45}
+  /* 设置面板 */
+  #overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+    z-index:50; align-items:flex-end; justify-content:center;
+  }
+  #overlay.show{display:flex}
+  #settings{
+    background:var(--panel); width:100%; max-width:640px; max-height:92vh;
+    overflow-y:auto; border-radius:18px 18px 0 0; padding:18px;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+  }
+  #settings h2{font-size:15px; margin:0 0 4px; color:var(--accent)}
+  #settings .grp{margin-bottom:20px}
+  #settings label{display:block; font-size:12.5px; color:var(--sub); margin:10px 0 5px}
+  #settings input,#settings textarea{
+    width:100%; background:var(--panel2); border:1px solid var(--line);
+    color:var(--ink); border-radius:9px; padding:9px 11px; font-size:14px;
+    font-family:inherit;
+  }
+  #settings textarea{resize:vertical; line-height:1.6}
+  #settings input:focus,#settings textarea:focus{outline:none; border-color:var(--accent)}
+  .hint{font-size:11.5px; color:var(--dim); margin-top:5px; line-height:1.55}
+  .row{display:flex; gap:9px; margin-top:12px; flex-wrap:wrap}
+  .row button{
+    flex:1; min-width:110px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--ink); border-radius:10px; padding:10px; font-size:14px; cursor:pointer;
+  }
+  .row button.primary{background:var(--accent); color:#241a06; border-color:var(--accent); font-weight:700}
+  .row button.danger{color:var(--danger); border-color:#4a2b2b}
+  .typing{color:var(--dim); font-size:13px}
+  .err{color:#ffb4b4; font-size:13px; background:#2a1c1c; border:1px solid #4a2b2b; padding:8px 11px; border-radius:9px; margin:0 14px 8px}
+  /* 代码块 */
+  .bubble code{background:#0b0d12; padding:1px 5px; border-radius:4px; font-size:13.5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">🧭</span>
+  <h1>军师</h1>
+  <span class="sp"></span>
+  <button class="iconbtn" id="btnNew">新对话</button>
+  <button class="iconbtn" id="btnSet">设置</button>
+</header>
+
+<div id="chat"></div>
+<div class="quick" id="quick">
+  <button data-q="我现在的处境，帮我理一遍，说重点。">理一遍处境</button>
+  <button data-q="我这件事，你觉得我该怎么做？给具体的。">我该怎么做</button>
+  <button data-q="我是不是在骗自己？直接说。">我是不是在骗自己</button>
+  <button data-q="我该怎么回这条消息？">帮我回话</button>
+  <button data-q="我这钱该怎么规划？">钱怎么规划</button>
+</div>
+<div id="errbox"></div>
+<footer>
+  <textarea id="input" rows="1" placeholder="说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+  <button id="btnSend">发送</button>
+</footer>
+
+<div id="overlay">
+  <div id="settings">
+    <div class="grp">
+      <h2>⚙️ 接口设置</h2>
+      <label>接口地址（OpenAI 兼容）</label>
+      <input id="cfgBase" placeholder="https://api.deepseek.com/v1">
+      <label>API Key</label>
+      <input id="cfgKey" type="password" placeholder="sk-...">
+      <label>模型名</label>
+      <input id="cfgModel" placeholder="deepseek-chat">
+      <div class="hint">支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。</div>
+    </div>
+    <div class="grp">
+      <h2>🎭 人设（军师的性格）</h2>
+      <textarea id="cfgPersona" rows="9"></textarea>
+      <div class="hint">改这里就能换风格。默认设定：直接、不哄人、给具体动作、不说空话。</div>
+    </div>
+    <div class="grp">
+      <h2>📋 我的背景（军师每次都会看到）</h2>
+      <textarea id="cfgContext" rows="12"></textarea>
+      <div class="hint">把你自己的情况写这儿——越具体，他的建议越准。以后有变化随时改。</div>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnSave">保存</button>
+      <button id="btnExport">导出对话</button>
+      <button class="danger" id="btnClear">清空对话</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const LS_CFG = "junshi_cfg_v1", LS_MSG = "junshi_msg_v1", LS_CTX = "junshi_ctx_v1";
+
+const DEFAULT_PERSONA = `你是「军师」——只对我一个人负责的私人顾问。
+
+【说话方式】
+- 直接、不绕弯、不哄人。难听的话该说就说。
+- 不灌鸡汤。"加油""一切都会好的""相信自己"这类话一律不说。
+- 建议必须具体到"今天能做什么"，不说"你要调整心态"这种废话。
+- 不确定就说不确定，不装懂、不编。
+- 信息不够时先追问，别猜着给建议。
+- 察觉我在自我欺骗时，直接点破，但不说教、不居高临下。
+
+【你的能力】
+- 理性拆解处境：感情、金钱、事业、人际。
+- 懂命理（紫微斗数、梅花易数、大六壬），可以引用作为"参考视角"，但只当地图，不当判决书。
+- 帮我把事情想清楚，而不是替我拍板。
+
+【记住】
+- 你的价值 = 说出我自己不愿看的那部分。
+- 不要迎合我，不要顺着我的情绪说话。
+- 但我难受的时候，先接住情绪，再讲事实——顺序不能反。
+- 回答用中文，口语化，别写小标题堆砌的报告，像人一样说话。`;
+
+const DEFAULT_CONTEXT = `【我是谁】
+28岁，男，南京。生日：1998年闰五月十二 寅时。紫微命盘：命宫丁巳（廉贞、贪狼化禄、禄存、右弼化科），身宫辛酉官禄宫（武曲、七杀、左辅、地空）。2026年是我的破财年（廉贞化忌冲命宫+擎羊坐流年命宫）。
+
+【现状】
+- 2026年离职，目前无工作收入，今年支出约60万。
+- 在学炒股（刚入门），计划明年去东北（但不确定去做什么）。
+
+【A——同居4年的女友，1983年生（43岁）】
+- 2022年至今，感情一直很好，基本不吵架；2026年端午节起争吵增多。
+- 国庆后分居；明年我去东北，保持联系。她不上班，炒股+微商。
+- 今年给她约50万。她教我炒股，也帮我炒。
+- 她主动提过："停止钱，到过年，看还能不能开心聊下去。"
+
+【B——网名"夏"，19岁，辽宁鞍山】
+- 网上认识1-2个月，从未见面，视频/电话有过。她之前是做游戏陪玩的。
+- 一个月给了约10万。她主动提过"停止钱到过年试试"，说"你说我是不是有病"。
+- 她说过："我会选我爱的""我更怕"。她几乎不主动找我，回复多是表情包，但问了她会说。
+- 她命盘：命宫辛卯（太阴落陷、左辅），夫妻宫天机化权+铃星+地空。当前大限走贪狼+陀罗。
+- 背景：19岁、不上班、被母亲约束、有过1-2年暴力同居关系、前男友在押、关系未正式了结。
+
+【我最纠结的】
+舍不得A，又放不下B。我知道自己在纠结，但停不下来。`;
+
+let cfg = {base:"", key:"", model:""};
+let ctxText = "";
+let persona = "";
+let msgs = [];   // {role:'user'|'assistant', content}
+
+const $ = id => document.getElementById(id);
+const chatEl = $("chat");
+
+/* ---------- 持久化 ---------- */
+function load(){
+  try{ cfg = JSON.parse(localStorage.getItem(LS_CFG)||"{}"); }catch(e){ cfg={}; }
+  cfg.base = cfg.base || "https://api.deepseek.com/v1";
+  cfg.model = cfg.model || "deepseek-chat";
+  persona = localStorage.getItem("junshi_persona_v1") || DEFAULT_PERSONA;
+  ctxText = localStorage.getItem(LS_CTX) || DEFAULT_CONTEXT;
+  try{ msgs = JSON.parse(localStorage.getItem(LS_MSG)||"[]"); }catch(e){ msgs=[]; }
+}
+function saveCfg(){
+  localStorage.setItem(LS_CFG, JSON.stringify(cfg));
+  localStorage.setItem("junshi_persona_v1", persona);
+  localStorage.setItem(LS_CTX, ctxText);
+}
+function saveMsgs(){ localStorage.setItem(LS_MSG, JSON.stringify(msgs)); }
+
+/* ---------- 渲染 ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function mdLite(s){
+  return esc(s).replace(/`([^`\n]+)`/g,"<code>$1</code>");
+}
+function render(){
+  chatEl.innerHTML = "";
+  if(msgs.length===0){
+    const d = document.createElement("div");
+    d.className = "sys";
+    d.textContent = cfg.key ? "说吧，我在。" : "先去「设置」填一下 API Key，我才能开口。";
+    chatEl.appendChild(d);
+  }
+  for(const m of msgs){
+    const wrap = document.createElement("div");
+    wrap.className = "msg " + (m.role==="user"?"user":"ai");
+    const av = document.createElement("div");
+    av.className = "av";
+    av.textContent = m.role==="user" ? "我" : "🧭";
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.innerHTML = mdLite(m.content);
+    wrap.appendChild(av); wrap.appendChild(b);
+    chatEl.appendChild(wrap);
+  }
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+function appendDelta(text){
+  const bubbles = chatEl.querySelectorAll(".msg.ai .bubble");
+  const last = bubbles[bubbles.length-1];
+  if(last && last.dataset.streaming==="1"){
+    last.dataset.raw = (last.dataset.raw||"") + text;
+    last.innerHTML = mdLite(last.dataset.raw);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+}
+function showErr(t){
+  const d = document.createElement("div");
+  d.className = "err";
+  d.textContent = t;
+  $("errbox").innerHTML = "";
+  $("errbox").appendChild(d);
+  setTimeout(()=>{ d.remove(); }, 9000);
+}
+
+/* ---------- 发送 ---------- */
+let busy = false;
+async function send(text){
+  if(busy) return;
+  text = (text||"").trim();
+  if(!text) return;
+  if(!cfg.key){ showErr("还没填 API Key —— 点右上角「设置」填一下。"); return; }
+
+  $("input").value = "";
+  $("input").style.height = "auto";
+  msgs.push({role:"user", content:text});
+  saveMsgs();
+  render();
+
+  // 占位
+  const wrap = document.createElement("div");
+  wrap.className = "msg ai";
+  wrap.innerHTML = '<div class="av">🧭</div><div class="bubble" data-streaming="1" data-raw=""><span class="typing">正在想…</span></div>';
+  chatEl.appendChild(wrap);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  busy = true; $("btnSend").disabled = true;
+
+  const sys = persona + "\n\n【我的背景资料】\n" + ctxText;
+  const history = msgs.slice(-24).map(m=>({role:m.role, content:m.content}));
+  const payload = {
+    model: cfg.model,
+    stream: true,
+    temperature: 0.85,
+    messages: [{role:"system", content:sys}, ...history]
+  };
+
+  let acc = "";
+  try{
+    const url = cfg.base.replace(/\/+$/,"") + "/chat/completions";
+    const res = await fetch(url, {
+      method:"POST",
+      headers:{"Content-Type":"application/json", "Authorization":"Bearer " + cfg.key},
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){
+      const t = await res.text();
+      throw new Error("HTTP " + res.status + " " + t.slice(0,200));
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    const bubble = wrap.querySelector(".bubble");
+    bubble.innerHTML = "";
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split("\n");
+      buf = lines.pop();
+      for(const line of lines){
+        const s = line.trim();
+        if(!s.startsWith("data:")) continue;
+        const data = s.slice(5).trim();
+        if(data === "[DONE]") continue;
+        try{
+          const j = JSON.parse(data);
+          const delta = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+          if(delta){ acc += delta; bubble.dataset.raw = acc; bubble.innerHTML = mdLite(acc); chatEl.scrollTop = chatEl.scrollHeight; }
+        }catch(e){}
+      }
+    }
+    if(!acc){ bubble.textContent = "（这次没收到内容，再发一次试试）"; }
+    bubble.dataset.streaming = "0";
+    msgs.push({role:"assistant", content:acc || "（无回复）"});
+    saveMsgs();
+  }catch(e){
+    wrap.remove();
+    showErr("调用失败：" + e.message + "（检查接口地址/Key/网络）");
+  }finally{
+    busy = false; $("btnSend").disabled = false;
+    $("input").focus();
+  }
+}
+
+/* ---------- 事件 ---------- */
+$("btnSend").addEventListener("click", ()=> send($("input").value));
+$("input").addEventListener("keydown", function(e){
+  if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(this.value); }
+});
+$("input").addEventListener("input", function(){
+  this.style.height = "auto";
+  this.style.height = Math.min(this.scrollHeight, 130) + "px";
+});
+$("quick").addEventListener("click", e=>{
+  if(e.target.tagName==="BUTTON") send(e.target.dataset.q);
+});
+$("btnNew").addEventListener("click", ()=>{
+  if(msgs.length && !confirm("清空当前对话，开始新的？")) return;
+  msgs = []; saveMsgs(); $("errbox").innerHTML=""; render();
+});
+$("btnSet").addEventListener("click", ()=>{
+  $("cfgBase").value = cfg.base; $("cfgKey").value = cfg.key || ""; $("cfgModel").value = cfg.model;
+  $("cfgPersona").value = persona; $("cfgContext").value = ctxText;
+  $("overlay").classList.add("show");
+});
+$("overlay").addEventListener("click", e=>{ if(e.target.id==="overlay") $("overlay").classList.remove("show"); });
+$("btnSave").addEventListener("click", ()=>{
+  cfg.base = $("cfgBase").value.trim() || "https://api.deepseek.com/v1";
+  cfg.key = $("cfgKey").value.trim();
+  cfg.model = $("cfgModel").value.trim() || "deepseek-chat";
+  persona = $("cfgPersona").value.trim() || DEFAULT_PERSONA;
+  ctxText = $("cfgContext").value.trim();
+  saveCfg();
+  $("overlay").classList.remove("show");
+  render();
+  showErr("已保存 ✅");
+  setTimeout(()=>{ $("errbox").innerHTML=""; }, 1500);
+});
+$("btnClear").addEventListener("click", ()=>{
+  if(!confirm("清空全部对话记录？此操作不可恢复。")) return;
+  msgs = []; saveMsgs(); render();
+  $("overlay").classList.remove("show");
+});
+$("btnExport").addEventListener("click", ()=>{
+  const lines = msgs.map(m => (m.role==="user" ? "【我】" : "【军师】") + "\n" + m.content).join("\n\n");
+  const blob = new Blob([lines || "（暂无对话）"], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "军师对话_" + new Date().toISOString().slice(0,16).replace(/[:T]/g,"-") + ".txt";
+  a.click();
+});
+
+load();
+render();
+$("input").focus();
+</script>
+</body>
+</html>
