@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12141c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="话搭子">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<title>话搭子 · 回话助手</title>
+<style>
+  :root{
+    --bg:#12141c; --card:#1c1f2b; --card2:#232738; --line:#323750;
+    --ink:#e8eaf2; --sub:#9aa0b5; --dim:#6b7188;
+    --accent:#ffb74d; --accent2:#ff8a65; --good:#7bd88f; --warn:#ffd166;
+    --me:#5b8cff; --her:#ff7ab8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Microsoft YaHei","PingFang SC",-apple-system,sans-serif;
+    line-height:1.65; font-size:15px;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:24px 20px 80px;}
+  header h1{font-size:26px; margin:0 0 6px; letter-spacing:1px}
+  header h1 .emo{color:var(--accent)}
+  header p{margin:0; color:var(--sub); font-size:13px}
+  .grid{display:grid; grid-template-columns:320px 1fr; gap:18px; margin-top:20px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px}
+  .card h2{font-size:14px; margin:0 0 12px; color:var(--accent); font-weight:600; letter-spacing:.5px}
+  .field{margin-bottom:14px}
+  .field label{display:block; font-size:12px; color:var(--sub); margin-bottom:5px}
+  .field input,.field select,.field textarea{
+    width:100%; background:var(--card2); border:1px solid var(--line);
+    border-radius:8px; color:var(--ink); padding:9px 11px; font-size:14px; font-family:inherit;
+  }
+  .field textarea{resize:vertical; min-height:170px; line-height:1.6}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none; border-color:var(--accent)}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .switch{display:flex; align-items:center; gap:9px; cursor:pointer; margin-bottom:10px}
+  .switch input{display:none}
+  .switch .track{width:42px; height:24px; background:var(--card2); border:1px solid var(--line); border-radius:12px; position:relative; transition:.2s; flex:none}
+  .switch .track::after{content:""; position:absolute; width:18px; height:18px; background:#8b91a8; border-radius:50%; top:2px; left:2px; transition:.2s}
+  .switch input:checked + .track{background:var(--accent)}
+  .switch input:checked + .track::after{background:#3a2c10; left:20px}
+  .switch .txt{font-size:13px; color:var(--sub)}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    background:var(--accent); color:#2a1d07; border:none; border-radius:9px;
+    padding:11px 16px; font-size:14px; font-weight:700; cursor:pointer; letter-spacing:.5px;
+    transition:.15s; width:100%;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:var(--card2); color:var(--ink); border:1px solid var(--line); font-weight:500}
+  .btn.small{width:auto; padding:6px 12px; font-size:12px}
+  .hint{font-size:11.5px; color:var(--dim); margin-top:6px; line-height:1.5}
+  .badge{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; margin-right:6px; background:var(--card2); border:1px solid var(--line); color:var(--sub)}
+  .conv{max-height:300px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin-top:8px}
+  .line{display:flex; gap:8px; align-items:flex-start}
+  .line .who{font-size:11px; padding:1px 8px; border-radius:10px; flex:none; margin-top:1px}
+  .line.me .who{background:var(--me); color:#fff}
+  .line.her .who{background:var(--her); color:#fff}
+  .line .txt{background:var(--card2); border:1px solid var(--line); padding:7px 11px; border-radius:10px; font-size:13.5px; white-space:pre-wrap}
+  .line.her .txt{border-color:#5a3350}
+  .line.me .txt{border-color:#2c3f74}
+  .empty{color:var(--dim); font-size:13px; text-align:center; padding:30px 0}
+  .intent-banner{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+  .intent-banner .big{font-size:15px; font-weight:700}
+  .intent-banner .tag{background:var(--accent); color:#2a1d07; font-weight:700; padding:3px 12px; border-radius:20px; font-size:13px}
+  .reply{border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px; background:var(--card2); position:relative}
+  .reply .head{display:flex; align-items:center; gap:8px; margin-bottom:9px}
+  .reply .tone{font-size:11px; padding:2px 10px; border-radius:12px; font-weight:700}
+  .tone.humor{background:#7c4dff33; color:#b9a6ff; border:1px solid #7c4dff55}
+  .tone.serious{background:#3f7be033; color:#9fd0a9; border:1px solid #3f7be055}
+  .tone.mix{background:#ffb74d22; color:#ffcf8a; border:1px solid #ffb74d55}
+  .reply .words{font-size:16px; margin:0 0 10px; line-height:1.7}
+  .reply .why{font-size:12px; color:var(--sub); background:var(--bg); border-radius:8px; padding:8px 11px; line-height:1.6}
+  .reply .why b{color:var(--warn)}
+  .copybtn{position:absolute; top:12px; right:12px}
+  .strategy{margin-top:16px; border-left:3px solid var(--accent2); padding:10px 14px; background:var(--card2); border-radius:0 10px 10px 0; font-size:13px; color:var(--sub); line-height:1.7}
+  .strategy b{color:var(--accent2)}
+  .ai-box{margin-top:10px}
+  .toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:#2a2f43; border:1px solid var(--line); color:var(--ink); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:.25s; pointer-events:none; z-index:99}
+  .toast.show{opacity:1}
+  details{margin-top:12px}
+  summary{cursor:pointer; color:var(--sub); font-size:12.5px}
+  .zodiac-note{font-size:12.5px; color:var(--sub); background:var(--card2); border:1px dashed var(--line); border-radius:9px; padding:9px 12px; line-height:1.65; margin-top:4px}
+  .zodiac-note b{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="emo">💬</span> 话搭子 · 回话助手</h1>
+    <p>复制对话 → 自动读懂她的意图 → 给你 3 条「幽默里带正经」的候选回复 + 为什么这么回。本地运行，不联网、不收费、数据不出你电脑。</p>
+  </header>
+
+  <div class="grid">
+    <!-- 左侧：配置 + 输入 -->
+    <div>
+      <div class="card">
+        <h2>⚙️ 关系配置</h2>
+        <div class="row2">
+          <div class="field">
+            <label>她怎么称呼（昵称，可选）</label>
+            <input id="herName" placeholder="如：小王 / 鞍山那位" />
+          </div>
+          <div class="field">
+            <label>你的称呼（可选）</label>
+            <input id="meName" placeholder="如：我 / 强子" />
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>关系阶段</label>
+            <select id="stage">
+              <option value="1">刚认识 / 还在聊</option>
+              <option value="2" selected>熟悉了 / 能开玩笑</option>
+              <option value="3">暧昧中 / 就差捅破</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>她是什么星座</label>
+            <select id="zodiac">
+              <option value="">不知道 / 不填</option>
+              <option value="aquarius" selected>水瓶座</option>
+              <option value="pisces">双鱼座</option>
+              <option value="aries">白羊座</option>
+              <option value="taurus">金牛座</option>
+              <option value="gemini">双子座</option>
+              <option value="cancer">巨蟹座</option>
+              <option value="leo">狮子座</option>
+              <option value="virgo">处女座</option>
+              <option value="libra">天秤座</option>
+              <option value="scorpio">天蝎座</option>
+              <option value="sagittarius">射手座</option>
+              <option value="capricorn">摩羯座</option>
+            </select>
+          </div>
+        </div>
+        <div id="zodiacNote" class="zodiac-note"></div>
+        <div class="field" style="margin-top:12px">
+          <label>这一句我想达到什么</label>
+          <select id="goal">
+            <option value="auto" selected>自动（按她的意图来）</option>
+            <option value="funny">逗她笑</option>
+            <option value="serious">正经回应</option>
+            <option value="flirt">推进关系（撩 / 试探）</option>
+            <option value="invite">约她出来</option>
+            <option value="smooth">缓和气氛 / 化解冷淡</option>
+          </select>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="dongbei" checked>
+          <span class="track"></span>
+          <span class="txt">东北话 / 鞍山味调味</span>
+        </label>
+        <label class="switch">
+          <input type="checkbox" id="aiBoost">
+          <span class="track"></span>
+          <span class="txt">AI 增强（要填 Key，见下）</span>
+        </label>
+        <div class="ai-box" id="aiBox" style="display:none">
+          <div class="field">
+            <label>AI 接口地址（OpenAI 兼容）</label>
+            <input id="apiBase" placeholder="https://api.deepseek.com/v1" />
+          </div>
+          <div class="field">
+            <label>API Key</label>
+            <input id="apiKey" type="password" placeholder="sk-..." />
+          </div>
+          <div class="field">
+            <label>模型名</label>
+            <input id="apiModel" placeholder="deepseek-chat" />
+          </div>
+          <div class="hint">不填 Key 也能用：默认走内置规则引擎，纯本地。填了 Key 会调用 AI 生成更贴上下文的回复。Key 只存你本机浏览器。</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>📋 粘贴对话</h2>
+        <div class="field">
+          <textarea id="convInput" placeholder="把聊天记录粘进来。支持两种格式：&#10;&#10;① 微信复制格式（带昵称和时间头）&#10;② 简单格式，一行一条：&#10;   她: 你在干嘛呀&#10;   我: 刚下班&#10;   她: 这么晚呀&#10;&#10;也可以不填昵称，用「她:」「我:」区分就行。"></textarea>
+        </div>
+        <button class="btn ghost" id="ocrBtn" style="margin-top:10px">📷 识别聊天截图（微信截图直接识别）</button>
+        <input type="file" id="ocrFile" accept="image/*" style="display:none">
+        <div id="ocrStatus" class="hint" style="margin-top:6px;display:none"></div>
+        <button class="btn" id="analyzeBtn" style="margin-top:10px">🔍 分析并出回复</button>
+        <div class="hint" style="margin-top:8px">小提示：也可以手动一行行补，或只粘她最近几句。重点是「她最后说的那一句」。截图识别会按气泡左右自动分「她/我」，识别完建议扫一眼再分析。</div>
+      </div>
+    </div>
+
+    <!-- 右侧：结果 -->
+    <div>
+      <div class="card">
+        <h2>🧾 对话解析</h2>
+        <div id="convPreview" class="conv"><div class="empty">还没解析对话，先粘贴再点「分析」。</div></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>🎯 回话建议</h2>
+        <div id="resultArea"><div class="empty">这里会显示：她这句话的意图 + 3 条候选回复 + 每条的解释。</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   话搭子 · 回话引擎（纯本地规则 + 可选 AI）
+   ============================================================ */
+(function(){
+  "use strict";
+
+  /* ---------- 星座心法 ---------- */
+  const ZODIAC = {
+    aquarius: {name:"水瓶座", note:"<b>水瓶座</b>：忽冷忽热是她的常态，不是不喜欢你，是她需要自由呼吸。最怕被查岗、被死缠、被逼问。吃「有趣 + 真诚」，不吃「油腻 + 舔」。她思维跳跃，你能接住她的梗就赢了一半。别催，她慢热但认定后很专。给自己留空间，她反而会好奇地回头看你。"},
+    pisces:{name:"双鱼座",note:"<b>双鱼座</b>：吃温柔和细节，多共情、多听她说，别太硬。"},
+    aries:{name:"白羊座",note:"<b>白羊座</b>：喜欢直球，别绕弯子，夸她果断有活力。"},
+    taurus:{name:"金牛座",note:"<b>金牛座</b>：慢热实际，用稳定和行动感打动她，别花里胡哨。"},
+    gemini:{name:"双子座",note:"<b>双子座</b>：接梗要快、别冷场，她爱新鲜，聊天要有来回。"},
+    cancer:{name:"巨蟹座",note:"<b>巨蟹座</b>：需要安全感，多关心、多报备，她吃这一套。"},
+    leo:{name:"狮子座",note:"<b>狮子座</b>：给足面子和关注，夸要真诚不油腻，她吃捧。"},
+    virgo:{name:"处女座",note:"<b>处女座</b>：细节控，靠谱第一，油腻玩笑收着点。"},
+    libra:{name:"天秤座",note:"<b>天秤座</b>：吃颜值和氛围，别逼她做选择，给舒服的节奏。"},
+    scorpio:{name:"天蝎座",note:"<b>天蝎座</b>：敏锐多疑，别耍心眼，真诚到底，否则一眼看穿。"},
+    sagittarius:{name:"射手座",note:"<b>射手座</b>：爱自由爱玩，约她出去比干聊天有用。"},
+    capricorn:{name:"摩羯座",note:"<b>摩羯座</b>：理性现实，聊点实际的、有规划的事，别废话。"},
+  };
+
+  /* ---------- 东北味替换 ---------- */
+  const NE_REPLACE = [
+    [/什么/g,"啥"], [/怎么/g,"咋"], [/非常/g,"贼"], [/很/g,"老"],
+    [/行啊/g,"中啊"], [/好的/g,"妥"], [/挺/g,"老"],
+  ];
+  const NE_TAIL = ["，咋样？","，整挺好不？","，妥妥的。","，得劲儿。","呗。"];
+  function applyDongbei(s){
+    if(!s) return s;
+    let t = s;
+    for(const [re,to] of NE_REPLACE){ t = t.replace(re,to); }
+    return t;
+  }
+  function maybeDongbeiTail(s, opt){
+    if(opt.dongbei && Math.random() < 0.45 && s.length < 60){
+      return s.replace(/[。！？\s]*$/, "") + NE_TAIL[Math.floor(Math.random()*NE_TAIL.length)];
+    }
+    return s;
+  }
+
+  /* ---------- 意图库：每条回复 {t:文案, tone, tags, note, minStage} ---------- */
+  const INTENTS = {
+    cold: {
+      name:"冷淡 / 敷衍", explain:"她回得短（哦/嗯/随便/哈哈），不是关死门，是暂时没情绪接话。这时候加戏、追问「你怎么了」是大忌。要点：不纠缠，把话题轻轻递回去，留出她情绪缓和的空档。",
+      strategy:"冷淡期别硬聊。发一条「有情绪价值但不需要她费力回」的话，然后停手，等她来找你。追着问「你是不是不高兴了」只会更冷。",
+      replies:[
+        {t:"看你今天话这么省，是把好词儿都攒着等会儿用呢？我这边不急，你先忙你的，想说了吱一声就行。",tone:"humor",tags:["smooth","funny"],note:"用玩笑点破冷淡，但明确「不催你」，给她台阶和空间。"},
+        {t:"感觉你今天有点累，那我就安静待会儿。需要人说话的时候我在。",tone:"serious",tags:["smooth"],note:"<b>正经但松弛</b>：不追问原因，只表达「我在」。冷淡的人最吃这种不压迫的陪伴。"},
+        {t:"行，今天先到这。你缓过来要是还想跟我贫，我随时在线。",tone:"mix",tags:["smooth","funny"],note:"爽快收尾 + 留个轻松的口子。既不舔也不冷场。"},
+        {t:"你这一声「嗯」，我隔着屏幕都能听见你心情不咋地。来，说说是啥事儿，我免费当树洞。",tone:"mix",tags:["smooth"],note:"（熟悉阶段用）主动接住情绪，把「敷衍」翻译成「累了」，给她倾诉出口。",minStage:2},
+      ]
+    },
+    busy: {
+      name:"忙 / 累", explain:"她说忙/累/加班，大概率是真忙，也可能是不想聊的软推脱。别查岗别抱怨，接住她的累，顺手埋个「忙完了」的钩子。",
+      strategy:"接住累 + 不添负担 + 埋约见钩子。忙的时候她最烦被问「和谁」「在干嘛」，最喜欢「辛苦了 + 我给你留了份好吃的/好玩的，忙完给你」这类。",
+      replies:[
+        {t:"忙吧，忙归忙，饭得吃。等你这阵过去，我请你吃顿好的补补，算给你充电。",tone:"mix",tags:["invite","care"],note:"先关心，再顺手把「约饭」埋进去，一举两得，还不突兀。"},
+        {t:"心疼三秒钟。你先忙，我不刷存在感了——等你忙完，把今天受的累讲给我听，我负责笑和安慰。",tone:"humor",tags:["care","funny"],note:"用「心疼三秒」的俏皮降低压力，再给她一个「忙完找你」的念想。"},
+        {t:"知道了，照顾好自己，别硬扛。忙完跟我说一声就行。",tone:"serious",tags:["care"],note:"<b>正经版</b>：干脆利落不添乱，体面且显得你懂事。"},
+      ]
+    },
+    invite: {
+      name:"邀约 / 想见面", explain:"她主动提见面/出去玩，是明显的好信号。别怂、别拖，接住并落定时间地点，但别让她做选择、别显得犹豫。",
+      strategy:"她主动约是机会，要果断接 + 给出具体选项 + 别反问「你啥时候有空」。水瓶座尤其烦「你定吧」，给她两个具体选项让她点。",
+      replies:[
+        {t:"成啊，正想约你呢，被你抢先了。周末我请，地方你挑——给你俩选项：火锅还是看电影+逛？你点一个。",tone:"mix",tags:["invite","funny"],note:"反向接梗 + 给具体选项。把「你定」变成「你二选一」，好答应又不累。"},
+        {t:"必须去。时间你方便，我这边都能调。你负责出现，剩下交给我。",tone:"serious",tags:["invite"],note:"<b>正经但果断</b>：男生拍板的样子最加分，别磨叽。"},
+        {t:"行啊，说走咱就走。不过我嘴挑，你可得选个靠谱的，不然我就当场点评你。",tone:"humor",tags:["invite","funny"],note:"轻松接 + 抛个互动梗，让「约」这件事变好玩。"},
+      ]
+    },
+    down: {
+      name:"情绪低落 / 吐槽", explain:"她在倾诉情绪。这时她不需要解决方案，需要「被接住」。先共情、认同，别急着讲道理或比惨。",
+      strategy:"先站她这边（「谁这么不长眼」「换我也气」），再给一句暖的。别上价值观、别教她怎么做。等她吐槽完情绪过去了，自然轮到你。",
+      replies:[
+        {t:"谁招你了？报名字，我虽然打不过，但可以帮你骂得他怀疑人生。先消消气，事儿咱慢慢捋。",tone:"humor",tags:["care","funny"],note:"先顺着她情绪「一起骂」，再温柔收尾。情绪被接住了，事就好说一半。"},
+        {t:"委屈你了。这种事搁谁身上都不好受。你想说就说，我听着，不打断。",tone:"serious",tags:["care"],note:"<b>正经版</b>：安静倾听的姿态，是此刻最值钱的回应。"},
+        {t:"来，深呼吸三秒。要我说，能让你这好脾气都炸的，指定不是小事。我陪你捋捋，捋完请你吃甜的把气冲掉。",tone:"mix",tags:["care","invite"],note:"共情 + 递台阶 + 埋个小奖励，情绪和约会一起照顾。"},
+      ]
+    },
+    share: {
+      name:"报备 / 分享日常", explain:"她在分享日常（在干嘛/到家了/今天吃了啥），说明愿意让你进入她的生活。这是好状态，要接得住、要回应得有趣，别只回「哦」。",
+      strategy:"对日常要有具体回应，最好带点互动或延伸，让聊天有来回。水瓶座分享日常=她给你开了一扇窗，你要探头进去聊两句，而不是关窗。",
+      replies:[
+        {t:"到家就好，这大冷天儿的。今天路上有没有碰上啥有意思的？给我说说，我正闲得慌。",tone:"mix",tags:["care","funny"],note:"关心 + 抛问题，把「日常」变成「继续聊」的引子。"},
+        {t:"行，平安到家我这就放心了。吃的啥？我看看我今晚有没有被你比下去。",tone:"humor",tags:["care","funny"],note:"用「比吃饭」的小梗，把关心藏进玩笑里，不肉麻。"},
+        {t:"好，知道了。到家早点休息，别又熬夜刷手机。",tone:"serious",tags:["care"],note:"<b>正经版</b>：一句实在的惦记，稳。"},
+      ]
+    },
+    tease: {
+      name:"调侃 / 开玩笑", explain:"她在损你、逗你，这是好信号——能开玩笑说明放松。别急眼、别当真，接住梗并反手逗回去，把气氛炒热。",
+      strategy:"玩笑要接得住，还要会反打。既不能玻璃心，也不能损回去过头。轻怼+自嘲+夸她，三连最好使。",
+      replies:[
+        {t:"嘿，也就你敢这么说我，换别人我早记仇了。不过看在你损得还挺有水平的份上，我甘愿领了。",tone:"humor",tags:["funny","flirt"],note:"「只有你特殊」——把玩笑里埋进一点暧昧，损人变成调情。",minStage:2},
+        {t:"你等着啊，这笔我记小本本上了，回头逮着机会一并还你。你可别到时候求饶。",tone:"humor",tags:["funny"],note:"接住 + 反抛，把互怼变成小游戏，聊得停不下来。"},
+        {t:"得，你说得对，我认。不过能让你花心思损我，说明我还有点存在感，不亏。",tone:"mix",tags:["funny","smooth"],note:"认怂式反击，既大度又给自己找面子，还夸了她。"},
+      ]
+    },
+    care: {
+      name:"关心 / 示好", explain:"她关心你（吃饭没/早点睡/注意安全），是暖信号。要认真接住并回一份关心，别敷衍，也别立刻油腻。",
+      strategy:"正面接受关心 + 回馈关心，最好带点「被你在意的开心」的情绪价值。这是升温的关键回合，别错过。",
+      replies:[
+        {t:"收到，有你这句话比吃了饭还顶用。你也一样，别光顾着操心我，自己也按时吃。",tone:"mix",tags:["care","flirt"],note:"把关心升级成「你的在意对我很受用」，温和地撩一下。",minStage:2},
+        {t:"嗯呢，吃过了。难得你惦记我，心里还挺暖。你今晚也早点歇着。",tone:"serious",tags:["care"],note:"<b>正经但真挚</b>：承认「被你惦记很开心」，是很好的正向反馈。"},
+        {t:"放心，我壮实着呢。倒是你，一关心起人来就容易忘自己，记得也对自己好点。",tone:"humor",tags:["care","funny"],note:"把关心反手还给她，显得你眼里也有她，还带点俏皮。"},
+      ]
+    },
+    probe: {
+      name:"查岗 / 试探", explain:"她问「和谁/在哪/前任/你喜欢谁」，是在试探你的态度和边界。别慌、别撒谎、别过度解释，坦荡 + 反撩最稳。",
+      strategy:"坦荡回应事实 + 把话题拉回她身上（「你怎么突然问这个，是不是开始在意我了」）。水瓶座试探时，你越淡定真诚，她越信任。",
+      replies:[
+        {t:"如实汇报：就跟俩大老爷们儿吃了顿烧烤，全程没一个异性。倒是你，这么关心我跟谁在一起，我是不是可以理解为——你有点在意了？",tone:"mix",tags:["smooth","flirt"],note:"坦白 + 反将一军，把「查岗」变「互撩」。",minStage:2},
+        {t:"就我自己/跟同事，没有别人。你问这个，是突然查岗啊？那我得表现好点。",tone:"humor",tags:["smooth","funny"],note:"轻松接住，不慌不解释过度，反手点破她的小心思。"},
+        {t:"跟朋友在一块儿呢。别担心，有啥你直接问，我不骗你。",tone:"serious",tags:["smooth"],note:"<b>正经版</b>：给足安全感的坦荡回应，建立信任。"},
+      ]
+    },
+    challenge: {
+      name:"反问 / 刁难", explain:"她丢「你猜/凭什么/你觉得呢/然后呢」，是在考验你的反应。别顺着问题硬答，要跳出框架，给个有意思的反击或带观点的回答。",
+      strategy:"不落入她的问题陷阱，用幽默或真诚破局。可以「你猜我猜不猜」，也可以认真给一个走心的答案——看你俩的节奏。",
+      replies:[
+        {t:"你猜我猜不猜？——算了，不跟你打哑谜。我是认真想跟你说话，你要是有啥想问的，直接问我，我尽量不藏。",tone:"mix",tags:["smooth","serious"],note:"先用梗破冰，再用真诚落地。既有趣又不油滑。"},
+        {t:"这题有点难啊，答错了扣分不？扣的话我先申请个保底分，毕竟对你我向来不敢耍小聪明。",tone:"humor",tags:["funny","flirt"],note:"把刁难变成撒娇式求情，还悄悄捧了她。",minStage:2},
+        {t:"我认真说：你问这些，是因为你也在意这事儿，对吧？那我也认真答，不跟你绕。",tone:"serious",tags:["serious"],note:"<b>正经版</b>：认真接住她的问题，不绕弯，直接交底，建立信任。",minStage:1},
+        {t:"我觉得——答案不重要，重要的是你现在愿意跟我聊这些。那我也认真说：我挺珍惜能跟你这么说话的。",tone:"serious",tags:["serious","flirt"],note:"<b>走心版</b>：绕开刁难，直接给态度，真诚有时就是最好的反击。",minStage:3},
+      ]
+    },
+    default: {
+      name:"日常 / 一般性话题", explain:"这句话没有明显情绪标签，就是正常聊天。要点：接住话题 + 给个能聊下去的方向，别一句话聊死。",
+      strategy:"日常聊天靠「接住 + 延伸 + 轻互动」维持热度。给她的每句话一个具体回应，再抛一个小问题或小观点，别当话题终结者。",
+      replies:[
+        {t:"这个我还挺感兴趣，展开说说？我搬好小板凳了，就等你的故事。",tone:"mix",tags:["funny"],note:"表达好奇 + 给足回应感，让她愿意继续说。"},
+        {t:"是嘛，这事我也有点想法。先说你的，我怕我说起来刹不住车。",tone:"humor",tags:["funny"],note:"先让她说，自己留个互动钩子，聊天有来有回。"},
+        {t:"嗯，然后呢？你接着说，我认真听着呢。",tone:"serious",tags:["serious"],note:"<b>正经版</b>：简单但有效的倾听回应，适合她话多的场景。"},
+      ]
+    }
+  };
+
+  /* ---------- 意图识别 ---------- */
+  function detectIntent(text){
+    const t = text.replace(/\s+/g,"").replace(/[。！？…~\.\?\!]+$/,"");
+    const len = t.length;
+    // 超短冷淡回应
+    if(len<=2 && /^(哦|嗯+|好|行|对|没|啊|哈+|呵呵+|额|随便|都行|还行|知道了|可以|一般|凑合|ok|好的|还行吧)$/i.test(t)){
+      return "cold";
+    }
+    const rules = [
+      ["cold", /(随便|都行|无所谓|呵呵|哦哦|嗯嗯|知道了|行吧|哦这样|还好吧|不聊了|睡了|先这样|没事我睡了)/],
+      ["busy", /(忙|加班|开会|累|困|在上班|干活|改天|没空|抽空|忙完|歇会|歇着|事儿多|事情多|赶工)/],
+      ["down", /(烦|难过|气|委屈|哭|emo|倒霉|焦虑|失眠|心情不好|不开心|心累|郁闷|闹心|崩溃|气死|好累啊)/],
+      ["invite", /(出来|见面|约|一起吃|一起玩|看电影|逛|什么时候有空|带我|请我|见见|碰个面|聚一聚|出来玩)/],
+      ["care", /(想你|梦到|梦见|注意|早点睡|记得|吃饭没|吃了没|穿|冷不冷|别熬夜|担心|路上|照顾好|多喝|按时)/],
+      ["probe", /(和谁|跟谁|谁啊|女的|男生|前任|前女友|喜欢谁|你喜欢|在哪|哪儿呢|那个女生|她是谁|朋友圈|点赞|评论)/],
+      ["challenge", /(你猜|凭什么|为什么|你觉得|你怎么|你谁|关你|然后呢|所以呢|就这|想得美|做梦|呵呵|呵呵呵|随你|关我啥事)/],
+      ["tease", /(逗|损|嫌弃|憨|傻|猪|狗男人|直男|无语|服了|就你|没救了|德行|小样|白痴|二货)/],
+      ["share", /(在干嘛|在吗|到家|出门|上班|下班|今天|刚醒|刚忙|吃了|睡了没|回来了|到家了|出去|刚刚)/],
+    ];
+    for(const [key,re] of rules){
+      if(re.test(t)) return key;
+    }
+    return "default";
+  }
+
+  /* ---------- 生成候选 ---------- */
+  function generate(intentKey, opt){
+    const pool = INTENTS[intentKey].replies.slice();
+    const stage = opt.stage;
+    let filtered = pool.filter(r => (r.minStage||1) <= stage);
+
+    // 按目标排序
+    const goal = opt.goal;
+    function score(r){
+      let s = 0;
+      if(goal==="auto"){
+        // 默认偏好 mix > humor > serious 各来一条
+        if(r.tone==="mix") s+=3; else if(r.tone==="humor") s+=2; else s+=1;
+      } else if(goal==="funny"){ s += (r.tags.includes("funny")?5:0); if(r.tone==="humor"||r.tone==="mix") s+=2; }
+      else if(goal==="serious"){ s += (r.tone==="serious"?5:0) + (r.tags.includes("serious")?3:0); }
+      else if(goal==="flirt"){ s += (r.tags.includes("flirt")?6:0); if(r.tone!=="serious") s+=1; }
+      else if(goal==="invite"){ s += (r.tags.includes("invite")?6:0); if(r.tags.includes("care")) s+=1; }
+      else if(goal==="smooth"){ s += (r.tags.includes("smooth")?6:0) + (r.tags.includes("care")?1:0); }
+      return s + Math.random()*0.3;
+    }
+    filtered = filtered.sort((a,b)=>score(b)-score(a));
+
+    // 尽量覆盖三种 tone，取前 3 条去重
+    const picks = [];
+    for(const tone of ["mix","humor","serious"]){
+      const hit = filtered.find(r=>r.tone===tone && !picks.includes(r));
+      if(hit && picks.length<3) picks.push(hit);
+    }
+    for(const r of filtered){
+      if(picks.length>=3) break;
+      if(!picks.includes(r)) picks.push(r);
+    }
+    // 若目标不是 auto，取排序前3即可
+    if(goal!=="auto"){
+      const top = filtered.slice(0,3);
+      return top;
+    }
+    return picks.slice(0,3);
+  }
+
+  function fillPlaceholders(s, opt){
+    const her = opt.herName || "你";
+    const me = opt.meName || "我";
+    return s.replace(/\{her\}/g, her).replace(/\{me\}/g, me);
+  }
+
+  /* ---------- 对话解析 ---------- */
+  function parseConversation(raw, opt){
+    const lines = raw.split(/\r?\n/);
+    const items = [];
+    let cur = null;
+    const herName = opt.herName && opt.herName.trim();
+    const meName = opt.meName && opt.meName.trim();
+
+    const herRe = herName ? new RegExp("^"+escapeRe(herName)+"\\b") : null;
+    const meRe  = meName  ? new RegExp("^"+escapeRe(meName)+"\\b")  : null;
+
+    for(let rawline of lines){
+      const line = rawline.replace(/\u00a0/g," ").trim();
+      if(!line) continue;
+
+      // 微信格式：名字 + 时间头
+      const timeHead = line.match(/^(.{1,20}?)[\s:：]+(\d{4}[-/]\d{1,2}[-/]\d{1,2}[^\d]*\d{0,2}:\d{0,2}(:\d{0,2})?)/);
+      if(timeHead){
+        const who = timeHead[1].trim();
+        cur = { who: classify(who, herName, meName), text:"" };
+        items.push(cur);
+        continue;
+      }
+      // 前缀格式：她:/我:/对方:/他: 等
+      const pref = line.match(/^(她|他|对方|女|男|我|me|her)\s*[:：]\s*(.*)$/i);
+      if(pref){
+        const tag = pref[1].toLowerCase();
+        const isMe = (tag==="我"||tag==="me");
+        cur = { who: isMe ? "me" : "her", text: pref[2].trim() };
+        items.push(cur);
+        continue;
+      }
+      // 名字开头
+      if(herRe && herRe.test(line)){
+        const rest = line.replace(herRe,"").replace(/^[\s:：]+/,"");
+        if(rest){ cur = {who:"her", text:rest}; items.push(cur); continue; }
+      }
+      if(meRe && meRe.test(line)){
+        const rest = line.replace(meRe,"").replace(/^[\s:：]+/,"");
+        if(rest){ cur = {who:"me", text:rest}; items.push(cur); continue; }
+      }
+      // 无前缀：归属上一条
+      if(cur){ cur.text = cur.text ? cur.text + "\n" + line : line; }
+    }
+    return items.filter(it=>it.text && it.text.trim());
+  }
+  function classify(who, herName, meName){
+    if(herName && who.indexOf(herName)>=0) return "her";
+    if(meName && who.indexOf(meName)>=0) return "me";
+    // 无法判断时默认：时间头里最后出现的、与第一个不同的记为 her（启发式）
+    return null;
+  }
+  function escapeRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+
+  /* ---------- 主流程 ---------- */
+  function run(){
+    const raw = document.getElementById("convInput").value;
+    const opt = {
+      herName: document.getElementById("herName").value.trim(),
+      meName: document.getElementById("meName").value.trim(),
+      stage: parseInt(document.getElementById("stage").value,10),
+      zodiac: document.getElementById("zodiac").value,
+      goal: document.getElementById("goal").value,
+      dongbei: document.getElementById("dongbei").checked,
+    };
+    let items = parseConversation(raw, opt);
+    // 未解析到时，给提示
+    if(items.length===0){
+      document.getElementById("convPreview").innerHTML = '<div class="empty">没解析出对话。请确认格式：每行一条，前缀用「她:」「我:」；或直接粘微信带时间的记录。</div>';
+      document.getElementById("resultArea").innerHTML = '<div class="empty">先粘对话再分析。</div>';
+      return {error:"empty"};
+    }
+    // 补全 who（null 的启发式：第一个出现的记为 me，其后交替，遇到明确就锁定）
+    let lastWho = null;
+    items.forEach(it=>{
+      if(it.who) { lastWho = it.who; }
+      else { it.who = lastWho === "her" ? "me" : "her"; lastWho = it.who; }
+    });
+
+    // 渲染对话预览
+    const convEl = document.getElementById("convPreview");
+    convEl.innerHTML = items.map(it=>
+      `<div class="line ${it.who}"><span class="who">${it.who==="me"?"我":"她"}</span><span class="txt">${esc(it.text)}</span></div>`
+    ).join("");
+
+    // 取她最后一条
+    const herMsgs = items.filter(it=>it.who==="her");
+    if(herMsgs.length===0){
+      document.getElementById("resultArea").innerHTML = '<div class="empty">没有识别到「她」的消息。请给她的消息加上「她:」前缀，或填写她的昵称。</div>';
+      return {error:"no-her"};
+    }
+    const lastHer = herMsgs[herMsgs.length-1];
+    const intentKey = detectIntent(lastHer.text);
+    const intent = INTENTS[intentKey];
+    const replies = generate(intentKey, opt);
+
+    // 渲染结果
+    const zNote = opt.zodiac && ZODIAC[opt.zodiac] ? ZODIAC[opt.zodiac].note : "";
+    const toneName = {humor:"幽默风趣", serious:"正经靠谱", mix:"幽默带正经"};
+    const cards = replies.map((r,i)=>{
+      let words = fillPlaceholders(r.t, opt);
+      if(opt.dongbei) words = applyDongbei(words);
+      words = maybeDongbeiTail(words, opt);
+      return `<div class="reply">
+        <span class="tone ${r.tone}">${toneName[r.tone]||r.tone}</span>
+        <button class="btn small copybtn" data-copy="${escAttr(words)}">复制</button>
+        <p class="words">${esc(words)}</p>
+        <div class="why">💡 为什么这么回：${r.note}</div>
+      </div>`;
+    }).join("");
+
+    document.getElementById("resultArea").innerHTML = `
+      <div class="intent-banner">
+        <span class="tag">${intent.name}</span>
+        <span class="big">她这句：</span>
+        <span style="color:var(--sub);font-size:13px">“${esc(lastHer.text)}”</span>
+      </div>
+      <div class="why" style="margin-bottom:12px">📌 判断依据：${intent.explain}</div>
+      ${cards}
+      <div class="strategy">🎯 <b>策略提醒：</b>${intent.strategy}</div>
+      ${zNote ? `<div class="zodiac-note" style="margin-top:12px">♒ ${zNote}</div>` : ""}
+    `;
+    bindCopy();
+    return {ok:true, intent:intentKey, replies};
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function escAttr(s){ return esc(s); }
+
+  /* ---------- 复制 ---------- */
+  function bindCopy(){
+    document.querySelectorAll(".copybtn").forEach(btn=>{
+      btn.addEventListener("click", function(){
+        const txt = this.getAttribute("data-copy");
+        const done = ()=>{ toast("已复制到剪贴板 ✅"); };
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done));
+        } else { fallbackCopy(txt,done); }
+      });
+    });
+  }
+  function fallbackCopy(txt, done){
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); done(); }catch(e){ toast("复制失败，请手动长按复制"); }
+    document.body.removeChild(ta);
+  }
+  let toastTimer=null;
+  function toast(msg){
+    const el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.classList.remove("show"), 1600);
+  }
+
+  /* ---------- 可选 AI 增强 ---------- */
+  async function aiGenerate(raw, opt){
+    const base = document.getElementById("apiBase").value.trim() || "https://api.deepseek.com/v1";
+    const key = document.getElementById("apiKey").value.trim();
+    const model = document.getElementById("apiModel").value.trim() || "deepseek-chat";
+    if(!key) return null;
+    const her = opt.herName||"对方";
+    const stageName = {1:"刚认识",2:"熟悉",3:"暧昧"}[opt.stage];
+    const zodiacName = opt.zodiac ? (ZODIAC[opt.zodiac]?.name||"") : "";
+    const sys = "你是一个帮男生回女生消息的聊天助手。要求：幽默风趣、有意思，但骨子里透着正经和真诚，不油腻、不舔、不低俗。";
+    const prompt = `对话记录（「我」是我，「她」是${her}）：\n${raw}\n\n关系阶段：${stageName}。${zodiacName?("她是"+zodiacName+"，注意她的性格特点。"):""}\n请给出 3 条不同风格的回复（幽默风趣 / 正经靠谱 / 幽默里带正经），每条后附一句话解释「为什么这么回」。直接输出，别啰嗦。`;
+    try{
+      const res = await fetch(base.replace(/\/$/,"")+"/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+        body: JSON.stringify({model, messages:[{role:"system",content:sys},{role:"user",content:prompt}], temperature:0.9, max_tokens:1000})
+      });
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const data = await res.json();
+      return data.choices && data.choices[0] && data.choices[0].message.content;
+    }catch(e){
+      toast("AI 调用失败："+e.message);
+      return null;
+    }
+  }
+
+  /* ---------- 截图识别（OCR，本地识别，首次需联网下载引擎） ---------- */
+  let tessWorker = null;
+  let tessLoading = null;
+  function loadTesseract(){
+    if(tessWorker) return Promise.resolve(tessWorker);
+    if(tessLoading) return tessLoading;
+    tessLoading = new Promise(function(resolve, reject){
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error("识别引擎加载失败，请检查网络")); };
+      document.head.appendChild(s);
+    }).then(function(){
+      return Tesseract.createWorker("chi_sim", 1, {
+        langPath: "https://tessdata.projectnaptha.com/4.0.0_fast",
+        gzip: true,
+        logger: function(m){
+          if(m.status === "recognizing text"){
+            const st = document.getElementById("ocrStatus");
+            if(st){ st.textContent = "🔍 识别中… " + Math.round(m.progress*100) + "%"; }
+          }
+        }
+      });
+    }).then(function(w){ tessWorker = w; return w; });
+    return tessLoading;
+  }
+  function loadImageFromFile(file){
+    return new Promise(function(resolve, reject){
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = function(){ resolve(img); };
+      img.onerror = function(){ reject(new Error("图片读取失败")); };
+      img.src = url;
+    });
+  }
+  /* 把 Tesseract 的 TSV 输出按行聚类，返回 [{text,left,conf}] */
+  function tsvToLines(tsv){
+    const rows = [];
+    if(!tsv) return rows;
+    const lines = tsv.split("\n");
+    for(let i=1;i<lines.length;i++){
+      const c = lines[i].split("\t");
+      if(c.length < 12) continue;
+      if(parseInt(c[0],10) !== 5) continue; /* 只要 word 级 */
+      const conf = parseFloat(c[10]);
+      const text = c[11];
+      if(!text || conf < 25) continue;
+      const key = c[2]+"-"+c[3]+"-"+c[4];
+      let row = rows.find(function(r){ return r.key===key; });
+      if(!row){ row = {key:key, left:0, n:0, confSum:0, words:[]}; rows.push(row); }
+      row.words.push({left:parseFloat(c[6]), text:text});
+      row.left += parseFloat(c[6]);
+      row.confSum += conf;
+      row.n++;
+    }
+    const out = [];
+    for(const r of rows){
+      r.words.sort(function(a,b){ return a.left-b.left; });
+      const text = r.words.map(function(w){ return w.text; }).join("");
+      out.push({ text:text, left:r.left/r.n, conf:r.confSum/r.n });
+    }
+    return out;
+  }
+  /* 过滤时间戳、界面按钮等噪音行 */
+  function cleanOcrLines(lines){
+    return lines.filter(function(l){
+      const t = l.text.trim();
+      if(!t) return false;
+      if(/^\d{1,2}:\d{2}$/.test(t)) return false;
+      if(/^(上午|下午|晚上|昨天|今天|星期[一二三四五六日天]|周[一二三四五六日天])?\s*\d{1,2}:\d{2}$/.test(t)) return false;
+      if(/^\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?$/.test(t)) return false;
+      if(/^(微信|WeChat|通讯录|发现|返回|正在输入|对方正在输入|轻触返回|聊天信息|视频通话|语音通话|已结束|对方已取消|你已取消)/i.test(t)) return false;
+      return true;
+    });
+  }
+  /* 按气泡左右分她/我：左边气泡=她，右边气泡=我 */
+  function ocrToConversation(lines, imgWidth){
+    const mid = imgWidth * 0.5;
+    return lines.map(function(l){
+      const who = l.left < mid ? "她" : "我";
+      return who + ": " + l.text.trim();
+    });
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  document.getElementById("ocrBtn").addEventListener("click", function(){
+    document.getElementById("ocrFile").click();
+  });
+  document.getElementById("ocrFile").addEventListener("change", function(){
+    const f = this.files && this.files[0];
+    if(!f) return;
+    this.value = ""; /* 允许重复选同一张图 */
+    const st = document.getElementById("ocrStatus");
+    st.style.display = "block";
+    st.style.color = "var(--sub)";
+    st.textContent = "⏳ 加载识别引擎中…（第一次需联网下载约 3MB，之后会快很多）";
+    loadTesseract().then(function(worker){
+      st.textContent = "🔍 识别中…";
+      return loadImageFromFile(f).then(function(img){
+        return worker.recognize(f).then(function(res){
+          const lines = cleanOcrLines(tsvToLines(res.data && res.data.tsv));
+          if(lines.length === 0){
+            st.style.color = "var(--warn)";
+            st.textContent = "❌ 没识别出文字。建议把截图裁剪到只剩聊天气泡区域再试，或直接手动粘贴文字。";
+            return;
+          }
+          const conv = ocrToConversation(lines, img.naturalWidth);
+          document.getElementById("convInput").value = conv.join("\n");
+          st.style.color = "var(--good)";
+          st.textContent = "✅ 识别出 " + conv.length + " 条，已按气泡左右分好「她/我」。请快速扫一眼（改错字、核对谁是谁），再点「分析并出回复」。";
+        });
+      });
+    }).catch(function(e){
+      st.style.color = "var(--warn)";
+      st.textContent = "❌ 识别失败：" + e.message + "。没网络的话就先手动粘贴文字，其他功能不受影响。";
+    });
+  });
+
+  document.getElementById("analyzeBtn").addEventListener("click", async function(){
+    const raw = document.getElementById("convInput").value;
+    const opt = {
+      herName: document.getElementById("herName").value.trim(),
+      meName: document.getElementById("meName").value.trim(),
+      stage: parseInt(document.getElementById("stage").value,10),
+      zodiac: document.getElementById("zodiac").value,
+      goal: document.getElementById("goal").value,
+      dongbei: document.getElementById("dongbei").checked,
+    };
+    const r = run();
+    if(!r || !r.ok) return;
+    // 若开了 AI 且有 key，追加 AI 结果
+    if(document.getElementById("aiBoost").checked){
+      const aiText = await aiGenerate(raw, opt);
+      if(aiText){
+        const box = document.createElement("div");
+        box.className = "card";
+        box.style.marginTop = "16px";
+        box.innerHTML = `<h2>🤖 AI 增强建议</h2><div style="white-space:pre-wrap;font-size:14px;line-height:1.8">${esc(aiText)}</div>`;
+        document.getElementById("resultArea").appendChild(box);
+      }
+    }
+  });
+
+  document.getElementById("aiBoost").addEventListener("change", function(){
+    document.getElementById("aiBox").style.display = this.checked ? "block":"none";
+  });
+  document.getElementById("zodiac").addEventListener("change", function(){
+    const v = this.value;
+    document.getElementById("zodiacNote").innerHTML = (v && ZODIAC[v]) ? ZODIAC[v].note : "";
+  });
+  // 初始化星座说明
+  document.getElementById("zodiacNote").innerHTML = ZODIAC.aquarius.note;
+
+  // 本地持久化（可选，只存 key 到浏览器）
+  try{
+    const saved = JSON.parse(localStorage.getItem("hdaz-config")||"{}");
+    if(saved.apiKey) document.getElementById("apiKey").value = saved.apiKey;
+    if(saved.apiBase) document.getElementById("apiBase").value = saved.apiBase;
+    if(saved.apiModel) document.getElementById("apiModel").value = saved.apiModel;
+    if(saved.herName) document.getElementById("herName").value = saved.herName;
+    if(saved.meName) document.getElementById("meName").value = saved.meName;
+    if(saved.zodiac) document.getElementById("zodiac").value = saved.zodiac;
+    if(saved.stage) document.getElementById("stage").value = saved.stage;
+  }catch(e){}
+  function saveConfig(){
+    try{
+      localStorage.setItem("hdaz-config", JSON.stringify({
+        apiKey: document.getElementById("apiKey").value,
+        apiBase: document.getElementById("apiBase").value,
+        apiModel: document.getElementById("apiModel").value,
+        herName: document.getElementById("herName").value,
+        meName: document.getElementById("meName").value,
+        zodiac: document.getElementById("zodiac").value,
+        stage: document.getElementById("stage").value,
+      }));
+    }catch(e){}
+  }
+  ["apiKey","apiBase","apiModel","herName","meName","zodiac","stage"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", saveConfig);
+  });
+  // 重新同步星座说明
+  const z0 = document.getElementById("zodiac").value;
+  document.getElementById("zodiacNote").innerHTML = (z0 && ZODIAC[z0]) ? ZODIAC[z0].note : "";
+
+  /* ---------- 暴露给测试 ---------- */
+  window.ReplyEngine = {
+    detectIntent, generate, parseConversation, applyDongbei, fillPlaceholders,
+    tsvToLines, cleanOcrLines, ocrToConversation, INTENTS, ZODIAC
+  };
+})();
+
+/* PWA：离线缓存 + 添加到主屏幕（service worker 需 HTTPS 或 localhost 才生效） */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
