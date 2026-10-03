@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="紫微六壬">
+<meta name="theme-color" content="#150f24">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>紫微斗数 · 大六壬</title>
+<style>
+:root{
+  --bg:#100c1c; --bg2:#191330; --card:#1e1836; --card2:#251d42;
+  --line:#332a55; --gold:#d9b26a; --gold2:#f0d9a0;
+  --txt:#ece7f5; --dim:#9d94b8; --dim2:#7a7195;
+  --good:#5fbf8a; --warn:#e0a83c; --bad:#e06a6a; --info:#7aa7e0;
+  --safel:env(safe-area-inset-left); --safer:env(safe-area-inset-right);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;min-width:0}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%;overflow-x:hidden;max-width:100%}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+a{color:var(--gold);text-decoration:none}
+
+/* 顶部 */
+header{position:sticky;top:0;z-index:50;background:rgba(16,12,28,.94);backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);
+  padding:calc(10px + env(safe-area-inset-top)) calc(14px + var(--safel)) 10px calc(14px + var(--safer))}
+.title{display:flex;align-items:baseline;gap:8px}
+.title h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.5px}
+.title .sub{font-size:11px;color:var(--dim2)}
+.tabs{display:flex;gap:8px;margin-top:10px}
+.tab{flex:1;text-align:center;padding:9px 0;border-radius:10px;background:var(--bg2);
+  border:1px solid var(--line);color:var(--dim);font-size:14px;font-weight:500;transition:.18s}
+.tab.on{background:linear-gradient(135deg,#3a2b63,#553c86);color:var(--gold2);border-color:#6a4fa0;
+  box-shadow:0 2px 12px rgba(120,80,200,.28)}
+
+main{padding:14px calc(14px + var(--safel)) 20px calc(14px + var(--safer))}
+.pane{display:none}.pane.on{display:block}
+
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:14px;font-weight:600;color:var(--gold);letter-spacing:.4px;
+  display:flex;align-items:center;gap:6px}
+.card h2::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--gold);opacity:.8}
+.card h3{margin:12px 0 6px;font-size:13px;font-weight:600;color:var(--gold2)}
+.card h3:first-child{margin-top:0}
+
+/* 表单 */
+.row{display:flex;gap:10px;margin-bottom:10px}
+.field{flex:1 1 0;min-width:0;overflow:hidden}
+.field label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+input,select,textarea{width:100%;max-width:100%;background:var(--bg2);border:1px solid var(--line);
+  color:var(--txt);border-radius:10px;padding:10px;font-size:15px;font-family:inherit;
+  appearance:none;-webkit-appearance:none}
+input[type=date],input[type=time]{font-size:14px;padding:10px 6px;text-align:center}
+input[type=number]{text-align:center}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#6a4fa0;background:#1d1738}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%239d94b8' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 11px center;padding-right:28px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+textarea{min-height:66px;resize:vertical;line-height:1.5}
+
+/* 分段选择 */
+.seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;background:none;border:0;color:var(--dim);padding:8px 4px;border-radius:8px;
+  font-size:13px;font-family:inherit;cursor:pointer;transition:.15s}
+.seg button.on{background:#3a2b63;color:var(--gold2);font-weight:500}
+
+/* 按钮 */
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:600;
+  font-family:inherit;background:linear-gradient(135deg,#6a4fa0,#8b62c9);color:#fff;cursor:pointer;
+  box-shadow:0 4px 16px rgba(110,70,180,.32);letter-spacing:1px;margin-top:4px}
+.btn:active{transform:translateY(1px);opacity:.92}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--dim);box-shadow:none;
+  font-size:13px;padding:10px;margin-top:8px}
+.btnrow{display:flex;gap:10px}
+.btnrow .btn{margin-top:8px}
+
+.switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-bottom:10px}
+.switch input{width:auto;flex:0 0 auto;transform:scale(1.15);accent-color:#8b62c9}
+
+/* 命盘 */
+.charthead{background:linear-gradient(135deg,#241a45,#1a1433);border:1px solid var(--line);
+  border-radius:14px;padding:13px;margin-bottom:12px}
+.charthead .big{font-size:16px;font-weight:600;color:var(--gold2);margin-bottom:6px}
+.kv{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--dim)}
+.kv b{color:var(--txt);font-weight:500}
+.kv .hl{color:var(--gold2)}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px}
+.pal{position:relative;background:var(--card);border:1px solid var(--line);border-radius:9px;
+  padding:5px 4px;min-height:104px;overflow:hidden;transition:.15s}
+.pal.ming{border-color:var(--gold);background:linear-gradient(160deg,#2b2148,#241b3f);
+  box-shadow:0 0 0 1px rgba(217,178,106,.35),0 3px 14px rgba(200,160,80,.14)}
+.pal.shen{border-color:#7a5fb8}
+.pal .gn{font-size:9.5px;color:var(--dim2);letter-spacing:.5px;display:flex;justify-content:space-between;
+  align-items:center;line-height:1.2}
+.pal .gn .pname{color:var(--gold);font-weight:600;font-size:10.5px}
+.pal .st{margin-top:3px;font-size:10px;line-height:1.35}
+.pal .st .m{display:block;color:var(--gold2);font-weight:600;font-size:11px;letter-spacing:.3px}
+.pal .st .h{display:inline-block;font-size:9px;padding:0 3px;border-radius:3px;margin:1px 1px 0 0;
+  background:#3a2b63;color:#e8d5a8}
+.pal .st .a{display:inline;color:var(--dim2);font-size:9.5px}
+.pal .st .s{display:inline;color:#c98f8f;font-size:9.5px}
+.pal .lm{position:absolute;right:4px;bottom:3px;font-size:8.5px;color:var(--dim2);letter-spacing:.2px}
+.pal.cur{background:linear-gradient(160deg,#33285a,#281f47)}
+.pal.cur .lm{color:var(--gold)}
+
+/* 六壬盘 */
+.plate{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px}
+.cell{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:6px 5px;text-align:center;
+  min-height:74px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.cell .tian{font-size:14px;font-weight:600;color:var(--gold2);line-height:1.2}
+.cell .jiang{font-size:9.5px;color:var(--dim);line-height:1.2}
+.cell .di{font-size:10px;color:var(--dim2);line-height:1.2}
+.cell.kong .tian{color:var(--dim2);text-decoration:line-through}
+.cell.cur{border-color:var(--gold);background:linear-gradient(160deg,#2b2148,#241b3f)}
+
+table.ketable{width:100%;border-collapse:collapse;font-size:12.5px}
+table.ketable th{color:var(--dim2);font-weight:500;font-size:11px;padding:4px 3px;text-align:center;
+  border-bottom:1px solid var(--line)}
+table.ketable td{padding:6px 3px;text-align:center;border-bottom:1px solid #241d42}
+table.ketable td.up{color:var(--gold2);font-weight:600;font-size:14px}
+table.ketable tr:last-child td{border-bottom:0}
+
+.chuan{display:flex;gap:8px;margin-bottom:6px}
+.chuan .item{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:11px;
+  padding:9px 6px;text-align:center}
+.chuan .item .lbl{font-size:10.5px;color:var(--dim2);margin-bottom:2px}
+.chuan .item .zz{font-size:21px;font-weight:600;color:var(--gold2);line-height:1.15}
+.chuan .item .jj{font-size:11px;color:var(--gold);margin-top:1px}
+.chuan .item .qq{font-size:10px;color:var(--dim);margin-top:2px}
+.chuan .item .kong{font-size:9.5px;color:var(--warn);margin-top:1px}
+
+/* 解读块 */
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;margin:0 6px 6px 0;
+  background:#2c2350;color:var(--gold2);border:1px solid var(--line)}
+.badge.g{background:rgba(95,191,138,.14);color:var(--good);border-color:rgba(95,191,138,.3)}
+.badge.w{background:rgba(224,168,60,.14);color:var(--warn);border-color:rgba(224,168,60,.3)}
+.badge.b{background:rgba(224,106,106,.14);color:var(--bad);border-color:rgba(224,106,106,.3)}
+.badge.i{background:rgba(122,167,224,.14);color:var(--info);border-color:rgba(122,167,224,.3)}
+
+.verdict{background:linear-gradient(135deg,#241a45,#1a1433);border:1px solid var(--line);
+  border-radius:14px;padding:14px;margin-bottom:12px}
+.verdict .v1{font-size:16px;font-weight:600;color:var(--gold2);line-height:1.5;margin-bottom:8px}
+.verdict .v2{font-size:13px;color:var(--txt);line-height:1.7}
+
+ul.tight{margin:6px 0 0;padding-left:18px}
+ul.tight li{margin-bottom:6px;font-size:13.5px;line-height:1.6}
+ul.tight li b{color:var(--gold2);font-weight:600}
+ol.steps{margin:6px 0 0;padding-left:20px}
+ol.steps li{margin-bottom:7px;font-size:13.5px;line-height:1.6}
+
+.palread{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;
+  background:var(--card2)}
+.palread .ph{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.palread .ph .n{font-size:14px;font-weight:600;color:var(--gold)}
+.palread .ph .z{font-size:11.5px;color:var(--dim2)}
+.palread .ph .s{font-size:11px;color:var(--dim)}
+.palread .ph .sc{margin-left:auto;font-size:12px;font-weight:600}
+.palread p{margin:0 0 5px;font-size:13px;line-height:1.65}
+.palread .ad{font-size:12.5px;color:var(--gold2);background:rgba(217,178,106,.08);
+  border-left:2px solid var(--gold);padding:6px 9px;border-radius:0 8px 8px 0;margin-top:6px}
+
+.plan{display:flex;gap:9px;margin-bottom:9px;align-items:flex-start}
+.plan .w{flex:0 0 62px;font-size:11px;color:var(--gold);background:rgba(217,178,106,.1);
+  border:1px solid rgba(217,178,106,.28);border-radius:8px;padding:3px 0;text-align:center;margin-top:1px}
+.plan .c{flex:1;min-width:0}
+.plan .c .t{font-size:13.5px;line-height:1.6}
+.plan .c .y{font-size:11.5px;color:var(--dim2);margin-top:2px;line-height:1.5}
+
+.note{font-size:11.5px;color:var(--dim2);line-height:1.6;margin-top:8px}
+.err{background:rgba(224,106,106,.12);border:1px solid rgba(224,106,106,.35);color:#f0b0b0;
+  border-radius:10px;padding:11px;font-size:13px;margin-bottom:12px}
+
+/* 底部 */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;
+  background:rgba(16,12,28,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);padding:6px var(--safel) calc(4px + env(safe-area-inset-bottom)) var(--safer)}
+nav button{flex:1;background:none;border:0;color:var(--dim2);font-family:inherit;font-size:10.5px;
+  padding:6px 0 5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button .ic{font-size:19px;line-height:1}
+nav button.on{color:var(--gold)}
+.hidden{display:none!important}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:360px){
+  .pal{min-height:96px}.pal .st{font-size:9.5px}.pal .st .m{font-size:10.5px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>紫微斗数 · 大六壬</h1>
+    <span class="sub">本地推算 · 不联网</span>
+  </div>
+  <div class="tabs">
+    <div class="tab on" id="tab-ziwei">紫微斗数</div>
+    <div class="tab" id="tab-liuren">大六壬</div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ 紫微 ============ -->
+  <section class="pane on" id="pane-ziwei">
+    <div class="card">
+      <h2>生辰信息</h2>
+      <div id="zw-err" class="err hidden"></div>
+      <div class="row">
+        <div class="field" style="flex:1.4">
+          <label>出生日期（公历）</label>
+          <input type="date" id="zw-date" min="1900-01-31" max="2100-12-31">
+        </div>
+        <div class="field" style="flex:.9">
+          <label>出生时间</label>
+          <input type="time" id="zw-time" value="12:00">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>性别</label>
+          <div class="seg" id="zw-gender">
+            <button data-v="男" class="on">男</button><button data-v="女">女</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>闰月算法</label>
+          <select id="zw-leap">
+            <option value="split">十五前本月，十六起下月（推荐）</option>
+            <option value="prev">闰月按本月</option>
+            <option value="next">闰月按下月</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>定命宫用的月</label>
+          <select id="zw-monthmode">
+            <option value="term">节气月（专业排盘主流）</option>
+            <option value="lunar">农历月（初一换月）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>出生地（真太阳时）</label>
+          <select id="zw-city"></select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:.7">
+          <label>当前年龄（虚岁）</label>
+          <input type="number" id="zw-age" min="1" max="120" inputmode="numeric" placeholder="自动">
+        </div>
+        <div class="field" style="flex:1.3">
+          <label>&nbsp;</label>
+          <div class="note" style="margin:0;padding-top:8px">用于定位当前大限，留空则按今年自动估算</div>
+        </div>
+      </div>
+      <div class="switch">
+        <input type="checkbox" id="zw-truesolar" checked>
+        <label for="zw-truesolar" style="margin:0">启用真太阳时校正（按出生地经度）</label>
+      </div>
+      <button class="btn" id="zw-go">排 命 盘</button>
+    </div>
+    <div id="zw-out"></div>
+  </section>
+
+  <!-- ============ 六壬 ============ -->
+  <section class="pane" id="pane-liuren">
+    <div class="card">
+      <h2>起课信息</h2>
+      <div id="lr-err" class="err hidden"></div>
+      <div class="field" style="margin-bottom:10px">
+        <label>所问何事（越具体越准，可留空）</label>
+        <textarea id="lr-q" placeholder="例：这笔合作这个月能不能谈成？／丢失的东西还能找回来吗？／他什么时候会联系我？"></textarea>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.4">
+          <label>起课日期</label>
+          <input type="date" id="lr-date" min="1900-01-31" max="2100-12-31">
+        </div>
+        <div class="field" style="flex:.9">
+          <label>起课时间</label>
+          <input type="time" id="lr-time" step="60">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>真太阳时（经度）</label>
+          <select id="lr-city"></select>
+        </div>
+        <div class="field" style="flex:.8">
+          <label>起课方式</label>
+          <select id="lr-mode">
+            <option value="now">此刻</option>
+            <option value="manual">手动指定</option>
+          </select>
+        </div>
+      </div>
+      <div class="switch">
+        <input type="checkbox" id="lr-truesolar">
+        <label for="lr-truesolar" style="margin:0">启用真太阳时校正</label>
+      </div>
+      <button class="btn" id="lr-go">起 课</button>
+      <button class="btn ghost" id="lr-refresh">用当前时刻重新起课</button>
+    </div>
+    <div id="lr-out"></div>
+  </section>
+</main>
+
+<nav>
+  <button class="on" id="nav-ziwei"><span class="ic">☯</span>紫微斗数</button>
+  <button id="nav-liuren"><span class="ic">䷀</span>大六壬</button>
+  <button id="nav-about"><span class="ic">ⓘ</span>说明</button>
+</nav>
+
+<script src="js/calendar_data.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/ziwei.js"></script>
+<script src="js/liuren.js"></script>
+<script src="js/ziwei_read.js"></script>
+<script src="js/liuren_read.js"></script>
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var ZHI = '子丑寅卯辰巳午未申酉戌亥';
+var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+
+/* ---------- 初始化：历法数据 ---------- */
+if (window.CALENDAR_DATA) LunarCore.load(window.CALENDAR_DATA);
+
+/* ---------- 城市下拉 ---------- */
+function fillCity(sel, withNone){
+  var html = withNone ? '<option value="">不校正（用钟表时间）</option>' : '';
+  var keys = Object.keys(LunarCore.CITY_LNG).sort();
+  for (var i=0;i<keys.length;i++){
+    html += '<option value="'+keys[i]+'">'+keys[i]+'</option>';
+  }
+  sel.innerHTML = html;
+  sel.value = '北京';
+}
+fillCity($('zw-city'), false);
+fillCity($('lr-city'), true);
+$('lr-city').value = '';
+
+/* ---------- 今天日期 ---------- */
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear()+'-'+LunarCore.pad(d.getMonth()+1)+'-'+LunarCore.pad(d.getDate());
+}
+function nowTimeStr(){
+  var d = new Date();
+  return LunarCore.pad(d.getHours())+':'+LunarCore.pad(d.getMinutes());
+}
+$('zw-date').value = todayStr();
+$('lr-date').value = todayStr();
+$('lr-time').value = nowTimeStr();
+
+/* ---------- 分段选择 ---------- */
+function segBind(el, onPick){
+  el.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (!b || !el.contains(b)) return;
+    var bs = el.querySelectorAll('button');
+    for (var i=0;i<bs.length;i++) bs[i].className = '';
+    b.className = 'on';
+    if (onPick) onPick(b.getAttribute('data-v'));
+  });
+}
+var zwGender = '男';
+segBind($('zw-gender'), function(v){ zwGender = v; });
+$('lr-mode').addEventListener('change', function(){
+  var manual = this.value === 'manual';
+  $('lr-date').disabled = !manual;
+  $('lr-time').disabled = !manual;
+  if (!manual) { $('lr-date').value = todayStr(); $('lr-time').value = nowTimeStr(); }
+});
+$('lr-date').disabled = true; $('lr-time').disabled = true;
+
+/* ---------- 顶部/底部切换 ---------- */
+function showPane(name){
+  var panes = ['ziwei','liuren'];
+  for (var i=0;i<panes.length;i++){
+    var on = panes[i] === name;
+    $('pane-'+panes[i]).className = 'pane' + (on?' on':'');
+    $('tab-'+panes[i]).className = 'tab' + (on?' on':'');
+  }
+  $('nav-ziwei').className = name==='ziwei' ? 'on' : '';
+  $('nav-liuren').className = name==='liuren' ? 'on' : '';
+  $('nav-about').className = name==='about' ? 'on' : '';
+  window.scrollTo(0,0);
+}
+$('tab-ziwei').onclick = function(){ showPane('ziwei'); };
+$('tab-liuren').onclick = function(){ showPane('liuren'); };
+$('nav-ziwei').onclick = function(){ showPane('ziwei'); };
+$('nav-liuren').onclick = function(){ showPane('liuren'); };
+$('nav-about').onclick = function(){ showAbout(); };
+
+function showAbout(){
+  var out = $('lr-out');
+  $('pane-ziwei').className = 'pane';
+  $('pane-liuren').className = 'pane on';
+  $('tab-liuren').className = 'tab on';
+  $('tab-ziwei').className = 'tab';
+  $('nav-about').className = 'on';
+  $('nav-ziwei').className = ''; $('nav-liuren').className = '';
+  out.innerHTML =
+   '<div class="card"><h2>这份工具怎么用</h2>'+
+   '<h3>紫微斗数</h3>'+
+   '<p style="font-size:13.5px">填出生年月日时（公历）和性别，点「排命盘」。默认启用真太阳时校正——中国统一用东经120°的钟表时间，但新疆、西藏、东北等地与120°相差很大，不校正会让时支（进而命盘）算错。</p>'+
+   '<p style="font-size:13.5px">「定命宫用的月」有两种取法：<b>节气月</b>（以立春、惊蛰等「节」为月份分界，专业排盘主流）与<b>农历月</b>（正月初一换月，部分在线工具的做法）。两派都有人用，结果可能差一个宫位，可自行切换对比。</p>'+
+   '<p style="font-size:13.5px">闰月有三种算法（十五前本月・十六起下月／归本月／归下月），默认第一种，与主流排盘一致。</p>'+
+   '<p style="font-size:13.5px"><b>口径说明</b>：十二宫宫干用<b>农历年干</b>（正月初一换年）起五虎遁；四化、流年诸星用<b>节气年干</b>（立春换年）。命主按命宫地支、身主按农历年支；大限由五行局起，阳男阴女顺行。</p>'+
+   '<h3>大六壬</h3>'+
+   '<p style="font-size:13.5px">写下具体要问的事，然后点「起课」。起课时刻默认取此刻——传统讲究「心动即占」，你决定要问的这一刻就是占时。也可以手动指定时间复盘旧事。</p>'+
+   '<p style="font-size:13.5px">排盘规则依据《六壬大全》《大六壬指南》：月将以中气换将，十二天将按「天盘贵人所压地盘宫落亥子丑寅卯辰则顺治、落巳午未申酉戌则逆治」，并采用贵人临辰戌的「移神换将」（临辰用申、临戌用寅）。三传按九宗门顺序取：伏吟→返吟→八专→贼克→比用→涉害→遥克→昴星／别责。</p>'+
+   '<h3>关于准确性</h3>'+
+   '<p style="font-size:13.5px">历法（农历、干支、节气、真太阳时）已用权威历法库交叉校验；紫微全盘（五行局／宫干支／十四主星／辅煞／四化／长生／大限／命主身主）经 <b>308 张命盘</b>与开源权威实现 iztro 逐字段比对全部一致；六壬四课三传在 720 种课式上遍历无异常，井栏射六日、八专五日等特殊课体与古籍记载吻合。</p>'+
+   '<p style="font-size:13.5px">但术数断语本身是经验模型，本工具的分析建议仅供参考，<b>重大决策请自己拿主意</b>。</p>'+
+   '<h3>离线使用</h3>'+
+   '<p style="font-size:13.5px">全部计算在本机完成，不联网、不上传任何信息。用 Safari 打开后可「添加到主屏幕」，像 App 一样离线使用。</p>'+
+   '</div>';
+}
+
+/* ---------- 紫微排盘与渲染 ---------- */
+$('zw-go').onclick = function(){
+  var btn = this;
+  btn.innerHTML = '<span class="spin"></span>推算中…';
+  setTimeout(function(){
+    try { renderZiwei(); btn.innerHTML = '排 命 盘'; }
+    catch (e) {
+      btn.innerHTML = '排 命 盘';
+      showErr('zw-err', '排盘失败：' + e.message);
+    }
+  }, 20);
+};
+
+function showErr(id, msg){
+  var el = $(id);
+  el.className = 'err'; el.textContent = msg;
+  setTimeout(function(){ el.className = 'err hidden'; }, 6000);
+}
+
+function parseDateTime(dateStr, timeStr){
+  var dp = String(dateStr||'').split('-'), tp = String(timeStr||'12:00').split(':');
+  if (dp.length !== 3) throw new Error('请填写出生日期');
+  return { y:+dp[0], m:+dp[1], d:+dp[2], hh:+(tp[0]||0), mm:+(tp[1]||0) };
+}
+
+function renderZiwei(){
+  var dt = parseDateTime($('zw-date').value, $('zw-time').value);
+  var city = $('zw-city').value;
+  var lng = LunarCore.CITY_LNG[city];
+  var useTS = $('zw-truesolar').checked && typeof lng === 'number';
+  var c = ZiWei.chart({
+    year:dt.y, month:dt.m, day:dt.d, hour:dt.hh, minute:dt.mm,
+    gender: zwGender,
+    leapMode: $('zw-leap').value,
+    monthMode: $('zw-monthmode').value,
+    trueSolar: useTS, longitude: lng, useEoT: true
+  });
+  var ageInput = parseInt($('zw-age').value, 10);
+  var age = (ageInput > 0) ? ageInput : (new Date().getFullYear() - dt.y + 1);
+  c._age = age;
+  var read = ZiWeiRead.analyze(c, { age: age, currentYear: new Date().getFullYear() });
+  read._age = age;
+  $('zw-out').innerHTML = zwHeader(c) + zwGrid(c, read) + zwReading(c, read, age);
+}
+
+function zwHeader(c){
+  var i = c.info, ts = i.trueSolar;
+  var h = '<div class="charthead">';
+  h += '<div class="big">'+esc(i.yearGZ)+'年 · '+esc(i.shengXiao)+' · '+esc(c.juName)+'</div>';
+  h += '<div class="kv">';
+  h += '<span>农历 <b>'+esc(i.lunar.text)+'</b></span>';
+  h += '<span>时支 <b>'+esc(c.hourZhiName)+'时</b></span>';
+  h += '<span>命宫 <b class="hl">'+esc(c.mingGanZhi)+'</b></span>';
+  h += '<span>身宫 <b class="hl">'+esc(c.shenGanZhi)+'</b></span>';
+  h += '<span>命主 <b>'+esc(c.mingZhu)+'</b></span>';
+  h += '<span>身主 <b>'+esc(c.shenZhu)+'</b></span>';
+  h += '<span>大限 <b>'+(c.forward?'顺行':'逆行')+'</b>（'+esc(c.gender)+'）</span>';
+  h += '<span>定命月 <b>'+esc(i.monthSource||'')+' '+c.zwMonth+'月</b></span>';
+  h += '</div>';
+  if (ts) {
+    h += '<div class="note">真太阳时校正：钟表 '+esc(LunarCore.pad(i.input.hh))+':'+esc(LunarCore.pad(i.input.mm))+
+         ' → 真太阳时 '+esc(LunarCore.pad(ts.hour))+':'+esc(LunarCore.pad(ts.minute))+
+         '（'+(ts.deltaMin>=0?'+':'')+ts.deltaMin+' 分，'+esc($('zw-city').value)+'）</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function zwGrid(c, read){
+  /* 传统布局：巳午未申 / 辰酉 / 卯戌 / 寅丑子亥 —— 用 4x4 网格，四角留空 */
+  var layout = [5,6,7,8, 4,-1,9,-1, 3,-1,10,-1, 2,1,0,11];
+  var cur = currentLimitPos(c, read);
+  var h = '<div class="grid">';
+  for (var k=0;k<layout.length;k++){
+    var zi = layout[k];
+    if (zi < 0) { h += '<div></div>'; continue; }
+    h += zwPalace(c, zi, cur);
+  }
+  h += '</div>';
+  h += '<div class="note">宫位按传统「巳午未申／辰…酉／卯…戌／寅丑子亥」排布；命宫描金边，身宫紫边。右下角为该宫大限岁数区间，高亮为当前大限。</div>';
+  return h;
+}
+
+function currentLimitPos(c, read){
+  var age = read && read._age ? read._age : 0;
+  if (!age) return -1;
+  var ps = c.palaces;
+  for (var i=0;i<ps.length;i++){
+    if (ps[i].limit && age >= ps[i].limit.from && age <= ps[i].limit.to) return ps[i].zhi;
+  }
+  return -1;
+}
+
+function zwPalace(c, zi, curLimit){
+  var p = c.palaces[zi];
+  var cls = 'pal' + (p.isMing?' ming':'') + (p.isShen?' shen':'') + (zi===curLimit?' cur':'');
+  var h = '<div class="'+cls+'">';
+  h += '<div class="gn"><span class="pname">'+esc(p.name)+'</span><span>'+esc(p.ganName+p.zhiName)+'</span></div>';
+  h += '<div class="st">';
+  var mains = p.mainStars, shown = 0;
+  for (var i=0;i<mains.length;i++){
+    var nm = mains[i];
+    var hua = huaOf(p, nm);
+    h += '<span class="m">'+esc(nm)+'</span>';
+    if (hua) h += '<span class="h">'+esc(hua)+'</span>';
+    shown++;
+  }
+  if (mains.length >= 2) h += '<span class="a">（同宫）</span>';
+  /* 其它吉星 / 煞星 */
+  var good = ['左辅','右弼','文昌','文曲','天魁','天钺','禄存','天马','红鸾','天喜'];
+  var bad = ['擎羊','陀罗','火星','铃星','地空','地劫','天刑','天姚','咸池','孤辰','寡宿'];
+  var gs = [], bs = [];
+  for (var j=0;j<p.stars.length;j++){
+    var s = p.stars[j];
+    if (s.indexOf('化') >= 0) continue;
+    if (ZiWei.MAIN_STARS.indexOf(s) >= 0) continue;
+    if (good.indexOf(s) >= 0) gs.push(s);
+    else if (bad.indexOf(s) >= 0) bs.push(s);
+  }
+  if (gs.length) h += '<span class="a">'+esc(gs.join(' '))+'</span>';
+  if (bs.length) h += '<span class="s">'+esc(bs.join(' '))+'</span>';
+  h += '</div>';
+  if (p.limit) h += '<div class="lm">'+p.limit.from+'-'+p.limit.to+'</div>';
+  h += '</div>';
+  return h;
+}
+
+function huaOf(p, star){
+  for (var i=0;i<p.hua.length;i++) if (p.hua[i].star === star) return p.hua[i].hua;
+  for (var j=0;j<p.stars.length;j++) if (p.stars[j] === star+'化禄'||p.stars[j]===star+'化权'||
+      p.stars[j]===star+'化科'||p.stars[j]===star+'化忌') return p.stars[j].slice(star.length);
+  return '';
+}
+
+function zwReading(c, read, age){
+  var h = '';
+  /* 总述 */
+  h += '<div class="card"><h2>命盘总述</h2>';
+  h += '<div style="font-size:14.5px;line-height:1.7;color:var(--gold2);margin-bottom:8px">'+esc(read.headline)+'</div>';
+  if (read.tags && read.tags.length){
+    for (var t=0;t<read.tags.length;t++) h += '<span class="badge i">'+esc(read.tags[t])+'</span>';
+  }
+  var curLimit = null, ps = c.palaces;
+  for (var q2=0;q2<ps.length;q2++) if (ps[q2].limit && age >= ps[q2].limit.from && age <= ps[q2].limit.to) curLimit = ps[q2];
+  if (curLimit) {
+    h += '<div class="note">按虚岁 '+age+' 岁推算，当前大限 '+curLimit.limit.from+'-'+curLimit.limit.to+
+         ' 岁，行至 <b style="color:var(--gold2)">'+esc(curLimit.zhiName)+'宫（'+esc(curLimit.name)+'）</b>'+
+         (curLimit.mainStars.length ? '，主星 '+esc(curLimit.mainStars.join('、')) : '，本宫无主星（借对宫）')+'</div>';
+  } else {
+    h += '<div class="note">按虚岁 '+age+' 岁推算，未落在本盘大限范围内。</div>';
+  }
+  h += '<ul class="tight">';
+  for (var i=0;i<read.summary.length;i++) h += '<li>'+esc(read.summary[i])+'</li>';
+  h += '</ul></div>';
+
+  /* 优势与风险 */
+  h += '<div class="card"><h2>优势与风险</h2>';
+  h += '<h3>可以依靠的地方</h3><ul class="tight">';
+  for (var a=0;a<read.strengths.length;a++) h += '<li>'+esc(read.strengths[a])+'</li>';
+  h += '</ul><h3>要提前防的地方</h3><ul class="tight">';
+  for (var b=0;b<read.risks.length;b++) h += '<li>'+esc(read.risks[b])+'</li>';
+  h += '</ul></div>';
+
+  /* 十二宫逐宫解读 */
+  h += '<div class="card"><h2>十二宫详解</h2>';
+  for (var k=0;k<read.palaces.length;k++){
+    var pr = read.palaces[k];
+    var sc = pr.score;
+    var col = sc>=70?'var(--good)':(sc>=55?'var(--gold2)':(sc>=45?'var(--warn)':'var(--bad)'));
+    h += '<div class="palread"><div class="ph">';
+    h += '<span class="n">'+esc(pr.name)+'</span><span class="z">'+esc(pr.ganZhi||'')+'</span>';
+    h += '<span class="s">'+esc(pr.stars)+'</span>';
+    h += '<span class="sc" style="color:'+col+'">'+sc+'</span>';
+    h += '</div><p>'+esc(pr.reading)+'</p>';
+    if (pr.advice) h += '<div class="ad">建议：'+esc(pr.advice)+'</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  /* 分类建议 */
+  h += '<div class="card"><h2>事业 · 财富 · 感情 · 健康</h2>';
+  h += '<h3>事业方向</h3><p style="font-size:13.5px;margin:0 0 6px">适合：'+
+       esc((read.career.suitable||[]).join('、'))+'</p>';
+  if (read.career.avoid && read.career.avoid.length)
+    h += '<p style="font-size:13.5px;margin:0 0 6px;color:var(--dim)">不建议：'+esc(read.career.avoid.join('、'))+'</p>';
+  h += '<p style="font-size:13px;color:var(--dim);margin:0 0 10px">'+esc(read.career.note||'')+'</p>';
+  h += '<h3>财运</h3><p style="font-size:13px;margin:0 0 6px">'+esc(read.wealth.pattern)+'</p>';
+  h += '<p style="font-size:13px;color:var(--gold2);margin:0 0 10px">'+esc(read.wealth.advice)+'</p>';
+  h += '<h3>感情</h3><p style="font-size:13px;margin:0 0 6px">'+esc(read.love.pattern)+'</p>';
+  h += '<p style="font-size:13px;color:var(--gold2);margin:0 0 10px">'+esc(read.love.advice)+'</p>';
+  h += '<h3>健康</h3><p style="font-size:13px;margin:0 0 6px">留意：'+esc((read.health.watch||[]).join('、'))+'</p>';
+  h += '<p style="font-size:13px;color:var(--gold2);margin:0">'+esc(read.health.advice)+'</p>';
+  h += '</div>';
+
+  /* 时机 */
+  h += '<div class="card"><h2>当前与未来时机</h2>';
+  h += '<p style="font-size:13.5px;margin:0 0 8px">'+esc(read.timing.current)+'</p>';
+  h += '<p style="font-size:13.5px;margin:0">'+esc(read.timing.tips)+'</p></div>';
+
+  /* 行动清单 */
+  h += '<div class="card"><h2>给你的行动清单</h2>';
+  for (var q=0;q<read.actionPlan.length;q++){
+    var it = read.actionPlan[q];
+    h += '<div class="plan"><div class="w">'+esc(it.when)+'</div><div class="c">'+
+         '<div class="t">'+esc(it.what)+'</div><div class="y">依据：'+esc(it.why)+'</div></div></div>';
+  }
+  h += '<div class="note">'+esc(read.disclaimer||'')+'</div></div>';
+  return h;
+}
+
+/* ---------- 六壬起课与渲染 ---------- */
+$('lr-go').onclick = function(){
+  var btn = this;
+  btn.innerHTML = '<span class="spin"></span>起课中…';
+  setTimeout(function(){
+    try { renderLiuren(); btn.innerHTML = '起 课'; }
+    catch (e) { btn.innerHTML = '起 课'; showErr('lr-err', '起课失败：' + e.message); }
+  }, 20);
+};
+$('lr-refresh').onclick = function(){
+  $('lr-mode').value = 'now';
+  $('lr-date').disabled = true; $('lr-time').disabled = true;
+  $('lr-date').value = todayStr(); $('lr-time').value = nowTimeStr();
+  $('lr-go').click();
+};
+
+function renderLiuren(){
+  var dt = parseDateTime($('lr-date').value, $('lr-time').value);
+  var city = $('lr-city').value;
+  var lng = LunarCore.CITY_LNG[city];
+  var useTS = $('lr-truesolar').checked && typeof lng === 'number';
+  var q = $('lr-q').value.trim();
+  var K = LiuRen.ke({
+    year:dt.y, month:dt.m, day:dt.d, hour:dt.hh, minute:dt.mm,
+    trueSolar: useTS, longitude: lng, useEoT: true
+  });
+  var read = LiuRenRead.analyze(K, { question: q });
+  $('lr-out').innerHTML = lrHeader(K, q) + lrPlate(K) + lrKeChuan(K) + lrReading(K, read, q);
+}
+
+function lrHeader(K, q){
+  var h = '<div class="charthead">';
+  h += '<div class="big">'+esc(K.dayGZ)+'日 · '+esc(K.hourGZ)+'时 · 月将'+esc(K.yueJiang.zhi)+'（'+esc(K.yueJiang.name)+'）</div>';
+  h += '<div class="kv">';
+  h += '<span>占时 <b>'+esc(K.hourZhi)+'时</b></span>';
+  h += '<span>月令 <b>'+esc(K.monthLing.ganZhi)+'</b></span>';
+  h += '<span>年 <b>'+esc(K.yearGZ)+'</b></span>';
+  h += '<span>旬空 <b>'+esc(K.xunKong.join(''))+'</b></span>';
+  h += '<span>贵人 <b class="hl">'+esc(K.jiang.guiZhi)+'</b>落'+esc(K.jiang.guiPosName)+'</span>';
+  h += '<span>'+(K.jiang.isDay?'昼占':'夜占')+' · <b>'+(K.jiang.forward?'顺治':'逆治')+'</b></span>';
+  h += '<span>课体 <b class="hl">'+esc(K.body)+'</b></span>';
+  h += '</div>';
+  if (q) h += '<div class="note">所问：'+esc(q)+'</div>';
+  if (K.trueSolar) h += '<div class="note">真太阳时：'+esc(LunarCore.pad(K.time.hh))+':'+esc(LunarCore.pad(K.time.mm))+'</div>';
+  h += '</div>';
+  return h;
+}
+
+function lrPlate(K){
+  /* 天地盘：按 4x4 传统布局展示，每格 天盘(将) / 天将 / 地盘 */
+  var layout = [5,6,7,8, 4,-1,9,-1, 3,-1,10,-1, 2,1,0,11];
+  var h = '<div class="card"><h2>天地盘（十二宫）</h2><div class="plate">';
+  for (var k=0;k<layout.length;k++){
+    var di = layout[k];
+    if (di < 0) { h += '<div></div>'; continue; }
+    var tian = K.pan.tp[di];
+    var j = K.jiang.byPos[di];
+    var isKong = K.xunKong.indexOf(ZHI[tian]) >= 0;
+    var cls = 'cell' + (isKong?' kong':'') + (di === K.hourZhiIdx ? ' cur':'');
+    h += '<div class="'+cls+'">';
+    h += '<div class="tian">'+esc(ZHI[tian])+'</div>';
+    h += '<div class="jiang">'+esc(j?j.name:'')+'</div>';
+    h += '<div class="di">'+esc(ZHI[di])+'宫</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  h += '<div class="note">上字＝天盘神，中字＝所乘天将，下字＝地盘宫。金框为占时所在宫；划掉的地支为旬空。</div></div>';
+  return h;
+}
+
+function lrKeChuan(K){
+  var h = '<div class="card"><h2>四课</h2>';
+  h += '<table class="ketable"><tr><th>课</th><th>天将</th><th>上神</th><th>下神</th><th>六亲</th><th>关系</th></tr>';
+  for (var i=0;i<K.siKe.length;i++){
+    var k = K.siKe[i];
+    h += '<tr><td>'+esc(k.name.replace('第','').replace('课',''))+'</td>'+
+         '<td>'+esc(k.tianJiang)+'</td>'+
+         '<td class="up">'+esc(k.upper)+'</td>'+
+         '<td>'+esc(k.lower)+'</td>'+
+         '<td>'+esc(k.liuQin)+'</td>'+
+         '<td style="color:'+(k.rel==='下贼上'?'var(--bad)':(k.rel==='上克下'?'var(--warn)':'var(--dim2)'))+'">'+esc(k.rel||'—')+'</td></tr>';
+  }
+  h += '</table></div>';
+
+  h += '<div class="card"><h2>三传</h2><div class="chuan">';
+  for (var t=0;t<K.sanChuan.length;t++){
+    var c = K.sanChuan[t];
+    h += '<div class="item"><div class="lbl">'+esc(c.name)+'</div>'+
+         '<div class="zz">'+esc(c.zhi)+'</div>'+
+         '<div class="jj">'+esc(c.tianJiang)+'</div>'+
+         '<div class="qq">'+esc(c.liuQin)+' · 临'+esc(c.diPanPos)+'</div>'+
+         (c.isKong?'<div class="kong">空亡</div>':'')+'</div>';
+  }
+  h += '</div>';
+  h += '<div class="note">取传：'+esc(K.method)+'　课体：'+esc(K.body)+
+       (K.bodyNote?'（'+esc(K.bodyNote)+'）':'')+'</div></div>';
+  return h;
+}
+
+function lrReading(K, read, q){
+  var h = '';
+  var cls = read.trend==='吉'||read.trend==='偏吉' ? 'g' : (read.trend==='平'?'i':(read.trend==='偏凶'||read.trend==='凶'?'b':'w'));
+  h += '<div class="verdict"><div class="v1">'+esc(read.judgment)+'</div>';
+  h += '<div><span class="badge '+cls+'">'+esc(read.trend)+'</span>'+
+       '<span class="badge">评分 '+read.score+'</span>'+
+       '<span class="badge">把握度 '+esc(read.confidence)+'</span></div>';
+  if (read.bodyInfo && read.bodyInfo.key) h += '<div class="v2" style="margin-top:6px">'+esc(read.bodyInfo.key)+'</div>';
+  h += '</div>';
+
+  if (q && read.questionFit){
+    h += '<div class="card"><h2>针对你的问题</h2><p style="font-size:14px;line-height:1.7;margin:0">'+
+         esc(read.questionFit)+'</p></div>';
+  }
+
+  h += '<div class="card"><h2>断课要点</h2><ul class="tight">';
+  for (var i=0;i<read.summary.length;i++) h += '<li>'+esc(read.summary[i])+'</li>';
+  h += '</ul></div>';
+
+  h += '<div class="card"><h2>判断依据</h2>';
+  for (var e=0;e<read.evidence.length;e++){
+    h += '<div class="palread"><div class="ph"><span class="n">'+esc(read.evidence[e].title)+'</span></div>'+
+         '<p>'+esc(read.evidence[e].text)+'</p></div>';
+  }
+  h += '</div>';
+
+  h += '<div class="card"><h2>该做与不该做</h2>';
+  h += '<h3>✅ 该做</h3><ul class="tight">';
+  for (var d=0;d<read.advice.dos.length;d++) h += '<li>'+esc(read.advice.dos[d])+'</li>';
+  h += '</ul><h3>⛔ 别做</h3><ul class="tight">';
+  for (var n=0;n<read.advice.donts.length;n++) h += '<li>'+esc(read.advice.donts[n])+'</li>';
+  h += '</ul>';
+  if (read.advice.timing) h += '<h3>时机</h3><p style="font-size:13.5px;margin:0">'+esc(read.advice.timing)+'</p>';
+  h += '</div>';
+
+  h += '<div class="card"><h2>解决方法（分步）</h2><ol class="steps">';
+  var m = read.advice.method;
+  var steps = (m && m.length) ? (Object.prototype.toString.call(m)==='[object Array]' ? m : [m]) : [];
+  for (var s=0;s<steps.length;s++) h += '<li>'+esc(steps[s])+'</li>';
+  h += '</ol></div>';
+  return h;
+}
+
+/* ---------- 首屏：自动起一课；带 ?demo=1 时连紫微命盘一起排（便于截图核对） ---------- */
+try { renderLiuren(); } catch(e) { /* 首次可能因分析器未就绪而失败，忽略 */ }
+if (location.search.indexOf('demo=1') >= 0) {
+  $('zw-date').value = '1998-06-06';
+  $('zw-time').value = '04:00';
+  $('zw-city').value = '鞍山';
+  $('zw-age').value = '29';
+  try { renderZiwei(); } catch(e) { showErr('zw-err', '排盘失败：' + e.message); }
+}
+
+/* ---------- Service Worker（离线） ---------- */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+})();
+</script>
+</body>
+</html>
