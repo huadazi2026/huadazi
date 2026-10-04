@@ -249,13 +249,20 @@
     return [ZHI[a], ZHI[b]];
   }
 
-  /* ---------- 紫微斗数用：农历月号（处理闰月惯例） ---------- */
-  /* mode: 'prev' 闰月归前月 | 'next' 闰月归后月 | 'split' 十五前归本月、十六起归下月 */
-  function zwMonth(lunar, mode) {
-    if (!lunar.isLeap) return lunar.m;
-    if (mode === 'next') return lunar.m === 12 ? 12 : lunar.m + 1;
-    if (mode === 'prev') return lunar.m;   // 闰月一律归本月
-    return lunar.d <= 15 ? lunar.m : (lunar.m === 12 ? 12 : lunar.m + 1);   // 'split'（默认）
+  /* ---------- 紫微斗数用：定命宫的那个「月」（处理闰月惯例） ----------
+     base      : 已定好的月号（1-12），来自「农历月」或「节气月」
+     isLeap    : 该月是否为闰月
+     d         : 农历日（split 模式要用）
+     mode: 'prev'  闰月归本月
+           'next'  闰月归下月（倪海厦《天纪》：闰月生人作下月论）
+           'split' 十五前归本月、十六起归下月（默认，主流在线排盘）
+     修复：非闰月时此前一律返回 lunar.m，导致节气月（monthMode:'term'）被丢弃。 */
+  function zwMonth(base, isLeap, d, mode) {
+    var m = base;
+    if (!isLeap) return m;
+    if (mode === 'next') return m === 12 ? 12 : m + 1;
+    if (mode === 'prev') return m;
+    return d <= 15 ? m : (m === 12 ? 12 : m + 1);   // 'split'（默认）
   }
 
   var API = {

@@ -243,19 +243,19 @@
         '，已贴近可用范围边界；把出生日期往后调一天、或关掉真太阳时校正即可。' : ''));
     info.lunar = lunar;
     /* 定命宫所用的“月”：
-       'term'  = 节气月（以节为界，专业排盘主流做法，默认）
-       'lunar' = 农历月（初一换月，部分在线排盘工具的做法） */
+       'term'  = 节气月（直接按节气定月，大多数专业排盘的口径）
+       'lunar' = 农历月（初一换月；闰月按 leapMode 归月 —— 倪海厦派用 leapMode:'next'） */
     var monthMode = opts.monthMode || 'term';
-    var lunarMonthNo;
+    var zwM;
     if (monthMode === 'lunar') {
-      lunarMonthNo = lunar.m;
-      info.monthSource = '农历月';
+      zwM = LC.zwMonth(lunar.m, !!lunar.isLeap, lunar.d, leapMode);
+      info.monthSource = '农历月' + (lunar.isLeap ? '（闰' + lunar.m + '月·' + ({
+        prev: '作本月', next: '作下月', split: '十五前作本月' }[leapMode] || '十五前作本月') + '）' : '');
     } else {
-      lunarMonthNo = LC.monthLing(ty, tm, td, thh, tmm).idx + 1;   // 寅月=1
-      info.monthSource = '节气月';
+      zwM = LC.monthLing(ty, tm, td, thh, tmm).idx + 1;   // 寅月=1
+      info.monthSource = '节气月' + (lunar.isLeap ? '（闰' + lunar.m + '月，按节气定月）' : '');
     }
-    info.lunarMonthNo = lunarMonthNo;
-    var zwM = LC.zwMonth({ m: lunarMonthNo, d: lunar.d, isLeap: lunar.isLeap }, leapMode);
+    info.lunarMonthNo = zwM;
 
     /* 时支（真太阳时后） */
     var hourZhi = LC.hourZhiOf(thh);

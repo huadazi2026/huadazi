@@ -399,7 +399,7 @@ nav button.on{color:var(--gold)}
         <div class="field">
           <label>闰月算法</label>
           <select id="zw-leap">
-            <option value="split">十五前本月，十六起下月（推荐）</option>
+            <option value="split">十五前本月，十六起下月</option>
             <option value="prev">闰月按本月</option>
             <option value="next">闰月按下月</option>
           </select>
@@ -409,10 +409,19 @@ nav button.on{color:var(--gold)}
         <div class="field">
           <label>定命宫用的月</label>
           <select id="zw-monthmode">
-            <option value="term">节气月（专业排盘主流）</option>
             <option value="lunar">农历月（初一换月）</option>
+            <option value="term">节气月（按节气换月）</option>
           </select>
         </div>
+        <div class="field">
+          <label>排盘口径（一键切换）</label>
+          <select id="zw-school">
+            <option value="nhx" selected>倪海厦《天纪》：农历月 + 闰月作下月</option>
+            <option value="common">通用派：农历月 + 十五分界</option>
+            <option value="term">节气月派：节气月 + 十五分界</option>
+          </select>
+        </div>
+      </div>
         <div class="field">
           <label>出生地（真太阳时）</label>
           <select id="zw-city"></select>
@@ -695,6 +704,8 @@ nav button.on{color:var(--gold)}
 <script src="js/yijing_data.js"></script>
 <script src="js/liuyao.js"></script>
 <script src="js/qimen.js"></script>
+<script src="js/nihaixia_miao.js"></script>
+<script src="js/nihaixia.js"></script>
 <script>
 (function(){
 'use strict';
@@ -940,6 +951,15 @@ function parseDateTime(dateStr, timeStr){
   return { y:+dp[0], m:+dp[1], d:+dp[2], hh:+(tp[0]||0), mm:+(tp[1]||0) };
 }
 
+/* 排盘口径 ↔ 两个明细下拉 联动 */
+function syncSchool(){
+  var sc = $("zw-school"); if (!sc) return;
+  var M = { nhx: ["lunar","next"], common: ["lunar","split"], term: ["term","split"] };
+  var v = M[sc.value] || M.nhx;
+  var mm = $("zw-monthmode"), lp = $("zw-leap");
+  if (mm) mm.value = v[0];
+  if (lp) lp.value = v[1];
+}
 function renderZiwei(){
   var dt = parseDateTime($('zw-date').value, $('zw-time').value);
   var city = $('zw-city').value;
@@ -950,13 +970,21 @@ function renderZiwei(){
   var raw = readTimeInputs();
 
   var charts = [];
+  /* 排盘口径预设：一键决定「月」与「闰月」两个口径 */
+  var SCHOOL = {
+    nhx:    { monthMode:'lunar', leapMode:'next'  },   /* 倪海厦《天纪》 */
+    common: { monthMode:'lunar', leapMode:'split' },   /* 通用派 */
+    term:   { monthMode:'term',  leapMode:'split' }    /* 节气月派 */
+  };
+  var school = SCHOOL[$('zw-school') ? $('zw-school').value : 'nhx'] || SCHOOL.nhx;
+  var leapModeUse = school.leapMode, monthModeUse = school.monthMode;
   for (var k=0;k<raw.hours.length;k++){
     var hour = raw.hours[k], minute = (raw.minutes && raw.minutes[k] != null) ? raw.minutes[k] : 0;
     var c = ZiWei.chart({
       year:dt.y, month:dt.m, day:dt.d, hour:hour, minute:minute,
       gender: zwGender,
-      leapMode: $('zw-leap').value,
-      monthMode: $('zw-monthmode').value,
+      leapMode: leapModeUse,
+      monthMode: monthModeUse,
       trueSolar: useTS, longitude: lng, useEoT: true
     });
     c._age = age;
@@ -1128,6 +1156,17 @@ var H_SHA = {
   "地空":"体力虚耗、精神空落，容易失眠或没劲",
   "地劫":"元气被夺，恢复慢，病后要留足养的时间",
   "化忌":"这一宫的星带忌，代表这一环最容易出状况"
+};
+/* 《天纪》子午流注：十二时辰对应脏腑（子胆丑肝寅肺…） */
+var ZIWU_LIUZHU = {
+  "子":"胆", "丑":"肝", "寅":"肺", "卯":"大肠", "辰":"胃", "巳":"脾",
+  "午":"心（先天心脏病看这里）", "未":"小肠", "申":"膀胱", "酉":"肾",
+  "戌":"心包（后天心脏病看这里）", "亥":"三焦（身体的间隔膜、间隔腔，糖尿病属三焦）"
+};
+/* 《天纪》以盘为象：十二宫位对应身体部位（上为头、下为足，左右对称） */
+var PAN_XIANG = {
+  "午":"头", "未":"头", "巳":"左肩", "申":"右肩", "辰":"左胸", "酉":"右胸",
+  "卯":"左胁", "戌":"右胁", "寅":"左足", "亥":"右足", "子":"下焦/泌尿", "丑":"下焦/肝胆"
 };
 var H_CS = {
   "长生":"这段年限身体底子生长有力", "沐浴":"状态起伏，注意作息",
@@ -1323,6 +1362,32 @@ function zwHealth(c, read, age){
   /* 三、长生十二神 */
   var cs = ji.changsheng || "";
   if (cs && H_CS[cs]) h += '<div class="note">疾厄宫长生神为「<b>' + esc(cs) + '</b>」：' + esc(H_CS[cs]) + '。</div>';
+
+  /* 三·五、《天纪》子午流注 + 以盘为象 */
+  if (typeof ZIWU_LIUZHU !== "undefined"){
+    /* 疾厄宫所在支 → 该宫对应什么部位；再按该支的时辰看脏腑 */
+    var jiZhi = ji.zhiName;
+    var part = PAN_XIANG[jiZhi] || "";
+    /* 三方四正里带煞星的宫位，就是他盘上「有伤」的位置 */
+    var hurt = [];
+    for (var hz = 0; hz < 12; hz++){
+      var pp = c.palaces[hz];
+      var hasSha = false;
+      for (var ss = 0; ss < (pp.stars || []).length; ss++){
+        var stx = pp.stars[ss];
+        if (H_SHA[stx] && zwMiao && zwMiao(pp.zhiName, stx) === "陷") hasSha = true;
+      }
+      if (hasSha) hurt.push(pp.zhiName + "宫（" + (PAN_XIANG[pp.zhiName] || "—") + "）");
+    }
+    h += '<h3>以盘为象 · 子午流注</h3><ul class="tight">';
+    h += "<li>疾厄宫在<b>" + esc(jiZhi) + "</b>宫" + (part ? "，盘面对应部位是<b>" + esc(part) + "</b>" : "") + "。</li>";
+    h += "<li>时辰配脏腑（《天纪》子午流注）：子胆、丑肝、寅肺、卯大肠、辰胃、巳脾、午心（先天心脏病）、未小肠、申膀胱、酉肾、戌心包（后天心脏病）、亥三焦（糖尿病属三焦）。</li>";
+    if (hurt.length){
+      h += "<li>整盘看，煞星落陷的宫位是：<b>" + esc(hurt.join("、")) + "</b> —— 这些位置就是他先天容易出状况的地方，对照上面的部位表看。</li>";
+    }
+    h += "<li>《天纪》原则：疾厄宫不能光看一个宫位，要<b>整盘看</b>；什么时候发病，看流年走到哪里。</li>";
+    h += "</ul>";
+  }
 
   /* 四、当前大限 */
   var ps = c.palaces, cur = null;
@@ -1731,6 +1796,37 @@ function zwShortPalace(c, name){
   if (!p) return null;
   return { name:p.name, zhi:p.zhiName, stars:p.mainStars.length ? p.mainStars.join('、') : '无主星（借对宫）' };
 }
+/* 《天纪》大限：看这十年的三方四正会到什么四化（命好不如限好） */
+function zwLimitHua(c, lim){
+  if (!lim || typeof zwTriad !== "function") return "";
+  var t = zwTriad(c, lim.zhi);
+  var lu = [], quan = [], ke = [], ji = [];
+  for (var i = 0; i < t.huaList.length; i++){
+    var x = t.huaList[i], nm = x.split("@")[0];
+    if (x.indexOf("化禄") >= 0) lu.push(nm);
+    if (x.indexOf("化权") >= 0) quan.push(nm);
+    if (x.indexOf("化科") >= 0) ke.push(nm);
+    if (x.indexOf("化忌") >= 0) ji.push(nm);
+  }
+  var parts = [];
+  if (lu.length) parts.push("禄（" + lu.join("、") + "）");
+  if (quan.length) parts.push("权（" + quan.join("、") + "）");
+  if (ke.length) parts.push("科（" + ke.join("、") + "）");
+  if (ji.length) parts.push("忌（" + ji.join("、") + "）");
+  var h = '<div class="vy">';
+  if (!parts.length){
+    h += "本限的三方四正<b>不见四化引动</b> —— 这十年没有外力推你，成绩全靠主动经营，不会自己发。";
+  } else {
+    var all3 = lu.length + quan.length + ke.length;
+    h += "本限三方四正会到 " + parts.join("、") + "。";
+    if (all3 >= 2) h += "禄权科齐会或两会，<b>这十年是发的十年</b> —— 《天纪》所谓一发如雷，重点抓这一段。";
+    else if (lu.length || quan.length) h += "有禄或权引动，这十年做事业、掌实权都顺，是<b>可以往前冲的十年</b>。";
+    else if (ke.length) h += "只有科，主名声与专业被看见 —— 适合考证、评职称、积累口碑，不宜大动干戈。";
+    if (ji.length) h += " 但有化忌同会：这一限有卡点，忌冲之处就是<b>必须收手的地方</b>。";
+  }
+  h += "</div>";
+  return h;
+}
 function zwVerdict(c, read, age){
   var lim = zwCurLimit(c, age);
   var ming = zwShortPalace(c, '命宫');
@@ -1750,40 +1846,56 @@ function zwVerdict(c, read, age){
 
   /* 三句话结论 */
   h += '<div style="margin-top:11px;border-top:1px solid var(--line);padding-top:4px">';
-  /* 1 靠什么吃饭 */
+  /* 1 《天纪》命宫法则：三方四正会不到科权禄 → 领薪水 */
+  if (typeof NiHaiXia !== 'undefined' && NiHaiXia.mingRule){
+    h += '<div class="vitem"><div class="vk">命宫（《天纪》断法）</div><div class="vt">'+
+         NiHaiXia.mingRule(c)+'</div></div>';
+  } else {
+    h += '<div class="vitem"><div class="vk">命宫</div><div class="vt">'+
+         esc(ming && ming.stars !== '无主星（借对宫）'
+              ? '命宫在'+ming.zhi+'宫（'+ming.stars+'）'
+              : '命宫无主星，借对宫之力')+'</div></div>';
+  }
+  /* 2 事业线 */
   h += '<div class="vitem"><div class="vk">靠什么吃饭</div><div class="vt">'+
        esc(guan && guan.stars !== '无主星（借对宫）'
-            ? '官禄宫在'+guan.zhi+'宫（'+guan.stars+'）—— 事业主要靠这条线吃饭，具体方向见下面「事业·财富·感情·健康」。'
-            : '官禄宫'+((guan?guan.zhi:''))+'宫无主星，事业要借对宫之力：起步期靠平台与团队托着走，别急着独立扛。')+
+            ? '官禄宫在'+guan.zhi+'宫（'+guan.stars+'）—— 事业走这条线；《天纪》：官禄宫最喜权星与科甲星进来，有功名才当得了官。'
+            : '官禄宫'+((guan?guan.zhi:''))+'宫无主星，事业借对宫之力：起步靠平台与团队托着走，别急着独立扛。')+
        '</div></div>';
-  /* 2 钱怎么来 */
+  /* 3 财线 */
   h += '<div class="vitem"><div class="vk">钱怎么来</div><div class="vt">'+
        esc(read.wealth.pattern)+'</div><div class="vy">'+esc(read.wealth.advice)+'</div></div>';
-  /* 3 感情的坎 */
+  /* 4 感情（《天纪》：夫妻宫必兼看福德） */
   h += '<div class="vitem"><div class="vk">感情</div><div class="vt">'+
-       esc(read.love.pattern)+'</div><div class="vy">'+esc(read.love.advice)+'</div></div>';
-  /* 4 最大的风险 */
-  h += '<div class="vitem"><div class="vk">最要防</div><div class="vt" style="color:#f0b0b0">'+
-       esc(read.risks[0]||'—')+'</div>'+
-       (read.risks[1] ? '<div class="vy">其次：'+esc(read.risks[1])+'</div>' : '')+'</div>';
-  /* 5 现在这一步 */
+       esc(read.love.pattern)+'</div><div class="vy">'+esc(read.love.advice)+
+       '　《天纪》：看婚姻不能只看夫妻宫，一定要兼看福德宫 —— 夫妻宫再好，福德宫烂，一样散。</div></div>';
+  /* 5 《天纪》煞星判读：吉处藏凶 / 凶处藏吉 */
+  if (typeof NiHaiXia !== 'undefined' && NiHaiXia.shaRule){
+    var shaTxt = [];
+    var keyPalaces = ['命宫','夫妻','财帛','官禄','疾厄'];
+    for (var kp = 0; kp < keyPalaces.length; kp++){
+      var rr = NiHaiXia.shaRule(c, keyPalaces[kp]);
+      if (rr.length) shaTxt.push('<b>'+keyPalaces[kp]+'</b>：'+rr.join(''));
+    }
+    h += '<div class="vitem"><div class="vk">煞星怎么看（《天纪》）</div><div class="vt" style="font-size:13px">'+
+         (shaTxt.length ? shaTxt.join('<br>')
+          : '五个关键宫位都不见煞星 —— 先天底子干净，问题多来自后天的选择与作息。')+
+         '<div class="vy">原则：煞星要看庙旺，不是见到就当凶。入庙旺反成助力，落陷才是凶中之凶；'+
+         '从对宫冲来的煞力量最大，在本宫反而弱；煞星孤星独守时最凶，本宫对宫都受牵动。</div></div></div>';
+  } else {
+    h += '<div class="vitem"><div class="vk">最要防</div><div class="vt" style="color:#f0b0b0">'+
+         esc(read.risks[0]||'—')+'</div>'+
+         (read.risks[1] ? '<div class="vy">其次：'+esc(read.risks[1])+'</div>' : '')+'</div>';
+  }
+  /* 6 现在这一步 */
   if (lim){
     h += '<div class="vitem"><div class="vk">现在走哪步</div><div class="vt">'+
          '虚岁 '+age+' 走在 <b>'+esc(lim.zhiName)+'宫（'+esc(lim.name)+'）</b>，大限 '+lim.limit.from+'-'+lim.limit.to+
          ' 岁'+(lim.mainStars.length ? '，主星 '+esc(lim.mainStars.join('、')) : '，本宫无主星（借对宫）')+'。</div>'+
-         '<div class="vy">'+esc(read.timing.current)+'</div></div>';
+         '<div class="vy">'+esc(read.timing.current)+'</div>'+
+         zwLimitHua(c, lim)+
+         '<div class="vy">《天纪》：命好不如限好 —— 科权禄落在哪十年，那一发最猛；未来十年没有大运，就看前十年。</div></div>';
   }
-  /* 6 今年就能做的三件事 */
-  h += '<div class="vitem"><div class="vk">马上做（三件）</div><div class="vt">';
-  var cnt = 0;
-  for (var i=0;i<read.actionPlan.length && cnt<3;i++){
-    var it = read.actionPlan[i];
-    if (it.when === '未来三年') continue;
-    cnt++;
-    h += (cnt>1?'<br>':'')+cnt+'. '+esc(it.what)+'<span style="color:var(--dim2)">（'+esc(it.when)+'）</span>';
-  }
-  if (!cnt) h += esc(read.actionPlan[0] ? read.actionPlan[0].what : '—');
-  h += '</div></div>';
   h += '</div>';
 
   /* 导出 */
