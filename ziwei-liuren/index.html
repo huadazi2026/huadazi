@@ -416,7 +416,7 @@ nav button.on{color:var(--gold)}
         <div class="field">
           <label>排盘口径（一键切换）</label>
           <select id="zw-school">
-            <option value="nhx" selected>倪海厦《天纪》：农历月 + 闰月作下月</option>
+            <option value="nhx">倪海厦《天纪》：农历月 + 闰月作下月</option>
             <option value="common">通用派：农历月 + 十五分界</option>
             <option value="term">节气月派：节气月 + 十五分界</option>
           </select>
@@ -960,6 +960,17 @@ function syncSchool(){
   if (mm) mm.value = v[0];
   if (lp) lp.value = v[1];
 }
+/* 绑定：换口径即同步；加载后也同步一次（默认倪海厦口径） */
+(function initSchool(){
+  var sc = $("zw-school"); if (!sc) return;
+  sc.onchange = syncSchool;
+  syncSchool();
+  if (document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", syncSchool);
+  } else {
+    setTimeout(syncSchool, 0);
+  }
+})();
 function renderZiwei(){
   var dt = parseDateTime($('zw-date').value, $('zw-time').value);
   var city = $('zw-city').value;
