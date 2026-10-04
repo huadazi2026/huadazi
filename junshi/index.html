@@ -198,7 +198,7 @@
   .row button.danger{color:var(--danger); border-color:#4a2b2b}
   .typing{color:var(--dim); font-size:13px}
   .err{color:#ffb4b4; font-size:13px; background:#2a1c1c; border:1px solid #4a2b2b; padding:8px 11px; border-radius:9px; margin:0 14px 8px; word-break:break-word}
-  .ok{color:#b7f0c4; font-size:13px; background:#182a1c; border:1px solid #2b4a33; padding:8px 11px; border-radius:9px; margin:0 14px 8px}
+  .ok{color:#b7f0c4; font-size:13px; background:#182a1c; border:1px solid #2b4a33; padding:8px 11px; border-radius:9px; margin:0 14px 8px; white-space:pre-wrap; line-height:1.7}
   /* 代码块 / 表格卡片 */
   .bubble code{background:#0b0d12; padding:1px 5px; border-radius:4px; font-size:13.5px}
   .bubble pre{background:#0b0d12; border:1px solid var(--line); border-radius:9px; padding:10px 12px; overflow-x:auto; margin:8px 0}
@@ -372,7 +372,7 @@
     </div>
     <div class="grp">
       <h2>🎤 朗读与语音</h2>
-      <label>朗读嗓音（系统里的中文嗓音）</label>
+      <label>朗读嗓音（系统里的中文嗓音）—— 想要 <b>Siri 的声音</b>请看下面的 📢</label>
       <select id="cfgVoice"></select>
       <label>语速 <span id="statRate" class="stat"></span></label>
       <input type="range" id="cfgRate" min="0.6" max="1.8" step="0.05">
@@ -380,11 +380,17 @@
       <input type="range" id="cfgPitch" min="0.6" max="1.9" step="0.05">
       <div class="row"><button id="btnVoiceTry">▶ 试听这个嗓音</button></div>
       <div class="hint">
-        <b>军师每条回复下面有「▶ 朗读」</b>：点一下从头读，按钮变成「⏹ 停止」；
-        <b>点回复里的任意一个字，就从那个字往下读</b>；读的时候<b>点别处一下就停</b>，高亮和外框都会清掉。<br>
-        嗓音是<b>手机系统自带</b>的，网页没法凭空造出某个人的声音（林志玲那种是商业授权音源，浏览器里拿不到）。
-        但每台设备/浏览器自带的中文嗓音不一样，这里换一个 + 把音调调高、语速调慢，就能明显更顺耳更人性化。<br>
-        觉得选择太少就去装语音包：安卓「设置 → 系统 → 语言和输入 → 文字转语音 → 安装语音数据」；iPhone「设置 → 辅助功能 → 朗读内容 → 声音 → 中文」。<br>
+        <b>军师每条回复下面有两个读法：</b><br>
+        <b>▶ 朗读</b> —— 用浏览器里能拿到的嗓音（就是上面选的这个）。点一下从头读，按钮变「⏹ 停止」；
+        <b>点回复里的任意一个字，就从那个字往下读</b>；<b>读的时候点别处一下就停</b>，高亮和外框都会清掉。<br>
+        <b>📢 Siri 读</b> —— <b>想听 Siri 的声音就用这个。</b>点一下把内容交给系统，然后
+        <b>两根手指从屏幕顶部往下滑</b>，Siri 就开始读整页；再点一下屏幕停。
+        第一次要开：设置 → 辅助功能 → 朗读内容 → 打开「朗读屏幕」；换声音在同页 → 声音 → 中文。<br>
+        ⚠️ <b>网页直接读不出 Siri 和林志玲。</b>Siri 的声音锁在 iOS 私有框架里，网页的语音接口拿不到；
+        林志玲那种是商业授权音源，只有付费 App 内置才有。所以这两条路分别是：<b>Siri 走系统朗读屏幕</b>（就是上面那个按钮），
+        <b>林志玲没有路</b>。<br>
+        网页自己能调的只有系统基础嗓音，但换一个 + 把音调调高、语速调慢，也能顺耳不少。
+        装语音包：安卓「设置 → 系统 → 语言和输入 → 文字转语音 → 安装语音数据」；iPhone「辅助功能 → 朗读内容 → 声音 → 中文」。<br>
         语音输入用输入框旁边的 🎤（安卓 Chrome / 电脑上能用）。<b>iPhone 上系统不给网页语音识别</b>，
         点 🎤 会自动帮你调出键盘，用键盘自带的 🎤 听写。
       </div>
@@ -722,6 +728,7 @@ function renderChat(){
     }else{
       acts.appendChild(mkAct("复制", ()=>copyText(m.content)));
       if(ttsSupported()) acts.appendChild(mkAct("▶ 朗读", function(){ readToggle(i, this); }));
+      acts.appendChild(mkAct("📢 Siri 读", ()=>handOffToSystem(String(m.content || ""))));
       acts.appendChild(mkAct("重新回答", ()=>retryOne(i)));
       acts.appendChild(mkAct("引用追问", ()=>{
         $("input").value = "关于你上面说的「" + m.content.replace(/\s+/g," ").slice(0,18) + "…」，我再问一句：";
@@ -1249,7 +1256,34 @@ function copyText(text){
     navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
   }else{ fallbackCopy(text, done); }
 }
-function fallbackCopy(text, done){
+// 把内容交给系统的朗读（iPhone 的「朗读屏幕」用的就是 Siri 的声音）。
+// 网页的 speechSynthesis 拿不到 Siri —— 它锁在 iOS 私有框架里，只走系统功能这条路。
+const SIRI_TIP = "现在让它用 Siri 的声音读：\n"
+  + "两根手指从屏幕顶部往下滑 → Siri 就开始读整页，再点一下屏幕停。\n\n"
+  + "第一次要开：设置 → 辅助功能 → 朗读内容 → 打开「朗读屏幕」。\n"
+  + "换声音（含 Siri 音色）：同页 → 声音 → 中文";
+function handOffToSystem(text){
+  const showSiriTip = ()=>{
+    toast("已经把这段话交出去了 ✅\n\n" + SIRI_TIP, true);
+  };
+  // 自动复制失败也不能挡住说明 —— 用户至少要知道怎么用 Siri 读
+  const showSiriErr = ()=>{
+    showErr("没能自动复制（浏览器没给剪贴板权限）。你长按上面的正文选一下、或点「复制」，再：\n\n" + SIRI_TIP);
+  };
+  const tryCopy = ()=>{
+    if(typeof navigator.clipboard !== "undefined" && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(showSiriTip).catch(()=>{ fallbackCopy(text, showSiriTip, true) || showSiriErr(); });
+    }else{
+      fallbackCopy(text, showSiriTip, true) || showSiriErr();
+    }
+  };
+  // 有系统分享就先走分享
+  if(typeof navigator.share === "function"){
+    try{ navigator.share({ text: text }).then(showSiriTip).catch(tryCopy); return; }catch(e){}
+  }
+  tryCopy();
+}
+function fallbackCopy(text, done, keepQuiet){
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.setAttribute("readonly","");
@@ -1259,7 +1293,10 @@ function fallbackCopy(text, done){
   let ok = false;
   try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
   ta.remove();
-  if(ok) done(); else showErr("这条没能自动复制（浏览器没给剪贴板权限）。长按消息手动选一下就行。");
+  if(ok){ done(); return true; }
+  // keepQuiet：调用方自己会给出更有用的完整提示，这里别再插一条打断它
+  if(!keepQuiet) showErr("这条没能自动复制（浏览器没给剪贴板权限）。长按消息手动选一下就行。");
+  return false;
 }
 function delMsg(i){
   const c = active(); if(!c) return;
