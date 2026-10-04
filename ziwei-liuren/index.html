@@ -204,6 +204,7 @@ table.ketable tr:last-child td{border-bottom:0}
 .st-tag b{flex:0 0 auto;width:21px;height:21px;border-radius:11px;background:var(--gold);
   color:#1a1428;font-size:12px;display:flex;align-items:center;justify-content:center}
 .st-tag span{font-size:11px;color:var(--dim2);font-weight:400}
+.ic svg{display:block;width:1em;height:1em}
 /* ===== 天纪格式盘面 ===== */
 .tp-wrap{background:#1c1830;border:1px solid #342c52;border-radius:12px;padding:8px;overflow-x:auto}
 .tp-grid{display:grid;grid-template-columns:repeat(4,minmax(132px,1fr));
@@ -436,14 +437,25 @@ nav button.on{color:var(--gold)}
       <div class="note hidden" id="zw-timetip"></div>
       <div class="row">
         <div class="field" style="flex:1.2">
-          <label>出生地（选城市，或直接填经纬度）</label>
+          <label>出生地（常用城市）</label>
           <select id="zw-city"></select>
         </div>
         <div class="field" style="flex:1.1">
-          <label>或者填经纬度</label>
+          <label>经纬度</label>
           <input type="text" id="zw-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
       </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="zw-place" placeholder="例：浙江省绍兴市　／　安徽省无为县　／　黑龙江漠河">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="zw-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="zw-geo-tip"></div>
       <button class="btn" id="zw-go">排 命 盘</button>
     </div>
     <div id="zw-out"></div>
@@ -689,7 +701,7 @@ nav button.on{color:var(--gold)}
 <nav>
   <button class="on" id="nav-ziwei"><span class="ic">☯</span>紫微</button>
   <button id="nav-liuren"><span class="ic">䷀</span>大六壬</button>
-  <button id="nav-xiaoliuren"><span class="ic">✋</span>小六壬</button>
+  <button id="nav-xiaoliuren"><span class="ic"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="18" height="2.4" rx="1.2"/><rect x="3" y="10" width="7.5" height="2.4" rx="1.2"/><rect x="13.5" y="10" width="7.5" height="2.4" rx="1.2"/><rect x="3" y="15" width="18" height="2.4" rx="1.2"/><rect x="3" y="20" width="7.5" height="2.4" rx="1.2"/><rect x="13.5" y="20" width="7.5" height="2.4" rx="1.2"/></svg></span>小六壬</button>
   <button id="nav-meihua"><span class="ic">❀</span>梅花</button>
   <button id="nav-liuyao"><span class="ic">☰</span>六爻</button>
   <button id="nav-qimen"><span class="ic">⛩</span>奇门</button>
@@ -707,6 +719,7 @@ nav button.on{color:var(--gold)}
 <script src="js/yijing_data.js"></script>
 <script src="js/liuyao.js"></script>
 <script src="js/qimen.js"></script>
+<script src="js/cn_areas.js"></script>
 <script src="js/nhx_tables.js"></script>
 <script src="js/nhx_plate.js"></script>
 <script src="js/guji_text.js"></script>
@@ -866,9 +879,17 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v28 · 2026-10-05";
+var APP_BUILD = "v29 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v28", "这次的更新", [
+  ["v29", "这次的更新", [
+    "小六壬图标换成线条卦形（原来是个彩色手掌 emoji，跟其他几个线条图标不统一）",
+    "出生地：新增「直接写城市／县名」输入框，内置全国 3203 个行政区划的经纬度，离线也能查",
+    "地名写法很宽松：「绍兴」「浙江省绍兴市」「新疆喀什」「无为县」「漠河」都能认出来",
+    "查到的经纬度用于真太阳时校正，结果区会写明用的是哪个地方、东经多少度",
+    "出生地标签改为「出生地（常用城市）」，「或者填」三个字删掉",
+    "修正：结果区的真太阳时说明此前读的是一个已经删掉的字段"
+  ]],
+  ["v28", "更早", [
     "出生信息的表单大幅精简：年月日全部改成下拉（公历与农历一样都是下拉），不再手打日期",
     "删掉了「能被程序自己算出来」的字段：出生时间的填法、闰月算法、定命宫用的月、排盘口径、当前年龄（虚岁自动算）、晚子时开关（按《天纪》口径固定开）",
     "删掉「只知道农历生日就切到农历」这类多余提示文字",
@@ -1142,10 +1163,109 @@ function zwParseLngLat(txt){
   }
   return { lng: lng, lat: lat };
 }
+/* ---------- 自填城市／县 → 经纬度（在线查；查不到就提示手填经纬度） ---------- */
+var ZW_PLACE = null;   /* {name, lng, lat} */
+var ZW_GEO_SEQ = 0;    /* 请求序号：防止旧请求的回调覆盖新结果 */
+function zwGeoShow(html, cls){
+  var t = $("zw-geo-tip"); if (!t) return;
+  t.className = "note" + (cls ? " " + cls : "");
+  t.innerHTML = html;
+}
+/* 本地库搜索：支持「绍兴」「浙江省绍兴市」「无为」「漠河」等写法 */
+function zwLocalSearch(q){
+  var DB = (typeof CN_AREAS !== "undefined") ? CN_AREAS : null;
+  if (!DB) return null;
+  var raw = String(q || "").replace(/[\s　]/g, "");
+  if (!raw) return null;
+  /* 去掉省/市/区/县/自治区等后缀，取核心名 */
+  /* 生成多个候选写法：逐步剥掉「省/市/县/区」等后缀与「新疆/内蒙古」等前缀 */
+  var SUF = /(省|市|自治区|特别行政区|自治州|地区|盟|自治县|新区|开发区|区|县|旗)/g;
+  var PRE = /^(新疆维吾尔|新疆|内蒙古|广西壮族|广西|宁夏回族|宁夏|西藏|香港特别行政区|澳门特别行政区|台湾省|黑龙江省|河北省|山西省|辽宁省|吉林省|江苏省|浙江省|安徽省|福建省|江西省|山东省|河南省|湖北省|湖南省|广东省|海南省|四川省|贵州省|云南省|陕西省|甘肃省|青海省)/;
+  var forms = {};
+  function addForm(t){ t = (t || "").trim(); if (t.length >= 2) forms[t] = 1; }
+  addForm(raw);
+  var a = raw, guard = 0;
+  while (guard++ < 6) { var b = a.replace(SUF, ""); if (b === a) break; a = b; addForm(a); }
+  guard = 0;
+  while (guard++ < 6) { var c2 = a.replace(PRE, ""); if (c2 === a) break; a = c2; addForm(a); }
+  /* 再对原串只剥前缀 */
+  var d2 = raw.replace(PRE, ""); addForm(d2); addForm(d2.replace(SUF, ""));
+  /* 取最短的核心名做包含匹配 */
+  var cores = Object.keys(forms).sort(function(x, y){ return x.length - y.length; });
+  var core = cores[0] || raw;
+  var cands = [];
+  function push(name, lng, lat, path, rank){
+    if (!name || !isFinite(lng) || !isFinite(lat)) return;
+    cands.push({ name:name, lng:lng, lat:lat, path:path, rank:rank });
+  }
+  for (var i = 0; i < DB.length; i++){
+    var it = DB[i];
+    var nm = it[0], lng = it[1], lat = it[2], path = it[3] || "";
+    /* rank：全等 0 ／ 去掉后缀全等 1 ／ 包含 2 */
+    if (forms[nm]) push(nm, lng, lat, path, 0);
+    else if (nm === core) push(nm, lng, lat, path, 1);
+    else if (core.length >= 2 && nm.indexOf(core) >= 0) push(nm, lng, lat, path, 2);
+    else if (path && path.indexOf(core) >= 0) push(nm, lng, lat, path, 3);
+  }
+  if (!cands.length) return null;
+  cands.sort(function(a, b){
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    /* 同级取名字短的（更可能是本级） */
+    return a.name.length - b.name.length;
+  });
+  return cands[0];
+}
+
+function zwGeocode(){
+  var el = $("zw-place"); if (!el) return;
+  var q = (el.value || "").trim();
+  if (!q) { ZW_PLACE = null; zwGeoShow("请先填城市或县名。"); return; }
+  var direct = zwParseLngLat(q);
+  if (direct){
+    ZW_PLACE = { name:q, lng:direct.lng, lat:direct.lat };
+    zwGeoShow("已按经纬度用：东经 " + direct.lng + "°（北纬 " + direct.lat + "°）");
+    return;
+  }
+  /* ① 本地库 */
+  var hit = zwLocalSearch(q);
+  if (hit){
+    ZW_GEO_SEQ++;   /* 作废在途的联网请求 */
+    ZW_PLACE = { name:(hit.path ? hit.path : hit.name), lng:hit.lng, lat:hit.lat };
+    zwGeoShow("已定位：<b>" + (hit.path ? hit.path : hit.name) + "</b>　东经 " + hit.lng.toFixed(2) + "°，北纬 " + hit.lat.toFixed(2) + "°");
+    return;
+  }
+  /* ② 在线兜底 */
+  var mySeq = ++ZW_GEO_SEQ;
+  zwGeoShow("本地地名库没查到「" + q + "」，正在联网查…");
+  var url = "https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q);
+  fetch(url).then(function(r){ return r.json(); }).then(function(jj){
+    if (mySeq !== ZW_GEO_SEQ) return;   /* 已有更新的查询，丢弃本次结果 */
+    var fs2 = (jj && jj.features) || [];
+    if (!fs2.length) throw new Error("没查到");
+    /* 优先 city/county/district 级别 */
+    var order = ["city", "county", "district", "state", "locality", "house"];
+    fs2.sort(function(a, b){
+      var ia = order.indexOf((a.properties || {}).type), ib = order.indexOf((b.properties || {}).type);
+      if (ia < 0) ia = 99; if (ib < 0) ib = 99;
+      return ia - ib;
+    });
+    var f = fs2[0], prop = f.properties || {}, c = f.geometry.coordinates;
+    var nm = [prop.name, prop.city, prop.county, prop.state].filter(function(x){ return !!x; }).join("·");
+    ZW_PLACE = { name:q, lng:c[0], lat:c[1] };
+    zwGeoShow("已联网定位：<b>" + nm + "</b>　东经 " + c[0].toFixed(2) + "°，北纬 " + c[1].toFixed(2) + "°");
+  }).catch(function(){
+    if (mySeq !== ZW_GEO_SEQ) return;
+    ZW_PLACE = null;
+    zwGeoShow("没查到「" + q + "」。<br>可以：① 换个写法（如「绍兴」而不是「绍兴市柯桥区」）② 在左边直接填经纬度 ③ 用上面的常用城市。");
+  });
+}
+
 /* 当前该用哪个经度：手填优先，否则城市 */
 function zwUseLng(){
   var manual = $("zw-lnglat") ? zwParseLngLat($("zw-lnglat").value) : null;
   if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
+  if (ZW_PLACE && typeof ZW_PLACE.lng === "number")
+    return { lng: ZW_PLACE.lng, src: ZW_PLACE.name + "（东经" + ZW_PLACE.lng.toFixed(2) + "°）" };
   var city = $("zw-city") ? $("zw-city").value : "";
   if (city && LunarCore.CITY_LNG && typeof LunarCore.CITY_LNG[city] === "number")
     return { lng: LunarCore.CITY_LNG[city], src: city + "（东经" + LunarCore.CITY_LNG[city] + "°）" };
@@ -1175,6 +1295,8 @@ function zwInitDateMode(){
   zwFillSolarYears(); zwFillSolarMonths();
   zwFillLunarYears(); zwFillLunarMonths();
   zwFillCities();
+  if ($("zw-geo")) $("zw-geo").onclick = zwGeocode;
+  if ($("zw-place")) $("zw-place").onkeydown = function(e){ if (e.key === "Enter"){ e.preventDefault(); zwGeocode(); } };
   $("zw-sy").onchange = function(){ zwFillSolarDays(); };
   $("zw-sm").onchange = function(){ zwFillSolarDays(); };
   $("zw-ly").onchange = function(){ zwFillLunarMonths(); };
@@ -1280,7 +1402,7 @@ function zwHeader(c){
   if (ts) {
     h += '<div class="note">真太阳时校正：钟表 '+esc(LunarCore.pad(i.input.hh))+':'+esc(LunarCore.pad(i.input.mm))+
          ' → 真太阳时 '+esc(LunarCore.pad(ts.hour))+':'+esc(LunarCore.pad(ts.minute))+
-         '（'+(ts.deltaMin>=0?'+':'')+ts.deltaMin+' 分，'+esc($('zw-city').value)+'）</div>';
+         '（'+(ts.deltaMin>=0?'+':'')+ts.deltaMin+' 分'+(c._input && c._input.place ? '，'+esc(c._input.place) : '')+'）</div>';
   }
   h += '</div>';
   return h;
