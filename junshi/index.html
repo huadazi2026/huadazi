@@ -52,7 +52,11 @@
     background:var(--panel2); border:1px solid var(--line);
   }
   .msg.user .av{background:var(--me); border-color:var(--me)}
-  .col{display:flex; flex-direction:column; gap:5px; max-width:calc(100% - 50px); min-width:0}
+  /* .col 必须占满剩余空间：不然 row-reverse 下剩余空间会落在中间，
+     气泡就和头像对不齐（实测差了 39px）。
+     max-width 用 39px = 头像 30 + gap 9，刚好留出头像的位置。 */
+  .col{display:flex; flex-direction:column; gap:5px; min-width:0;
+       flex:1 1 auto; max-width:calc(100% - 39px); align-items:flex-start}
   .msg.user .col{align-items:flex-end}
   .bubble{
     background:var(--ai); border:1px solid var(--line); border-radius:13px;
@@ -436,7 +440,7 @@
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.2";
+const APP_VER = "v3.2.1";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
