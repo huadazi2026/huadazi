@@ -88,6 +88,40 @@
   }
   #lightbox.show{display:flex}
   #lightbox img{max-width:100%; max-height:100%; border-radius:8px}
+  /* 朗读 */
+  .bubble.reading{cursor:pointer; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+  #chat mark.readnow{background:var(--accent); color:#241a06; border-radius:3px; padding:0 1px}
+  .acts button.readon{border-color:var(--accent); color:var(--accent)}
+  /* 表情面板 */
+  #emojiPanel{
+    position:fixed; left:10px; right:10px; bottom:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px 14px 0 0;
+    padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+    max-height:52vh; overflow-y:auto; display:none;
+    box-shadow:0 -8px 24px rgba(0,0,0,.45);
+  }
+  #emojiPanel.show{display:block}
+  #emojiPanel .ehd{display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--sub); font-size:12.5px}
+  #emojiPanel .ehd b{color:var(--accent); font-size:13px}
+  #emojiPanel .ehd .sp{flex:1}
+  #emojiPanel .ehd button{
+    background:var(--panel2); border:1px solid var(--line); color:var(--sub);
+    border-radius:8px; padding:4px 10px; font-size:12.5px; cursor:pointer;
+  }
+  #emojiGrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(62px, 1fr)); gap:6px}
+  #emojiGrid button{
+    background:var(--panel2); border:1px solid var(--line); border-radius:9px;
+    padding:7px 2px 5px; cursor:pointer; font-size:22px; line-height:1.1;
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+  }
+  #emojiGrid button:active{background:var(--line)}
+  #emojiGrid button i{font-size:10.5px; color:var(--dim); font-style:normal}
+  em.qf{font-style:normal; font-size:1.15em; line-height:1; display:inline-block; vertical-align:-2px; margin:0 1px}
+  /* 收音中 */
+  footer #btnMic{background:var(--panel2); border:1px solid var(--line); color:var(--sub); padding:11px 13px; font-size:16px; border-radius:12px; font-weight:400}
+  footer #btnMic:active{background:var(--line)}
+  footer #btnMic.rec{background:var(--danger); border-color:var(--danger); color:#fff; animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   .acts{display:flex; gap:6px; flex-wrap:wrap}
   .acts button{
     background:transparent; border:1px solid var(--line); color:var(--dim);
@@ -118,11 +152,11 @@
   }
   footer button:disabled{opacity:.45}
   footer button.stop{background:var(--danger); color:#fff}
-  footer #btnImg{
+  footer #btnImg,footer #btnEmoji{
     background:var(--panel2); border:1px solid var(--line); color:var(--sub);
     padding:11px 13px; font-size:16px; border-radius:12px; font-weight:400;
   }
-  footer #btnImg:active{background:var(--line)}
+  footer #btnImg:active,footer #btnEmoji:active{background:var(--line)}
   /* 设置 / 历史抽屉 */
   #overlay{
     position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
@@ -212,10 +246,20 @@
 <div id="pending"></div>
 <footer>
   <textarea id="input" rows="1" placeholder="说点什么… / 也可以贴图"></textarea>
+  <button id="btnEmoji" type="button" title="表情">🙂</button>
   <button id="btnImg" type="button" title="加图片">🖼</button>
+  <button id="btnMic" type="button" title="语音转文字" style="display:none">🎤</button>
   <button id="btnSend">发送</button>
 </footer>
 <input type="file" id="filePick" accept="image/*" multiple style="display:none">
+<div id="emojiPanel">
+  <div class="ehd">
+    <b>QQ 表情</b><span>点一下插到光标处 · 也可以直接打 <code>/微笑</code></span>
+    <span class="sp"></span>
+    <button id="emojiClose" type="button">关闭</button>
+  </div>
+  <div id="emojiGrid"></div>
+</div>
 <div id="lightbox"><img alt=""></div>
 
 <div id="overlay">
@@ -243,6 +287,20 @@
       <h2>📋 我的背景（军师每次都会看到）</h2>
       <textarea id="cfgContext" rows="12"></textarea>
       <div class="hint">把你自己的情况写这儿——越具体，他的建议越准。以后有变化随时改。背景**不会**被截断，写多长都会完整发过去。<span id="statCtx"></span></div>
+    </div>
+    <div class="grp">
+      <h2>🙂 表情</h2>
+      <label style="display:flex; align-items:center; gap:9px; margin:0">
+        <input type="checkbox" id="cfgQface" style="width:auto; padding:0">
+        <span>让军师也能发表情（/微笑 这类 QQ 代码会显示成表情）</span>
+      </label>
+      <div class="hint">关掉之后它就只跟你讲干货，一个表情都不加。你自己照样可以随时用 🙂 按钮发表情。</div>
+    </div>
+    <div class="grp">
+      <h2>🎤 朗读与语音</h2>
+      <div class="hint">军师每条回复下面有「🔊 朗读」，点一下从头读；<b>点回复里的任意一个字，就从那个字往下读</b>，再点一下停。<br>
+      语音输入看输入框旁边的 🎤：安卓 Chrome / 电脑上能用。<b>iPhone 上系统不给网页用语音识别</b>，用键盘自带的 🎤 听写（设置 → 通用 → 键盘 → 启用听写），效果更好。<br>
+      朗读用手机自带语音，不联网、不额外花钱。</div>
     </div>
     <div class="row">
       <button class="primary" id="btnSave">保存</button>
@@ -311,6 +369,9 @@ const DEFAULT_CONTEXT = `【我是谁】
 舍不得A，又放不下B。我知道自己在纠结，但停不下来。`;
 
 const SYS_NOTE = "\n\n【我的背景资料】\n";
+// 只报最常用的一小撮，省 token；开关关掉就完全不告诉它
+const QF_NOTE = "\n\n【表情】\n你可以用 /名称 直接发表情，比如 /微笑 /呲牙 /偷笑 /流泪 /抱拳 /强 /玫瑰 /强颜欢笑。"
+  + "别堆太多，一次一两个，用在真有情绪的地方；正经谈事的时候别加。";
 const MAX_CTX_MSGS = 24;   // 每次只带最近 24 条，省 token；背景资料永远完整带上
 
 let cfg = {base:"https://api.deepseek.com/v1", key:"", model:"deepseek-chat"};
@@ -330,10 +391,70 @@ const chatEl = $("chat");
 
 /* ---------- 小工具 ---------- */
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- 表情 ---------- */
+// 用系统 emoji 而不是腾讯的版权图片：离线可用、任何手机都能显示、微信里也发得出去。
+// 同时认识 /名称 这种 QQ 代码，你和 AI 都可以直接打。
+const QFACES = [
+  ["微笑","😊"],["呲牙","😄"],["偷笑","🤭"],["坏笑","😆"],["大笑","😂"],["笑哭","🤣"],
+  ["得意","😏"],["调皮","😜"],["亲亲","🥰"],["飞吻","😘"],["害羞","😳"],["可爱","🥺"],
+  ["流泪","😢"],["大哭","😭"],["难过","😞"],["委屈","🥹"],["快哭了","😿"],["可怜","🥺"],
+  ["流汗","😅"],["擦汗","😓"],["冷汗","😰"],["晕","😵"],["头大","🤯"],["惊恐","😱"],
+  ["吓","😨"],["发呆","😐"],["睡","😴"],["困","😪"],["哈欠","🥱"],["白眼","🙄"],
+  ["傲慢","😤"],["发怒","😡"],["咒骂","🤬"],["抓狂","😫"],["折磨","😖"],["闭嘴","🤐"],
+  ["疑问","🤔"],["嘘","🤫"],["强","👍"],["弱","👎"],["OK","👌"],["鼓掌","👏"],
+  ["握手","🤝"],["抱拳","🙏"],["奋斗","💪"],["胜利","✌️"],["勾引","🫦"],["差劲","👎"],
+  ["拥抱","🤗"],["挥手","👋"],["玫瑰","🌹"],["凋谢","🥀"],["爱心","❤️"],["心碎","💔"],
+  ["示爱","💖"],["爱情","💕"],["蛋糕","🍰"],["咖啡","☕"],["啤酒","🍻"],["西瓜","🍉"],
+  ["猪头","🐷"],["便便","💩"],["骷髅","💀"],["炸弹","💣"],["闪电","⚡"],["太阳","☀️"],
+  ["月亮","🌙"],["礼物","🎁"],["钱","💰"],["大脑","🧠"],["时钟","⏰"],["火","🔥"]
+];
+const QMAP = {};
+QFACES.forEach(([n, e])=>{ QMAP[n] = e; });
+const QF_RE = new RegExp("\\/(?!\\/)([\\u4e00-\\u9fa5A-Za-z]{1,6})(?![\\u4e00-\\u9fa5A-Za-z])", "g");
+// 把 /微笑 这类 QQ 代码换成表情图形
+function qfaceHTML(s){
+  return String(s).replace(QF_RE, (m, name)=> QMAP[name] ? '<em class="qf" title="/' + name + '">' + QMAP[name] + '</em>' : m);
+}
+function buildEmojiPanel(){
+  const g = $("emojiGrid");
+  g.innerHTML = "";
+  QFACES.forEach(([name, em])=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = '<span>' + em + '</span><i>' + esc(name) + '</i>';
+    b.title = "插入 /" + name;
+    b.addEventListener("click", ()=>insertAtCursor(em + " "));
+    g.appendChild(b);
+  });
+}
+function insertAtCursor(txt){
+  const ta = $("input");
+  const s = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+  const e = ta.selectionEnd == null ? ta.value.length : ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + txt + ta.value.slice(e);
+  const pos = s + txt.length;
+  ta.focus();
+  try{ ta.setSelectionRange(pos, pos); }catch(err){}
+  grow(ta);
+}
+function toggleEmoji(force){
+  const p = $("emojiPanel");
+  const on = force === undefined ? !p.classList.contains("show") : !!force;
+  p.classList.toggle("show", on);
+  $("btnEmoji").classList.toggle("on", on);
+}
 function mdLite(s){
-  let out = esc(s);
-  out = out.replace(/```([\s\S]*?)```/g, (m,code)=> "<pre><code>"+code.replace(/^\n/,"")+"</code></pre>");
-  out = out.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  const src = String(s);
+  let out = "", last = 0, m;
+  const re = /```[\s\S]*?```|`[^`\n]+`/g;      // 先摘出代码块，代码里的 /微笑 不能动
+  while((m = re.exec(src))){
+    out += qfaceHTML(esc(src.slice(last, m.index)));
+    out += /^`{1}[^`]/.test(m[0]) ? "<code>" + esc(m[0].slice(1, -1)) + "</code>"
+                                  : "<pre><code>" + esc(m[0].slice(3, -3)).replace(/^\n/, "") + "</code></pre>";
+    last = m.index + m[0].length;
+  }
+  out += qfaceHTML(esc(src.slice(last)));
   out = out.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
   return out;
 }
@@ -380,6 +501,7 @@ function load(){
   cfg.base  = cfg.base  || "https://api.deepseek.com/v1";
   cfg.model = cfg.model || "deepseek-chat";
   cfg.key   = cfg.key   || "";
+  if(cfg.qface === undefined) cfg.qface = true;
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   ctxText = localStorage.getItem(LS_CTX) || DEFAULT_CONTEXT;
   try{ convs = JSON.parse(localStorage.getItem(LS_CONV)||"[]") || []; }catch(e){ convs=[]; }
@@ -484,8 +606,21 @@ function renderChat(){
       b.className = "bubble";
       b.dataset.raw = m.content;
       b.innerHTML = mdLite(m.content);
+
+      // 点气泡里的任意一个字，就从那个字开始往下读
+      if(m.role === "assistant" && ttsSupported()){
+        b.title = "点某个字，从那里开始读";
+        b.addEventListener("click", ev=>{
+          if(ttsBubble === b){ stopRead(); return; }
+          if(ev.target.closest && ev.target.closest("pre, code")) return;
+          const off = charOffsetFromPoint(b, ev.clientX, ev.clientY);
+          startRead(b, String(m.content || ""), off == null ? 0 : off);
+        });
+      }
       col.appendChild(b);
     }
+
+    const bubble = col.querySelector(".bubble");
 
     const acts = document.createElement("div");
     acts.className = "acts";
@@ -495,6 +630,7 @@ function renderChat(){
       acts.appendChild(mkAct("删除", ()=>delMsg(i)));
     }else{
       acts.appendChild(mkAct("复制", ()=>copyText(m.content)));
+      if(ttsSupported()) acts.appendChild(mkAct("🔊 朗读", function(){ readToggle(i, this); }));
       acts.appendChild(mkAct("重新回答", ()=>retryOne(i)));
       acts.appendChild(mkAct("引用追问", ()=>{
         $("input").value = "关于你上面说的「" + m.content.replace(/\s+/g," ").slice(0,18) + "…」，我再问一句：";
@@ -664,9 +800,236 @@ function openLightbox(src){
 }
 function closeLightbox(){ $("lightbox").classList.remove("show"); }
 
-/* ---------- 报错解析 ---------- */
-function msgOfError(raw){
+/* ---------- 朗读（可从句中任意一个字开始） ---------- */
+let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null;
+
+function ttsSupported(){ return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function"; }
+function pickVoice(){
+  const vs = window.speechSynthesis.getVoices() || [];
+  return vs.find(v=>/^zh[-_]CN/i.test(v.lang)) || vs.find(v=>/^zh/i.test(v.lang)) || null;
+}
+// 先按标点切成句子，再把句子合并成不超过 max 字的朗读块。
+// 这样“从某个字开始读”会自然地从那句话读起，而不是漏掉半句。
+function splitForRead(text, start, max){
+  max = max || 160;
+  const out = [];
+  const sents = [];
+  let b = 0;
+  for(let i = 0; i < text.length; i++){
+    if(/[。！？；\n]/.test(text[i])){
+      let e = i + 1;
+      while(e < text.length && /[」』”"）)]/.test(text[e])) e++;
+      sents.push([b, e]);
+      b = e;
+    }
+  }
+  if(b < text.length) sents.push([b, text.length]);
+  if(!sents.length) return out;
+  // 找到落点所在的那句
+  let s = 0;
+  while(s < sents.length - 1 && sents[s][1] <= start) s++;
+  let i = s;
+  while(i < sents.length){
+    const from = (i === s) ? Math.max(sents[i][0], start) : sents[i][0];
+    const lead = text.slice(from, sents[i][1]).length -
+                 text.slice(from, sents[i][1]).replace(/^\s+/, "").length;
+    let at = from + lead, end = sents[i][1], j = i;
+    while(j + 1 < sents.length && sents[j + 1][1] - at <= max) end = sents[++j][1];
+    const t = text.slice(at, end).trim();
+    if(t) out.push({text:t, at:at});
+    i = j + 1;
+  }
+  return out;
+}
+function clearReadMark(){
+  if(!ttsBubble) return;
+  const mk = ttsBubble.querySelector("mark.readnow");
+  if(mk){
+    const p = mk.parentNode;
+    while(mk.firstChild) p.insertBefore(mk.firstChild, mk);
+    p.removeChild(mk);
+    if(p.normalize) p.normalize();
+  }
+}
+// 用 DOM Range 框住正在读的那一段 —— 不用重建源码，速度和真实感都够
+function markRange(el, start, len){
+  clearReadMark();
   try{
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    let acc = 0, sN = null, sO = 0, eN = null, eO = 0, n;
+    while((n = walk.nextNode())){
+      const L = n.nodeValue.length;
+      if(sN === null && acc + L > start){ sN = n; sO = start - acc; }
+      if(sN !== null && acc + L >= start + len){ eN = n; eO = start + len - acc; break; }
+      acc += L;
+    }
+    if(!sN || !eN) return;
+    const r = document.createRange();
+    r.setStart(sN, sO); r.setEnd(eN, eO);
+    const mk = document.createElement("mark");
+    mk.className = "readnow";
+    try{ r.surroundContents(mk); }
+    catch(err){ mk.appendChild(r.extractContents()); r.insertNode(mk); }
+  }catch(e){}
+}
+function wpm(){
+  try{ return parseFloat(localStorage.getItem("junshi_tts_rate_v1")) || 1; }catch(e){ return 1; }
+}
+function speakOne(){
+  if(ttsStop || ttsCi >= ttsChunks.length){
+    if(!ttsStop && ttsBubble){
+      const b = ttsBubble;
+      clearReadMark();
+      b.classList.remove("reading");
+      const btn = b.parentNode && b.parentNode.querySelector(".acts button.readon");
+      if(btn){ btn.classList.remove("readon"); btn.textContent = "🔊 朗读"; }
+    }
+    ttsBubble = null;
+    return;
+  }
+  const c = ttsChunks[ttsCi];
+  markRange(ttsBubble, c.at, c.text.length);
+  const u = new SpeechSynthesisUtterance(c.text);
+  const v = pickVoice();
+  if(v) u.voice = v;
+  u.lang = (v && v.lang) || "zh-CN";
+  u.rate = wpm();
+  u.pitch = 1;
+  u.onend = ()=>{ ttsCi++; speakOne(); };
+  u.onerror = ()=>{ ttsCi++; speakOne(); };
+  window.speechSynthesis.speak(u);
+}
+function stopRead(){
+  ttsStop = true;
+  try{ window.speechSynthesis.cancel(); }catch(e){}
+  if(ttsBubble){
+    clearReadMark();
+    ttsBubble.classList.remove("reading");
+    const btn = ttsBubble.parentNode && ttsBubble.parentNode.querySelector(".acts button.readon");
+    if(btn){ btn.classList.remove("readon"); btn.textContent = "🔊 朗读"; }
+  }
+  ttsBubble = null; ttsChunks = [];
+}
+function startRead(el, text, from){
+  if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
+  stopRead();
+  ttsStop = false;
+  ttsBubble = el;
+  ttsChunks = splitForRead(text, Math.max(0, from || 0));
+  ttsCi = 0;
+  el.classList.add("reading");
+  const btn = el.parentNode && el.parentNode.querySelector(".acts button.readon") ||
+              el.parentNode && [...el.parentNode.querySelectorAll(".acts button")].find(b=>/朗读/.test(b.textContent));
+  if(btn){ btn.classList.add("readon"); btn.textContent = "⏹ 停止"; }
+  const go = ()=>{ if(!ttsStop) speakOne(); };
+  const vs = window.speechSynthesis.getVoices() || [];
+  if(!vs.length && "onvoiceschanged" in window.speechSynthesis){
+    // 语音列表是异步加载的，等一下；万一是真的没有语音，也得开读，不能卡住
+    let done = false;
+    const handler = ()=>{ if(done) return; done = true; go(); };
+    window.speechSynthesis.onvoiceschanged = handler;
+    setTimeout(()=>{ if(!done){ done = true; go(); } }, 800);
+  }else{
+    go();
+  }
+}
+// 点气泡里的任意一个字 -> 从那个字开始读
+function charOffsetFromPoint(el, x, y){
+  let node = null, off = 0;
+  if(document.caretRangeFromPoint){
+    const r = document.caretRangeFromPoint(x, y);
+    if(r){ node = r.startContainer; off = r.startOffset; }
+  }else if(document.caretPositionFromPoint){
+    const p = document.caretPositionFromPoint(x, y);
+    if(p){ node = p.offsetNode; off = p.offset; }
+  }
+  if(!node || !el.contains(node)) return null;
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  let acc = 0, n, idx = null;
+  while((n = walk.nextNode())){
+    if(n === node){ idx = acc + off; break; }
+    acc += n.nodeValue.length;
+  }
+  if(idx === null) return null;
+  const txt = el.textContent || "";
+  // 手指点在两个字中间时，光标会吸到最近的边界。人点字是点在“字上”，
+  // 所以先把标点/空格往左传一格，再退到这一句的开头 —— 朗读是按句读的，
+  // 位置不对齐的话会出现“从第 20 个字读起、内容却是第 19 个字”这种错位。
+  while(idx > 0 && /[\s，。！？；：、,.!?;:）)\]】」』”"…—]/.test(txt.charAt(idx))) idx--;
+  while(idx > 0 && !/[。！？；\n]/.test(txt.charAt(idx - 1))) idx--;
+  return Math.max(0, Math.min(idx, txt.length));
+}
+function readToggle(i, btn){
+  const c = active(); if(!c) return;
+  const m = c.msgs[i];
+  if(!m || m.role !== "assistant") return;
+  const row = btn.closest(".msg");
+  const bubble = row && row.querySelector(".bubble");
+  if(ttsBubble === bubble){ stopRead(); return; }
+  startRead(bubble, String(m.content || ""), 0);
+}
+
+/* ---------- 语音转文字 ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, recOn = false, recPrefix = "", sttPrefix = "";
+
+function recSupported(){ return !!SR; }
+function toggleRec(){
+  if(!recSupported()){
+    showErr("这个浏览器不支持语音转文字。iPhone 上请用键盘自带的 🎤 听写（在设置里打开「键盘 → 启用听写」）。");
+    return;
+  }
+  if(recOn){ stopRec(); return; }
+  let r;
+  try{ r = new SR(); }
+  catch(e){ showErr("麦克风启动失败：" + e.message); return; }
+  r.lang = "zh-CN";
+  r.continuous = true;
+  r.interimResults = true;
+  r.maxAlternatives = 1;
+  recPrefix = $("input").value;
+  if(recPrefix && !/\s$/.test(recPrefix)) recPrefix += " ";
+  recOn = true;
+  $("btnMic").classList.add("rec");
+  $("btnMic").textContent = "⏺";
+  const put = (txt, interim)=>{
+    $("input").value = recPrefix + txt;
+    $("input").style.opacity = interim ? ".75" : "1";
+    grow($("input"));
+  };
+  r.onresult = e=>{
+    let fin = "", itm = "";
+    for(let k = 0; k < e.results.length; k++){
+      const res = e.results[k];
+      if(res.isFinal) fin += res[0].transcript;
+      else itm += res[0].transcript;
+    }
+    put(fin + itm, !!itm);
+  };
+  r.onerror = ev=>{
+    const map = { "not-allowed":"麦克风权限被拒了。要在浏览器设置里允许这个网站用麦克风。",
+                  "service-not-allowed":"系统不允许语音识别。",
+                  "no-speech":"没听到声音，再试一次。",
+                  "audio-capture":"找不到麦克风。",
+                  "network":"语音识别要联网，检查一下网络。" };
+    showErr("语音识别出错：" + (map[ev.error] || ev.error));
+    stopRec();
+  };
+  r.onend = ()=>{ if(recOn) stopRec(); };
+  try{ r.start(); }
+  catch(e){ showErr("麦克风启动不了：" + e.message); recOn = false; $("btnMic").classList.remove("rec"); $("btnMic").textContent = "🎤"; return; }
+  recog = r;
+}
+function stopRec(){
+  recOn = false;
+  $("btnMic").classList.remove("rec");
+  $("btnMic").textContent = "🎤";
+  $("input").style.opacity = "1";
+  if(recog){ try{ recog.stop(); }catch(e){} recog = null; }
+}
+
+/* ---------- 报错解析 ---------- */
+function msgOfError(raw){  try{
     const j = JSON.parse(raw);
     const e = j.error || j;
     return (e.message || e.msg || e.code || raw || "").toString();
@@ -750,6 +1113,8 @@ async function send(text, opts){
   if(!cfg.key){ showErr("还没填 API Key —— 点右上角「设置」填一下。"); return; }
 
   const c = active(); if(!c) return;
+  stopRead();
+  if(recOn){ sttPrefix = recPrefix; stopRec(); } else { sttPrefix = ""; }
   $("input").value = ""; grow($("input"));
   if(!opts.noImg && !opts.keepUser){
     // 只清真正要发出去的那几张；发失败时会把它们放回来
@@ -778,7 +1143,7 @@ async function send(text, opts){
   setBusy(true);
   abortCtl = new AbortController();
 
-  const sys = persona + SYS_NOTE + ctxText;
+  const sys = persona + SYS_NOTE + ctxText + (cfg.qface === false ? "" : QF_NOTE);
   const history = c.msgs.slice(-MAX_CTX_MSGS).map(toApiMsg);
   const payload = {
     model: cfg.model,
@@ -882,7 +1247,7 @@ async function send(text, opts){
         c.updatedAt = Date.now();
         saveConvs(); saveMsgsLegacy();
         if(sentCount && !pendingImgs.length) pendingImgs = sentImgs.slice();   // 图也还给用户
-        if(!$("input").value) $("input").value = text;
+        if(!$("input").value) $("input").value = sttPrefix + text;             // 用语音打的字，前缀一起还回去
         grow($("input")); renderPending();
         renderAll();
         finalErr = "没发出去（" + (e && e.message ? e.message : e) + "）—— 话和图片都给你放回输入框了，检查一下接口地址 / Key / 模型名 / 网络再点发送。";
@@ -1011,6 +1376,11 @@ document.addEventListener("drop", e=>{
   if(files && files.length){ e.preventDefault(); addFiles(files); }
 });
 $("lightbox").addEventListener("click", closeLightbox);
+$("btnEmoji").addEventListener("click", ()=>toggleEmoji());
+$("emojiClose").addEventListener("click", ()=>toggleEmoji(false));
+$("btnMic").addEventListener("click", toggleRec);
+$("emojiPanel").addEventListener("click", e=>e.stopPropagation());
+$("input").addEventListener("click", ()=>{ if($("emojiPanel").classList.contains("show")) toggleEmoji(false); });
 document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeLightbox(); });
 window.addEventListener("beforeunload", e=>{
   if(pendingImgs.length){ e.preventDefault(); e.returnValue = ""; }
@@ -1031,6 +1401,7 @@ $("btnHist").addEventListener("click", ()=>{
 $("btnSet").addEventListener("click", ()=>{
   if(!confirmLeave()) return;
   $("cfgBase").value = cfg.base; $("cfgKey").value = cfg.key || ""; $("cfgModel").value = cfg.model;
+  $("cfgQface").checked = cfg.qface !== false;
   $("cfgPersona").value = persona; $("cfgContext").value = ctxText;
   statLine(); markDirty(false);
   $("drawer").style.display = "none";
@@ -1052,6 +1423,7 @@ $("btnSave").addEventListener("click", ()=>{
   cfg.base = $("cfgBase").value.trim() || "https://api.deepseek.com/v1";
   cfg.key = $("cfgKey").value.trim();
   cfg.model = $("cfgModel").value.trim() || "deepseek-chat";
+  cfg.qface = $("cfgQface").checked;
   persona = $("cfgPersona").value.trim() || DEFAULT_PERSONA;
   ctxText = $("cfgContext").value.trim();
   saveCfg(); markDirty(false);
@@ -1068,6 +1440,10 @@ $("btnClear").addEventListener("click", ()=>{
 });
 $("btnExport").addEventListener("click", exportOne);
 $("btnExportAll").addEventListener("click", exportAll);
+
+if(recSupported()) $("btnMic").style.display = "";
+else $("btnMic").title = "这个浏览器不支持语音转文字";
+buildEmojiPanel();
 
 load();
 $("input").focus();
