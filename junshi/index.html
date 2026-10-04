@@ -40,9 +40,13 @@
     --shift-up:3px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
+  html{height:100%; background:var(--panel)}   /* 兜底色：露出来也是灰的，不是白 */
+  body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--ink);
+    /* 兜底：万一页面比视口短，露出来的那条要是面板色，
+       不能是刺眼的白（footer 是 --panel 色）。 */
+    border-bottom:0;
     font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
     display:flex; flex-direction:column;
     /* 不给 height:100% —— 那会跟着 --app-h 一起缩，键盘弹起时反而露白 */
@@ -1419,8 +1423,12 @@ function confirmLeave(){
     // 可视高度明显小于布局高度 = 键盘开着
     kbOpen = isField(document.activeElement) || (layout - vh > 120);
     if(kbOpen) return;                // 键盘开着不动高度
-    let h = Math.min(vh, layout);
-    want = h;
+    // 取较大的那个。
+    // 踩过的坑：visualViewport.height 有时会比真实可用高度小几十像素
+    // （页面刚加载、Safari 工具栏收起/展开的过程中），
+    // 那样页面就铺不满，底部露出一条白 —— 就是"下面空一块"的来源。
+    // innerHeight 偏大是对的方向：宁可铺满被裁一点，也不能露白。
+    want = Math.max(vh, layout);
     schedule();
   }
 
