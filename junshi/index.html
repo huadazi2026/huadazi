@@ -35,7 +35,11 @@
     --overlay:rgba(0,0,0,.6);
     --lightbox:rgba(0,0,0,.94);
 
-    --shift-down:1mm;             /* 整体下移量，改这个数就行 */
+    /* 整体下移量。现在是 0 = 不动。
+       试过 1mm（3.78px）：在 3 倍屏上是 11.3 个物理像素，
+       不是整数，顶栏与状态栏之间会多出一条缝。
+       真要下移就用整数像素（4px / 8px）。 */
+    --shift-down:0px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{height:100%}
