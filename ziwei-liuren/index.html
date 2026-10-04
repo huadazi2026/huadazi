@@ -1119,11 +1119,32 @@ function askKind(q){
   if (/能不能|可以|行不行|成不成|能否|会不会|是否|有没有|能不能成|能不能过|能不能签|能不能谈/.test(q)) return 'whether';
   return 'whether';
 }
-/* 数字 → 最直接的答案 */
-function answerOf(q, prob){
+/* 判断问的是「哪一类事」—— 术数断不同的事要换断语体系 */
+function askTopic(q){
+  q = String(q || '');
+  var T = [
+    ['weather', /下雨|下雪|天气|晴|阴天|会不会下|刮风|台风|降温|气温|雾霾|什么时候下/],
+    ['lost',    /丢|遗失|找不到|落在哪|忘在|不见了|失物|捡到/],
+    ['person',  /他会|她会不会|联系我|回我|来找我|什么时候来|什么时候回|能不能见到|什么时候到/],
+    ['money',   /财|钱|收入|回款|赚|亏|投资|中奖|工资|欠款|债|账单/],
+    ['career',  /工作|事业|职位|升职|面试|录取|offer|考试|考|编|证|项目|合作|签|谈成|创业|开店/],
+    ['love',    /感情|婚姻|男朋友|女朋友|老婆|老公|复合|表白|相亲|喜欢|爱我|桃花|结婚/],
+    ['health',  /病|健康|身体|疼|手术|住院|医|恢复|怀孕|生/],
+    ['travel',  /出行|出门|搬家|移|去.*吗|远行|旅行|出差|路上|航班|车/],
+    ['legal',   /官司|诉讼|纠纷|报警|仲裁|法院|合同纠纷|被起诉/],
+    ['people',  /找人|求人|托人|帮忙|贵人|合作方|对方愿不愿意|中介/]
+  ];
+  for (var i=0;i<T.length;i++) if (T[i][1].test(q)) return T[i][0];
+  return 'general';
+}
+var TOPIC_NAME = { weather:'天气', lost:'失物', person:'等人的消息', money:'钱财', career:'事业功名',
+                   love:'感情婚姻', health:'身体', travel:'出行', legal:'官非口舌', people:'求人办事', general:'综合' };
+
+/* 答案优先用「按事类的断语」，没有则退回通用档位 */
+function answerOf(q, prob, topicAns){
+  if (topicAns) return { txt: topicAns, short: topicAns };
   var kind = askKind(q);
-  if (kind === 'when'){
-    if (prob >= 66) return { txt:'快了 —— 十天到一个月内会有消息', short:'快了' };
+  if (kind === 'when'){    if (prob >= 66) return { txt:'快了 —— 十天到一个月内会有消息', short:'快了' };
     if (prob >= 54) return { txt:'有信儿，但要等 —— 一到三个月', short:'要等' };
     if (prob >= 46) return { txt:'时间不定 —— 眼下看不出准信', short:'不定' };
     if (prob >= 36) return { txt:'短期没戏 —— 至少三个月内别指望', short:'没戏' };
@@ -1566,7 +1587,7 @@ function lrLikely(K, read, q){
     '，结果会好一档；如果逆着来（该缓的时候急、该找人时硬扛），就会差一档。课是死的，怎么走是活的。';
 
   return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
-    answer: (q ? answerOf(q, prob).txt : null), question: q,
+    answer: (q ? answerOf(q, prob, topicAnswer(askTopic(q), prob)).txt : null), question: q,
     probText:'（课面综合评分 '+read.score+'，把握度 '+esc(read.confidence)+'）',
     reasons:reasons, pros:pros, cons:cons, condition:condition });
 }
@@ -1676,9 +1697,103 @@ function renderXiaoLiuRen(){
   $('xlr-out').innerHTML = xlrHtml(k, $('xlr-q').value.trim(), mode);
 }
 
+/* 其他五门：按「事类」给贴合问题的答案（这些门的断语没小六壬那么成体系，但方向要对） */
+function topicAnswer(topic, prob, opt){
+  opt = opt || {};
+  var strong = prob >= 62, weak = prob < 44;
+  switch (topic){
+    case 'weather':
+      return strong ? '明天是晴天／好天，不会下雨（断天气看「父母」爻：父母旺则雨，子孙旺则晴 —— 你现在子孙得力）'
+                    : (weak ? '会下雨／下雪，或者阴沉一天（父母爻旺、子孙受制）'
+                            : '天阴或有零星雨，不成大雨；想准一点建议用小六壬问（大安晴、留空亡雨，最直接）');
+    case 'lost':
+      return strong ? '找得回来，东西没丢远' : (weak ? '找不回来了，多半彻底没了' : '悬：可能压在什么地方或被人顺手收走，仔细再翻一遍');
+    case 'person':
+      return strong ? '他会主动联系你，就在这几天' : (weak ? '近期不会主动联系你' : '会联系但会拖，别天天盯着手机');
+    case 'money':
+      return strong ? '钱能到手，近期就有' : (weak ? '这笔钱悬，可能要不回来' : '能到手但拖，得催');
+    case 'career':
+      return strong ? '能成' : (weak ? '这次不成' : '能成但要争，别太乐观');
+    case 'love':
+      return strong ? '这段关系能成／能好' : (weak ? '近期无果' : '有心但难推进');
+    case 'health':
+      return strong ? '问题不大，能好' : (weak ? '要重视，建议尽快查清楚' : '恢复慢，需要时间');
+    case 'travel':
+      return strong ? '顺利，出行平安' : (weak ? '不宜出行／容易有变数' : '能行，但路上会有小折腾');
+    case 'legal':
+      return strong ? '能赢／能和解' : (weak ? '不利，先找人和解' : '拖，宜缓不宜急');
+    case 'people':
+      return strong ? '对方愿意帮' : (weak ? '别指望这个人' : '对方会推，得再问一次');
+    default:
+      return null;
+  }
+}
+
+/* 小六壬：按「事类」给断语（六宫 × 事类）—— 这才是小六壬真正的用法 */
+var XLR_TOPIC = {
+  'weather': {
+    '大安': '不下雨，晴天或晴间多云', '留连': '阴天／阴沉，雨一时下不来',
+    '速喜': '有雷阵雨、来得快去得快', '赤口': '刮风，风大但雨小',
+    '小吉': '和风细雨，天气平和', '空亡': '要下雨／下雪，天色阴沉'
+  },
+  'lost': {
+    '大安': '东西没丢远，就在原地或常放的地方，回家找找', '留连': '一时找不到，别急，过两天自己会冒出来',
+    '速喜': '很快就能找到，多半在人多的地方或明面上', '赤口': '被人拿走或压在杂物下，急找才有',
+    '小吉': '找得到，问一下身边的人，或往北／近水处找', '空亡': '找不回来了，多半已经彻底没了'
+  },
+  'person': {
+    '大安': '他会来／会联系，只是不急，人没动', '留连': '暂时没消息，人在犹豫或事没办完',
+    '速喜': '很快就有消息，这两天就到', '赤口': '会联系，但一开口容易吵，话题要挑',
+    '小吉': '人会来、消息会到，多半通过第三方转达', '空亡': '近期不会有消息，别等了'
+  },
+  'money': {
+    '大安': '钱能到手，但慢，得等', '留连': '钱卡住了，对方也在等，短期要不到',
+    '速喜': '钱来得快，近期就有进账', '赤口': '要钱容易起争执，或者被扣一部分',
+    '小吉': '有财，能借到力、能谈到好条件', '空亡': '这笔钱悬了，可能有去无回'
+  },
+  'career': {
+    '大安': '能成，但按原路走、别改方案', '留连': '暂时定不下来，面试／审批还在走流程',
+    '速喜': '能成，而且快，好消息就在这几天', '赤口': '过程里有口舌或争执，尤其面试／答辩要小心说话',
+    '小吉': '能成，而且有人帮、有人推荐', '空亡': '这次不成，别抱太大希望'
+  },
+  'love': {
+    '大安': '感情稳，但也就那样，没什么进展', '留连': '拖着，对方态度不明，别逼问',
+    '速喜': '有喜，关系可能快速升温', '赤口': '易吵架、易翻旧账，话出口前先想三秒',
+    '小吉': '和合之象，能成、能复合、能谈拢', '空亡': '这段感情近期无果，先放一放'
+  },
+  'health': {
+    '大安': '无大碍，静养就好', '留连': '恢复慢、反复，别急着停药',
+    '速喜': '好得快，检查结果多半是好的', '赤口': '要注意，可能有并发症或误诊，多找一位医生看看',
+    '小吉': '有贵人医缘，治疗顺', '空亡': '要重视，别拖，尽快去查清楚'
+  },
+  'travel': {
+    '大安': '出行平安，人是稳的', '留连': '会耽误，可能改期或路上拖时间',
+    '速喜': '顺利，而且快', '赤口': '路上有小摩擦、小心口角与财物',
+    '小吉': '一路顺，有人接应', '空亡': '不宜远行，或者计划会落空'
+  },
+  'legal': {
+    '大安': '平安无事，事情压得住', '留连': '会拖，官事只宜缓办',
+    '速喜': '能赢／能和解，而且有福德', '赤口': '口舌官非之象，最忌当面顶撞',
+    '小吉': '能和解，有人从中说和', '空亡': '有刑伤之象，务必先请人调解，别硬撑'
+  },
+  'people': {
+    '大安': '对方会答应，但不太热情', '留连': '对方在推，得再问一次',
+    '速喜': '一开口就成，抓紧说', '赤口': '对方为难或有意见，换个人去说更好',
+    '小吉': '对方乐意帮，是好时机', '空亡': '别指望了，这事得自己扛'
+  },
+  'general': {}
+};
+function xlrTopicAnswer(gong, topic){
+  var t = XLR_TOPIC[topic];
+  if (!t || !t[gong]) return null;
+  return t[gong];
+}
+
 function xlrHtml(k, q, mode){
   var G = XiaoLiuRen.GONG, info = k.info;
   var h = '';
+  var topic = askTopic(q);
+  var topicAns = xlrTopicAnswer(k.gong, topic);
   /* 最可能的结果 */
   var PROB = { '大安':72, '速喜':76, '小吉':80, '留连':42, '赤口':34, '空亡':26 };
   var prob = PROB[k.gong] || 50;
@@ -1687,16 +1802,19 @@ function xlrHtml(k, q, mode){
     '大安': '能成，但不会快：这事的走势是"原地稳着来"，按原来的安排走就会有结果，你不需要额外做什么，尤其别临时改主意。',
     '留连': '现在拿不到结果，会拖：你问的这件事眼下信息不全、或者对方还没定，今天追也追不出来。给它两三天，先把该问的问清楚。',
     '速喜': '能成，而且很快：这是六宫里最"快"的一个，今天到这三五天内就会有消息，前提是你要主动把话递出去。',
-    '赤口': '容易谈崩、容易起争执：事情本身不一定坏，但你一开口就容易顶起来。想办成，先把话在纸上写顺，见面少说多听。',
+    '赤口': '过程不会顺，多半伴着口舌或争执：事情本身不一定坏，但你一开口就容易顶起来。想办成，先把话在纸上写顺，见面少说多听。',
     '小吉': '能成，而且有人帮：这事的转机在别人身上。找人、托人、谈合作都比你自己硬扛强，开口要资源成功率明显更高。',
     '空亡': '大概率落空：投入之后看不到回报，或者对方根本不接。建议先停，别追加投入，把这事往后放一放再看。'
   };
   var verdict = VERD[k.gong] || '';
-  if (q) verdict += '（针对你问的「' + q + '」）';
+  if (topicAns) verdict = '问到「' + TOPIC_NAME[topic] + '」上：' + topicAns + '。' +
+    (prob >= 54 ? '整体走势也配合，可以按这个方向安排。' : '整体走势偏阻，就算方向对，也要留退路。');
 
   var reasons = [];
   reasons.push('数出来的落点是<b>'+esc(k.gong)+'</b>：'+esc(k.lunar.m)+'月落在「'+esc(k.monthGong)+'」，'+esc(k.lunar.d)+
     '日落在「'+esc(k.dayGong)+'」，'+esc(k.shiZhi)+'时落在「'+esc(k.gong)+'」—— 最后这一宫就是答案。');
+  if (topicAns) reasons.push('你问的是<b>'+TOPIC_NAME[topic]+'</b>，小六壬断这一类事有专属断语：落在<b>'+esc(k.gong)+'</b> → '+esc(topicAns)+
+    '。（同一宫问不同的事，断语不一样 —— 这是小六壬的规矩。）');
   reasons.push('这一宫的属性是<b>'+esc(info.wuxing)+'（'+esc(info.fangwei)+'、临'+esc(info.tigan)+'、数'+esc(info.shuzi)+'）</b>：'+esc(info.xiang));
   reasons.push('古诀讲：'+esc(info.shi));
   reasons.push('吉凶层级：<b>'+esc(info.luck)+'</b>。小六壬六宫里，大安、速喜、小吉偏吉，留连、赤口、空亡偏凶 —— 这是断事的骨架。');
@@ -1704,13 +1822,18 @@ function xlrHtml(k, q, mode){
   var pros = [], cons = [];
   for (var a=0;a<info.yi.length && a<3;a++) pros.push(info.yi[a]);
   for (var b=0;b<info.ji.length && b<3;b++) cons.push(info.ji[b]);
+  if (topic === 'weather'){
+    pros = ['六宫断天气是固定断法：大安晴、留连阴、速喜雷、赤口风、小吉和、空亡雨。你落在「'+k.gong+'」→ '+topicAns];
+    cons = ['天时变化快，同一宫不同时辰也可能上午下午不一样', '出门前再看一眼实时预报，这个只作参考'];
+  }
 
   var condition = '小六壬问的是<b>眼前短事</b>：同一个问题不要反复起课，第一次的落点最准。' +
     '如果这件事本身拖过了一两个月，或者中间有大的变化（换人、换条件），就该重新起一次。';
 
   h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
-    answer: (q ? answerOf(q, prob).txt : null), question: q,
-    probText:'（'+esc(k.gong)+'宫，'+esc(info.luck)+'）', reasons:reasons, pros:pros, cons:cons, condition:condition });
+    answer: (q ? answerOf(q, prob, topicAns).txt : null), question: q,
+    probText:'（'+esc(k.gong)+'宫 · '+(topicAns?('问'+TOPIC_NAME[topic]):'未指明事类')+' · '+esc(info.luck)+'）',
+    reasons:reasons, pros:pros, cons:cons, condition:condition });
 
   h += '<div class="verdict">';
   h += '<div class="v2">农历 '+(k.lunar.y?esc(k.lunar.y)+'年':'')+esc(k.lunar.m)+'月'+esc(k.lunar.d)+'日　'+
@@ -1862,7 +1985,7 @@ function mhHtml(r){
   for (var b=0;b<v.donts.length && b<3;b++) cons.push(v.donts[b]);
 
   h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
-    answer: (r.question ? answerOf(r.question, prob).txt : null), question: r.question,
+    answer: (r.question ? answerOf(r.question, prob, topicAnswer(askTopic(r.question), prob)).txt : null), question: r.question,
     probText:'（体用「'+esc(r.rel.key)+'」+ 变卦「'+esc(r.bianRel.key)+'」合出来的）',
     reasons:reasons, pros:pros, cons:cons,
     condition:'梅花讲「不动不占」：如果你问这件事的时候心里其实已经有答案、只是想要个支持，那这个卦的参考价值会打折。' +
@@ -2121,7 +2244,7 @@ function qmLikely(p, yong, byG, q){
   if (!cons.length) cons.push('用神宫没有明显凶象，风险主要来自时机和执行');
 
   return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
-    answer: (q ? answerOf(q, prob).txt : null), question: q,
+    answer: (q ? answerOf(q, prob, topicAnswer(askTopic(q), prob)).txt : null), question: q,
     probText:'（用神宫：'+g.name+'宫 '+g.men+' + '+g.star+' + '+g.shen+'）',
     reasons:reasons, pros:pros, cons:cons,
     condition:'奇门是"问事"的盘，同一个问题换一个时辰起局结果就会变。如果这件事拖了几天还没动，' +
@@ -2300,6 +2423,21 @@ function lyHtml(r){
   var QIN_POS = { '妻财':78, '子孙':74, '父母':64, '兄弟':52, '官鬼':40 };
   /* 用神：按所问的事取六亲 */
   var q = r.question || '', useQin = '', useWhy = '';
+  var topic = askTopic(q);
+  /* 按事类取用神（六爻的正统取法） */
+  var TOPIC_QIN = {
+    weather: ['父母', '断天气：以「父母」为用神（父母主雨雪阴云；子孙主晴）'],
+    lost:    ['妻财', '断失物：以「妻财」为用神（财物之爻）'],
+    person:  ['应爻', '断等人／消息：以「应爻」（对方）为用神'],
+    money:   ['妻财', '问财：以「妻财」为用神'],
+    career:  ['官鬼', '问事业功名：以「官鬼」为用神'],
+    love:    ['妻财', '问感情：男占以「妻财」为用神，女占以「官鬼」为用神'],
+    health:  ['官鬼', '问疾病：以「官鬼」为用神（病爻）'],
+    travel:  ['父母', '问出行：以「父母」为用神（车马舟楫），兼看子孙（平安）'],
+    legal:   ['官鬼', '问官非：以「官鬼」为用神（官方），子孙为解神'],
+    people:  ['应爻', '问求人：以「应爻」为用神（所求之人）']
+  };
+  if (TOPIC_QIN[topic]){ useQin = TOPIC_QIN[topic][0]; useWhy = TOPIC_QIN[topic][1]; }
   var RULES = [
     [['钱','财','投资','赚','生意','买卖','回款','工资','收入','价格','合同金额'], '妻财', '问财：以「妻财」为用神'],
     [['工作','事业','职位','升','领导','上司','老板','官','考试','编制','名'], '官鬼', '问事业功名：以「官鬼」为用神'],
@@ -2316,13 +2454,18 @@ function lyHtml(r){
   }
   if (!useQin){ useQin = '世爻'; useWhy = '未指明具体事：以「世爻」（你自己）为用神'; }
 
-  /* 找用神那一爻 */
+  /* 找用神那一爻（「应爻」＝应位那一爻） */
   var useLine = null;
   for (var i=0;i<6;i++){
     var L = r.lines[i];
-    if (useQin === '世爻' ? L.shi : (L.qin === useQin)) { useLine = L; break; }
+    var hit = (useQin === '世爻') ? L.shi : (useQin === '应爻' ? L.ying : (L.qin === useQin));
+    if (hit) { useLine = L; break; }
   }
-  if (!useLine) for (var j=0;j<6;j++) { if (r.lines[j].qin === useQin) { useLine = r.lines[j]; break; } }
+  if (!useLine) for (var j=0;j<6;j++) {
+    if (useQin === '应爻' ? r.lines[j].ying : (r.lines[j].qin === useQin)) { useLine = r.lines[j]; break; }
+  }
+  var noYongShen = !useLine;
+  if (noYongShen) useLine = r.lines[r.ben.shi - 1];   /* 用神不上卦：暂以世爻代看，并在依据里说明 */
 
   /* 打分：用神本身的六亲属性 + 是否临世应 + 是否空亡 + 是否动 */
   var base = useLine ? (QIN_POS[useLine.qin] || 60) : 55;
@@ -2344,10 +2487,10 @@ function lyHtml(r){
   var reasons = [];
   reasons.push('<b>先装卦</b>：本卦「'+esc(ben.name)+'」（上'+esc(ben.up)+'下'+esc(ben.low)+'），属<b>'+esc(ben.gong)+'宫'+esc(ben.gongWx)+'</b>，是'+esc(ben.kind)+
     '，世爻在'+['初','二','三','四','五','上'][ben.shi-1]+'爻、应爻在'+['初','二','三','四','五','上'][ben.ying-1]+'爻。卦宫五行定了六亲，世应定了你我位置。');
-  reasons.push('<b>取用神</b>：'+esc(useWhy)+'。' + (useLine ?
+  reasons.push('<b>取用神</b>：'+esc(useWhy)+'。' + (noYongShen ?
+    ('<b>用神不上卦</b>（本卦六亲里没有'+esc(useQin)+'）—— 六爻里这叫"用神伏藏"，通常主事情不顺、要多费周折。下面暂以世爻代看，参考价值打折。') :
     ('用神落在<b>'+esc(useLine.name)+'</b>：'+esc(useLine.qin)+'　'+esc(useLine.zhi)+'（'+esc(useLine.wuxing)+'）　'+esc(useLine.shen)+
-     (useLine.shi?'　【临世爻】':'')+(useLine.ying?'　【临应爻】':'')+(useLine.kong?'　【空亡】':'')+(useLine.old?'　【发动】':'')) :
-    '（本卦六亲里没有这个用神，属于"用神不上卦"，通常要借伏神看，事多不顺。）'));
+     (useLine.shi?'　【临世爻】':'')+(useLine.ying?'　【临应爻】':'')+(useLine.kong?'　【空亡】':'')+(useLine.old?'　【发动】':''))));
   if (r.dong.length){
     var dongTxt = [];
     for (var d=0;d<r.dong.length;d++){
@@ -2379,7 +2522,7 @@ function lyHtml(r){
   if (!cons.length) cons.push('没有明显凶象，风险主要来自时间和执行');
 
   h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
-    answer: (r.question ? answerOf(r.question, prob).txt : null), question: r.question,
+    answer: (r.question ? answerOf(r.question, prob, topicAnswer(topic, prob)).txt : null), question: r.question,
     probText:'（本卦'+esc(ben.name)+' · 用神'+esc(useQin)+' · 动爻'+(r.dong.length?r.dong.join('、'):'无')+'）',
     reasons:reasons, pros:pros, cons:cons,
     condition:'六爻讲「一事一卦、一事一占」：同一个问题反复摇，卦就不准了。如果这件事拖过了旬（十天）或者中间条件变了（换人、改价、改时间），' +
