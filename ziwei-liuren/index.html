@@ -401,131 +401,48 @@ nav button.on{color:var(--gold)}
     <div class="card">
       <div class="step-h"><span class="no">1</span><span class="tt">定盘 · 出生信息</span><span class="hint">命盘看一生格局；具体一件事请用六爻／奇门</span></div>
       <div id="zw-err" class="err hidden"></div>
-      <div class="step-h"><span class="no">2</span><span class="tt">排盘 · 定生辰</span><span class="hint">只记得大概时段就选时辰</span></div>
+      <div class="step-h"><span class="no">2</span><span class="tt">排盘 · 定生辰</span><span class="hint">年月日与时辰都从下拉选</span></div>
       <div class="row">
-        <div class="field" style="flex:1.4">
+        <div class="field" style="flex:1.1">
           <label>出生日期用哪种历</label>
           <div class="seg" id="zw-datemode">
             <button data-v="solar" class="on">公历</button><button data-v="lunar">农历</button>
           </div>
         </div>
-        <div class="field" style="flex:1.1">
-          <label>出生时间的填法</label>
-          <select id="zw-timemode">
-            <option value="shichen">选时辰（多数人选这个）</option>
-            <option value="range">给个时间段</option>
-            <option value="clock">知道准确时刻</option>
-          </select>
-        </div>
-      </div>
-      <div class="row" id="zw-row-solar">
-        <div class="field">
-          <label>出生日期（公历）</label>
-          <input type="date" id="zw-date" min="1900-01-31" max="2100-12-31">
-        </div>
-        <div class="field" style="flex:1.7">
-          <label>&nbsp;</label>
-          <div class="note" style="margin:0;padding-top:9px">只知道农历生日就切到「农历」——会自动把闰月列出来</div>
-        </div>
-      </div>
-      <div class="row hidden" id="zw-row-lunar">
-        <div class="field" style="flex:.8">
-          <label>农历年</label>
-          <select id="zw-ly"></select>
-        </div>
-        <div class="field" style="flex:1.2">
-          <label>农历月</label>
-          <select id="zw-lm"></select>
-        </div>
-        <div class="field" style="flex:.8">
-          <label>农历日</label>
-          <select id="zw-ld"></select>
-        </div>
-      </div>
-      <div class="note hidden" id="zw-lunar-tip"></div>
-      <div class="row" id="zw-row-shichen">
-        <div class="field">
-          <label>出生时辰（不知道具体几点就选这个）</label>
-          <select id="zw-shichen"></select>
-        </div>
-      </div>
-      <div class="row hidden" id="zw-row-range">
-        <div class="field">
-          <label>大概从几点</label>
-          <input type="time" id="zw-range-a" value="04:00" step="300">
-        </div>
-        <div class="field">
-          <label>大概到几点</label>
-          <input type="time" id="zw-range-b" value="06:00" step="300">
-        </div>
-      </div>
-      <div class="row hidden" id="zw-row-clock">
-        <div class="field" style="flex:1">
-          <label>出生时刻（钟表时间）</label>
-          <input type="time" id="zw-time" value="12:00">
-        </div>
-        <div class="field" style="flex:1">
-          <label>&nbsp;</label>
-          <div class="note" style="margin:0;padding-top:9px">会按出生地经度换算真太阳时</div>
-        </div>
-      </div>
-      <div class="note hidden" id="zw-timetip"></div>
-      <div class="row">
         <div class="field">
           <label>性别</label>
           <div class="seg" id="zw-gender">
             <button data-v="男" class="on">男</button><button data-v="女">女</button>
           </div>
         </div>
+      </div>
+      <div class="row" id="zw-row-solar">
+        <div class="field" style="flex:.9"><label>公历年</label><select id="zw-sy"></select></div>
+        <div class="field" style="flex:.8"><label>月</label><select id="zw-sm"></select></div>
+        <div class="field" style="flex:.8"><label>日</label><select id="zw-sd"></select></div>
+      </div>
+      <div class="row hidden" id="zw-row-lunar">
+        <div class="field" style="flex:.9"><label>农历年</label><select id="zw-ly"></select></div>
+        <div class="field" style="flex:1.1"><label>农历月（有闰月会自动列出）</label><select id="zw-lm"></select></div>
+        <div class="field" style="flex:.8"><label>日</label><select id="zw-ld"></select></div>
+      </div>
+      <div class="note hidden" id="zw-lunar-tip"></div>
+      <div class="row" id="zw-row-shichen">
         <div class="field">
-          <label>闰月算法</label>
-          <select id="zw-leap">
-            <option value="split">十五前本月，十六起下月</option>
-            <option value="prev">闰月按本月</option>
-            <option value="next">闰月按下月</option>
-          </select>
+          <label>出生时辰</label>
+          <select id="zw-shichen"></select>
         </div>
       </div>
+      <div class="note hidden" id="zw-timetip"></div>
       <div class="row">
-        <div class="field">
-          <label>定命宫用的月</label>
-          <select id="zw-monthmode">
-            <option value="lunar">农历月（初一换月）</option>
-            <option value="term">节气月（按节气换月）</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>排盘口径（一键切换）</label>
-          <select id="zw-school">
-            <option value="nhx">倪海厦《天纪》排盘程序：农历月 + 闰月作本月</option>
-            <option value="common">通用派：农历月 + 十五分界</option>
-            <option value="term">节气月派：节气月 + 十五分界</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label>出生地（真太阳时）</label>
+        <div class="field" style="flex:1.2">
+          <label>出生地（选城市，或直接填经纬度）</label>
           <select id="zw-city"></select>
         </div>
-      </div>
-      <div class="row">
-        <div class="field" style="flex:.7">
-          <label>当前年龄（虚岁）</label>
-          <input type="number" id="zw-age" min="1" max="120" inputmode="numeric" placeholder="自动">
+        <div class="field" style="flex:1.1">
+          <label>或者填经纬度</label>
+          <input type="text" id="zw-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
-        <div class="field" style="flex:1.3">
-          <label>&nbsp;</label>
-          <div class="note" style="margin:0;padding-top:8px">用于定位当前大限，留空则按今年自动估算</div>
-        </div>
-      </div>
-      <div class="switch">
-        <input type="checkbox" id="zw-truesolar" checked>
-        <label for="zw-truesolar" style="margin:0">启用真太阳时校正（按出生地经度）</label>
-      </div>
-      <div class="switch">
-        <input type="checkbox" id="zw-latezi" checked>
-        <label for="zw-latezi" style="margin:0">晚子时按前一天（23:00–24:00 生，日子退一天；《天纪》口径）</label>
       </div>
       <button class="btn" id="zw-go">排 命 盘</button>
     </div>
@@ -877,48 +794,6 @@ function shichenList(a, b){
   if (!seen[ib]) out.push(ib);
   return out;
 }
-function showTimeMode(){
-  var m = $('zw-timemode').value;
-  $('zw-row-shichen').className = 'row' + (m==='shichen' ? '' : ' hidden');
-  $('zw-row-range').className  = 'row' + (m==='range'   ? '' : ' hidden');
-  $('zw-row-clock').className  = 'row' + (m==='clock'   ? '' : ' hidden');
-  updateTimeTip();
-}
-function readTimeInputs(){
-  /* 返回 { mode, hours:[...], branches:[...], desc } */
-  var mode = $('zw-timemode').value;
-  if (mode === 'shichen'){
-    var i = parseInt($('zw-shichen').value, 10) || 0;
-    return { mode:mode, hours:[SHICHEN_MID[i]], branches:[i], desc:'只知时辰：'+ZHI.charAt(i)+'时（'+shichenRange(i)+'）' };
-  }
-  if (mode === 'range'){
-    var a = hhmmToMin($('zw-range-a').value), b = hhmmToMin($('zw-range-b').value);
-    var list = shichenList(a, b);
-    var hours = [];
-    for (var k=0;k<list.length;k++) hours.push(SHICHEN_MID[list[k]]);
-    return { mode:mode, hours:hours, branches:list,
-             desc:'时间段 '+$('zw-range-a').value+'–'+$('zw-range-b').value };
-  }
-  var p = String($('zw-time').value||'12:00').split(':');
-  var hh = (+p[0]||0), mm = (+p[1]||0);
-  var br = Math.floor(((hh*60+mm) + 60) % 1440 / 120) % 12;
-  return { mode:mode, hours:[hh], minutes:[mm], branches:[br], exact:true, desc:'准确时刻 '+$('zw-time').value };
-}
-function updateTimeTip(){
-  var raw;
-  try { raw = readTimeInputs(); } catch(e){ return; }
-  var tip = $('zw-timetip');
-  if (raw.branches.length <= 1){
-    tip.className = 'note';
-    tip.innerHTML = '按 <b>'+esc(raw.desc)+'</b> 排盘，落在 <b>'+ZHI.charAt(raw.branches[0])+'时</b>。';
-    return;
-  }
-  var names = [];
-  for (var i=0;i<raw.branches.length;i++) names.push(ZHI.charAt(raw.branches[i])+'时');
-  tip.className = 'note';
-  tip.innerHTML = esc(raw.desc) + ' 跨了 <b>' + raw.branches.length + ' 个时辰</b>（' + names.join('、') +
-    '）：我会把每个时辰的命盘都排出来，用上面的标签切换对比 —— 不知道准确时间时，就看哪个盘更像你。';
-}
 
 /* ---------- 今天日期 ---------- */
 function todayStr(){
@@ -929,9 +804,9 @@ function nowTimeStr(){
   var d = new Date();
   return LunarCore.pad(d.getHours())+':'+LunarCore.pad(d.getMinutes());
 }
-$('zw-date').value = todayStr();
-$('lr-date').value = todayStr();
-$('lr-time').value = nowTimeStr();
+/* 紫微的日期已改下拉（zwInitDateMode 里初始化），这里只给其他几门填默认值 */
+if ($('lr-date')) $('lr-date').value = todayStr();
+if ($('lr-time')) $('lr-time').value = nowTimeStr();
 
 /* ---------- 分段选择 ---------- */
 function segBind(el, onPick){
@@ -947,13 +822,7 @@ function segBind(el, onPick){
 var zwGender = '男';
 var zwCharts = [], zwActive = 0, zwKey = '';
 segBind($('zw-gender'), function(v){ zwGender = v; });
-/* 出生时间填法切换 */
-$('zw-timemode').addEventListener('change', showTimeMode);
-$('zw-shichen').addEventListener('change', updateTimeTip);
-$('zw-range-a').addEventListener('change', updateTimeTip);
-$('zw-range-b').addEventListener('change', updateTimeTip);
-$('zw-time').addEventListener('change', updateTimeTip);
-showTimeMode();
+/* 出生时辰：不再需要联动（时辰直接从下拉选） */
 $('lr-mode').addEventListener('change', function(){
   var manual = this.value === 'manual';
   $('lr-date').disabled = !manual;
@@ -997,9 +866,18 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v27 · 2026-10-05";
+var APP_BUILD = "v28 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v27", "这次的更新", [
+  ["v28", "这次的更新", [
+    "出生信息的表单大幅精简：年月日全部改成下拉（公历与农历一样都是下拉），不再手打日期",
+    "删掉了「能被程序自己算出来」的字段：出生时间的填法、闰月算法、定命宫用的月、排盘口径、当前年龄（虚岁自动算）、晚子时开关（按《天纪》口径固定开）",
+    "删掉「只知道农历生日就切到农历」这类多余提示文字",
+    "出生地：可以从城市下拉选，也可以直接填经纬度（例：121.5, 31.2），手填优先",
+    "出生时辰下拉直接显示时辰与钟点范围（例：午时（12:00–14:00））",
+    "修复：小六壬切「起课方式」没反应（换模式后颜色区块不更新）",
+    "修复：紫微表单重构后，初始化在页面加载时就中断，导致后面几门的联动全部失效"
+  ]],
+  ["v27", "更早", [
     "修复：紫微「排命盘」按钮失效（上版发布时丢了点击绑定，已补回）",
     "新增：出生日期可切「公历／农历」。切到农历后选年份，若那一年有闰月，月份下拉里会多出「闰X月」",
     "农历模式下会显示该年闰月提示，并按所选月份的天数给出农历日（29/30 天）",
@@ -1117,25 +995,8 @@ function parseDateTime(dateStr, timeStr){
 }
 
 /* 排盘口径 ↔ 两个明细下拉 联动 */
-function syncSchool(){
-  var sc = $("zw-school"); if (!sc) return;
-  var M = { nhx: ["lunar","prev"], common: ["lunar","split"], term: ["term","split"] };
-  var v = M[sc.value] || M.nhx;
-  var mm = $("zw-monthmode"), lp = $("zw-leap");
-  if (mm) mm.value = v[0];
-  if (lp) lp.value = v[1];
-}
-/* 绑定：换口径即同步；加载后也同步一次（默认倪海厦口径） */
-(function initSchool(){
-  var sc = $("zw-school"); if (!sc) return;
-  sc.onchange = syncSchool;
-  syncSchool();
-  if (document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", syncSchool);
-  } else {
-    setTimeout(syncSchool, 0);
-  }
-})();
+
+
 /* ---------- 紫微：点「排命盘」开始推算 ---------- */
 $('zw-go').onclick = function(){
   var btn = this;
@@ -1148,61 +1009,87 @@ $('zw-go').onclick = function(){
     }
   }, 20);
 };
-/* ===== 出生日期：公历 / 农历 ===== */
+/* ===== 出生日期：公历／农历，年月日全部下拉 ===== */
 var ZW_DATEMODE = "solar";
-var ZW_LUNAR = null;            /* 记住用户选的农历 {y,m,d,isLeap} */
-function zwPad(n){ return (n<10?"0":"")+n; }
+var ZW_LUNAR = null;
+var ZW_SOLAR = null;
+function zwPad2(n){ return (n<10?"0":"")+n; }
+var ZW_CN_MON = ["","正","二","三","四","五","六","七","八","九","十","冬","腊"];
+var ZW_CN_DAY = ["","初一","初二","初三","初四","初五","初六","初七","初八","初九","初十",
+  "十一","十二","十三","十四","十五","十六","十七","十八","十九","二十",
+  "廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
 
-/* 农历年下拉：1900–2100 */
-function zwLunarFillYears(){
+/* ---------- 公历下拉 ---------- */
+function zwFillSolarYears(){
+  var el = $("zw-sy"); if (!el || el.options.length) return;
+  var h = "";
+  for (var y = 1901; y <= 2099; y++) h += '<option value="' + y + '">' + y + ' 年</option>';
+  el.innerHTML = h;
+  el.value = "1990";
+}
+function zwFillSolarMonths(keep){
+  var el = $("zw-sm"); if (!el) return;
+  var h = "";
+  for (var m = 1; m <= 12; m++) h += '<option value="' + m + '">' + m + ' 月</option>';
+  var old = el.value; el.innerHTML = h;
+  if (keep && old) { try { el.value = old; } catch(e){} }
+  if (!el.value) el.selectedIndex = 0;
+  zwFillSolarDays();
+}
+function zwFillSolarDays(){
+  var el = $("zw-sd"); if (!el) return;
+  var y = parseInt($("zw-sy").value, 10) || 1990;
+  var m = parseInt($("zw-sm").value, 10) || 1;
+  var days = new Date(y, m, 0).getDate();
+  var old = el.value, h = "";
+  for (var d = 1; d <= days; d++) h += '<option value="' + d + '">' + d + ' 日</option>';
+  el.innerHTML = h;
+  if (old && parseInt(old,10) <= days) el.value = old;
+}
+
+/* ---------- 农历下拉（有闰月自动插进去） ---------- */
+function zwFillLunarYears(){
   var el = $("zw-ly"); if (!el || el.options.length) return;
   var h = "";
   for (var y = 1900; y <= 2100; y++) h += '<option value="' + y + '">' + y + ' 年</option>';
   el.innerHTML = h;
   el.value = "1990";
 }
-
-/* 农历月下拉：有闰月就插进去，标成「闰X月」 */
-function zwLunarFillMonths(keep){
+function zwFillLunarMonths(keep){
   var el = $("zw-lm"); if (!el) return;
   var y = parseInt($("zw-ly").value, 10) || 1990;
   var ms = LC.lunarMonthsOfYear(y);
   var h = "";
   for (var i = 0; i < ms.length; i++){
-    h += '<option value="' + ms[i].m + ',' + (ms[i].isLeap ? 1 : 0) + '">' + ms[i].label + '</option>';
+    h += '<option value="' + ms[i].m + ',' + (ms[i].isLeap ? 1 : 0) + '">' +
+         (ms[i].isLeap ? "闰" : "") + ZW_CN_MON[ms[i].m] + '月（' + ms[i].days + '天）</option>';
   }
-  var old = el.value;
-  el.innerHTML = h;
-  if (keep && old) { try { el.value = keep; } catch(e){} }
+  var old = el.value; el.innerHTML = h;
+  if (keep && old) { try { el.value = old; } catch(e){} }
   if (!el.value) el.selectedIndex = 0;
   var leap = LC.leapMonthOfYear(y);
   var tip = $("zw-lunar-tip");
-  if (tip) {
+  if (tip){
     tip.className = "note";
-    tip.innerHTML = leap
-      ? '农历 ' + y + ' 年有<b>闰' + ["","正","二","三","四","五","六","七","八","九","十","冬","腊"][leap] + '月</b>，月份下拉里已列出来。闰月生人按哪个月论命，看下面「排盘口径」。'
-      : '农历 ' + y + ' 年没有闰月。';
+    tip.innerHTML = leap ?
+      ("农历 " + y + " 年有<b>闰" + ZW_CN_MON[leap] + "月</b>，月份下拉里已列出。") :
+      ("农历 " + y + " 年没有闰月。");
   }
-  zwLunarFillDays();
+  zwFillLunarDays();
 }
-
-/* 农历日下拉：按当月天数（29 或 30） */
-function zwLunarFillDays(keep){
+function zwFillLunarDays(keep){
   var el = $("zw-ld"); if (!el) return;
   var y = parseInt($("zw-ly").value, 10) || 1990;
   var parts = ($("zw-lm").value || "1,0").split(",");
   var m = parseInt(parts[0], 10) || 1, isLeap = parts[1] === "1";
   var days = LC.monthDaysOfYear(y, m, isLeap);
-  var CN = ["","初一","初二","初三","初四","初五","初六","初七","初八","初九","初十",
-            "十一","十二","十三","十四","十五","十六","十七","十八","十九","二十",
-            "廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
   var old = el.value, h = "";
-  for (var d = 1; d <= days; d++) h += '<option value="' + d + '">' + (CN[d] || d) + '（' + d + '）</option>';
+  for (var d = 1; d <= days; d++) h += '<option value="' + d + '">' + ZW_CN_DAY[d] + '</option>';
   el.innerHTML = h;
   if (keep && old && parseInt(old,10) <= days) el.value = old;
 }
 
-/* 切换历法 */
+/* ---------- 切换历法 ---------- */
 function zwSetDateMode(v){
   ZW_DATEMODE = v;
   var bs = document.querySelectorAll("#zw-datemode button");
@@ -1210,109 +1097,136 @@ function zwSetDateMode(v){
   $("zw-row-solar").className = "row" + (v === "solar" ? "" : " hidden");
   $("zw-row-lunar").className = "row" + (v === "lunar" ? "" : " hidden");
   var tip = $("zw-lunar-tip"); if (tip && v !== "lunar") tip.className = "note hidden";
+  if (v === "lunar") zwFillLunarMonths(true);
 }
 
-/* 把农历转成公历；返回 {y,m,d} 或 null */
-function zwLunarToSolar(){
-  var y = parseInt($("zw-ly").value, 10), parts = ($("zw-lm").value || "").split(",");
-  var m = parseInt(parts[0], 10), isLeap = parts[1] === "1";
-  var d = parseInt($("zw-ld").value, 10);
-  if (!y || !m || !d) return null;
-  ZW_LUNAR = { y:y, m:m, d:d, isLeap:isLeap };
-  return LC.lunarToSolar(y, m, d, isLeap);
-}
-
-/* 初始化（DOM 就绪后一次） */
-function zwInitDateMode(){
-  var seg = $("zw-datemode"); if (!seg) return;
-  var bs = seg.querySelectorAll("button");
-  for (var i = 0; i < bs.length; i++){
-    bs[i].onclick = (function(v){ return function(){ zwSetDateMode(v); }; })(bs[i].getAttribute("data-v"));
+/* ---------- 取出生日期（公历 y/m/d） ---------- */
+function zwReadDate(){
+  if (ZW_DATEMODE === "lunar"){
+    var ly = parseInt($("zw-ly").value, 10), parts = ($("zw-lm").value || "").split(",");
+    var lm = parseInt(parts[0], 10), isLeap = parts[1] === "1";
+    var ld = parseInt($("zw-ld").value, 10);
+    if (!ly || !lm || !ld) throw new Error("农历年月日没选全");
+    var sol = LC.lunarToSolar(ly, lm, ld, isLeap);
+    if (!sol) throw new Error("这个农历日期换算不出来，请检查年月日");
+    ZW_LUNAR = { y:ly, m:lm, d:ld, isLeap:isLeap };
+    return { y:sol.y, m:sol.m, d:sol.d, lunarNote:(isLeap ? "闰" : "") + ZW_CN_MON[lm] + "月" + ZW_CN_DAY[ld] };
   }
-  zwLunarFillYears();
-  zwLunarFillMonths();
-  $("zw-ly").onchange = function(){ zwLunarFillMonths(); };
-  $("zw-lm").onchange = function(){ zwLunarFillDays(); };
-  $("zw-ld").onchange = function(){ zwLunarToSolar(); };
+  var y = parseInt($("zw-sy").value, 10), m = parseInt($("zw-sm").value, 10), d = parseInt($("zw-sd").value, 10);
+  if (!y || !m || !d) throw new Error("公历年月日没选全");
+  ZW_SOLAR = { y:y, m:m, d:d };
+  return { y:y, m:m, d:d, lunarNote:"" };
+}
+
+/* ---------- 出生地：城市下拉，或直接填经纬度 ---------- */
+function zwFillCities(){
+  var el = $("zw-city"); if (!el || el.options.length) return;
+  var names = [];
+  try { for (var k in LunarCore.CITY_LNG) names.push(k); } catch(e){}
+  var h = '<option value="">（不校正真太阳时）</option>';
+  for (var i = 0; i < names.length; i++)
+    h += '<option value="' + names[i] + '">' + names[i] + '（东经 ' + LunarCore.CITY_LNG[names[i]] + '°）</option>';
+  el.innerHTML = h;
+}
+/* 解析手填的经纬度："121.5, 31.2" / "121.5 31.2" / "东经121.5 北纬31.2" */
+function zwParseLngLat(txt){
+  if (!txt) return null;
+  var t = String(txt).replace(/[东经北纬西经南纬，、；;]/g, " ").replace(/[^0-9.+\-\s]/g, " ");
+  var nums = t.match(/-?\d+(\.\d+)?/g);
+  if (!nums || nums.length < 2) return null;
+  var lng = parseFloat(nums[0]), lat = parseFloat(nums[1]);
+  if (!(lng >= -180 && lng <= 180) || !(lat >= -90 && lat <= 90)) {
+    /* 可能顺序反了 */
+    var t2 = lat; lat = lng; lng = t2;
+    if (!(lng >= -180 && lng <= 180) || !(lat >= -90 && lat <= 90)) return null;
+  }
+  return { lng: lng, lat: lat };
+}
+/* 当前该用哪个经度：手填优先，否则城市 */
+function zwUseLng(){
+  var manual = $("zw-lnglat") ? zwParseLngLat($("zw-lnglat").value) : null;
+  if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
+  var city = $("zw-city") ? $("zw-city").value : "";
+  if (city && LunarCore.CITY_LNG && typeof LunarCore.CITY_LNG[city] === "number")
+    return { lng: LunarCore.CITY_LNG[city], src: city + "（东经" + LunarCore.CITY_LNG[city] + "°）" };
+  return { lng: null, src: "" };
+}
+
+/* ---------- 初始化 ---------- */
+function zwInitDateMode(){
+  if (!$("zw-sy")) return;
+  var seg = $("zw-datemode");
+  if (seg){
+    var bs = seg.querySelectorAll("button");
+    for (var i = 0; i < bs.length; i++){
+      bs[i].onclick = (function(v){ return function(){ zwSetDateMode(v); }; })(bs[i].getAttribute("data-v"));
+    }
+  }
+  /* 出生时辰下拉 */
+  (function(){
+    var el = $("zw-shichen"); if (!el || el.options.length) return;
+    var h = "";
+    for (var i = 0; i < 12; i++){
+      h += '<option value="' + i + '">' + ZHI.charAt(i) + '时（' + shichenRange(i) + '）</option>';
+    }
+    el.innerHTML = h;
+    el.value = "6";   /* 默认午时 */
+  })();
+  zwFillSolarYears(); zwFillSolarMonths();
+  zwFillLunarYears(); zwFillLunarMonths();
+  zwFillCities();
+  $("zw-sy").onchange = function(){ zwFillSolarDays(); };
+  $("zw-sm").onchange = function(){ zwFillSolarDays(); };
+  $("zw-ly").onchange = function(){ zwFillLunarMonths(); };
+  $("zw-lm").onchange = function(){ zwFillLunarDays(); };
   zwSetDateMode("solar");
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", zwInitDateMode);
 else setTimeout(zwInitDateMode, 0);
 
 function renderZiwei(){
-  /* 农历模式：先把农历生日换成公历 */
-  if (ZW_DATEMODE === "lunar"){
-    var sol = zwLunarToSolar();
-    if (!sol) throw new Error("农历日期不完整或该年没有这个月（比如选了「闰X月」但那年不闰）");
-    $("zw-date").value = sol.y + "-" + zwPad(sol.m) + "-" + zwPad(sol.d);
-  }
-  var dt = parseDateTime($('zw-date').value, $('zw-time').value);
-  var city = $('zw-city').value;
-  var lng = LunarCore.CITY_LNG[city];
-  var useTS = $('zw-truesolar').checked && typeof lng === 'number';
-  var ageInput = parseInt($('zw-age').value, 10);
-  var age = (ageInput > 0) ? ageInput : (new Date().getFullYear() - dt.y + 1);
-  var raw = readTimeInputs();
+  /* ① 出生日期：公历或农历（农历自动换公历） */
+  var dt = zwReadDate();
+  /* ② 出生时辰 */
+  var shiIdx = parseInt($("zw-shichen").value, 10) || 0;
+  var hour = SHICHEN_MID[shiIdx];
+  /* ③ 出生地：手填经纬度优先，其次城市下拉 */
+  var loc = zwUseLng();
+  var useTS = (loc.lng != null);
+  /* ④ 其余口径按倪海厦《天纪》排盘程序内建（不再让用户填） */
+  var leapModeUse = "prev";      /* 闰月作本月（软件实测行为） */
+  var monthModeUse = "lunar";    /* 农历月（初一换月） */
+  var lateZiUse = true;          /* 晚子时按前一天 */
+  var age = new Date().getFullYear() - dt.y + 1;   /* 虚岁自动算 */
 
-  var charts = [];
-  /* 排盘口径预设：一键决定「月」与「闰月」两个口径 */
-  var SCHOOL = {
-    nhx:    { monthMode:'lunar', leapMode:'prev'  },   /* 倪海厦《天纪》排盘程序实测：闰月作本月 */
-    common: { monthMode:'lunar', leapMode:'split' },   /* 通用派 */
-    term:   { monthMode:'term',  leapMode:'split' }    /* 节气月派 */
+  var c = ZiWei.chart({
+    year:dt.y, month:dt.m, day:dt.d, hour:hour, minute:0,
+    gender: zwGender,
+    leapMode: leapModeUse,
+    monthMode: monthModeUse,
+    lateZi: lateZiUse,
+    trueSolar: useTS, longitude: loc.lng, useEoT: true
+  });
+  /* 把输入与校正过程记下来，供结果区展示 */
+  c._input = {
+    mode: ZW_DATEMODE,
+    solar: dt.y + "-" + zwPad2(dt.m) + "-" + zwPad2(dt.d),
+    lunarNote: dt.lunarNote,
+    shichen: ZHI.charAt(shiIdx) + "时",
+    shichenRange: shichenRange(shiIdx),
+    place: loc.src,
+    tst: c.info && c.info.trueSolar ? c.info.trueSolar : null
   };
-  var school = SCHOOL[$('zw-school') ? $('zw-school').value : 'nhx'] || SCHOOL.nhx;
-  var leapModeUse = school.leapMode, monthModeUse = school.monthMode;
-  for (var k=0;k<raw.hours.length;k++){
-    var hour = raw.hours[k], minute = (raw.minutes && raw.minutes[k] != null) ? raw.minutes[k] : 0;
-    var c = ZiWei.chart({
-      year:dt.y, month:dt.m, day:dt.d, hour:hour, minute:minute,
-      gender: zwGender,
-      leapMode: leapModeUse,
-      monthMode: monthModeUse,
-      lateZi: ($('zw-latezi') ? $('zw-latezi').checked : true),
-      trueSolar: useTS, longitude: lng, useEoT: true
-    });
-    c._age = age;
-    var read = ZiWeiRead.analyze(c, { age: age, currentYear: new Date().getFullYear() });
-    read._age = age;
-    charts.push({ c:c, read:read, hour:hour, minute:minute,
-                  label: ZHI.charAt(raw.branches[k]) + '时',
-                  range: shichenRange(raw.branches[k]) });
-  }
+  c._age = age;
+  var read = ZiWeiRead.analyze(c, { age: age, currentYear: new Date().getFullYear() });
+  read._age = age;
 
-  var key = 'zw-tab-' + (new Date()).getTime();
-  zwCharts = charts; zwActive = 0; zwKey = key;
-
-  var h = '';
-  if (charts.length > 1){
-    h += '<div class="note" style="margin:0 0 10px">出生时间跨了 '+charts.length+' 个时辰：'+
-         esc(raw.desc) + '。下面每个时辰各排一张盘，点标签切换 —— 看哪个更像你（重点比对<b>命宫主星</b>与<b>个性描述</b>）。</div>';
-    h += '<div class="tabs" id="'+key+'">';
-    for (var t=0;t<charts.length;t++){
-      h += '<div class="tab'+(t===0?' on':'')+'" data-i="'+t+'">'+
-           esc(charts[t].label)+'<span style="display:block;font-size:9.5px;color:var(--dim2)">'+charts[t].range+'</span></div>';
-    }
-    h += '</div>';
-  }
-  h += '<div id="'+key+'-body">' + zwOneHtml(charts[0]) + '</div>';
-  $('zw-out').innerHTML = h;
+  zwCharts = [{ c:c, read:read, hour:hour, minute:0,
+                label: ZHI.charAt(shiIdx) + "时",
+                range: shichenRange(shiIdx) }];
+  zwActive = 0;
+  $("zw-out").innerHTML = zwOneHtml(zwCharts[0]);
   zwSetupView();
-
-  if (charts.length > 1){
-    var bar = $(key);
-    bar.addEventListener('click', function(e){
-      var el = e.target;
-      while (el && el !== bar && !el.getAttribute('data-i')) el = el.parentNode;
-      if (!el || el === bar) return;
-      var idx = parseInt(el.getAttribute('data-i'), 10) || 0;
-      var tabs = bar.querySelectorAll('.tab');
-      for (var i=0;i<tabs.length;i++) tabs[i].className = 'tab' + (i===idx ? ' on' : '');
-      zwActive = idx;
-      $(key+'-body').innerHTML = zwOneHtml(zwCharts[idx]);
-      zwSetupView();
-    });
-  }
 }
 
 var ZW_VIEW = (function(){ try { return localStorage.getItem("zw-view") || "tj"; } catch(e){ return "tj"; } })();
@@ -3972,11 +3886,14 @@ try { renderLiuren(); } catch(e) { /* 首次可能因分析器未就绪而失败
 try { renderXiaoLiuRen(); } catch(e) {}
 try { renderQiMen(); } catch(e) {}
 if (location.search.indexOf('demo=1') >= 0) {
-  $('zw-date').value = '1998-06-06';
-  $('zw-time').value = '04:00';
-  $('zw-city').value = '鞍山';
-  $('zw-age').value = '29';
-  try { renderZiwei(); } catch(e) { showErr('zw-err', '排盘失败：' + e.message); }
+  try {
+    $('zw-sy').value = '1998'; zwFillSolarDays();
+    $('zw-sm').value = '6'; zwFillSolarDays();
+    $('zw-sd').value = '6';
+    $('zw-shichen').value = '2';
+    $('zw-city').value = '鞍山';
+    renderZiwei();
+  } catch(e) { showErr('zw-err', '排盘失败：' + e.message); }
 }
 
 /* ---------- Service Worker（离线 + 自动更新） ---------- */
