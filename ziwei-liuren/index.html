@@ -1102,6 +1102,138 @@ function huaOf(p, star){
   return '';
 }
 
+/* ================================================================
+   体质与健康：按 疾厄宫 + 五行 → 脏腑 推 / 只给倾向，不下病名
+   依据：明代《紫微斗數全書》「六疾厄」章 + 中医五行配脏腑
+   ================================================================ */
+var H_WX = {   /* 五行 → 脏腑、体表、情志 */
+  木: { zang:"肝、胆", biao:"眼、筋、指甲", qing:"怒", wei:"酸" },
+  火: { zang:"心、小肠", biao:"舌、血脉、面色", qing:"喜", wei:"苦" },
+  土: { zang:"脾、胃", biao:"口、肌肉、四肢", qing:"思", wei:"甘" },
+  金: { zang:"肺、大肠", biao:"鼻、皮毛、咽喉", qing:"悲", wei:"辛" },
+  水: { zang:"肾、膀胱", biao:"耳、骨、发、二阴", qing:"恐", wei:"咸" }
+};
+/* 十四主星 → 五行 → 偏重的脏腑 */
+var H_STAR = {
+  "紫微":"土", "天机":"木", "太阳":"火", "武曲":"金", "天同":"水", "廉贞":"火",
+  "天府":"土", "太阴":"水", "贪狼":"木", "巨门":"水", "天相":"水", "天梁":"土",
+  "七杀":"金", "破军":"水"
+};
+/* 煞星 → 要留意的地方（只说方向，不说病名） */
+var H_SHA = {
+  "擎羊":"外力所伤、炎症、开刀之类的事要多留意",
+  "陀罗":"拖成慢性的毛病，旧伤旧病容易反复",
+  "火星":"来得急的症状（发烧、上火、急痛），别硬扛",
+  "铃星":"也是急症倾向，多半跟情绪紧绷一起出现",
+  "地空":"体力虚耗、精神空落，容易失眠或没劲",
+  "地劫":"元气被夺，恢复慢，病后要留足养的时间",
+  "化忌":"这一宫的星带忌，代表这一环最容易出状况"
+};
+var H_CS = {
+  "长生":"这段年限身体底子生长有力", "沐浴":"状态起伏，注意作息",
+  "冠带":"体力回升，适合调养进补", "临官":"正当壮盛", "帝旺":"体力最旺的时段",
+  "衰":"开始走下坡，要开始节劳", "病":"这一段是身体最容易出状况的年限",
+  "死":"元气低，忌熬夜耗神", "墓":"收藏期，宜静养不宜硬拼",
+  "绝":"元气最低的一段，务必节劳、定期检查", "胎":"调养起步期", "养":"适合慢慢养回来"
+};
+
+function zwHealth(c, read, age){
+  var P = {};
+  for (var i = 0; i < c.palaces.length; i++) P[c.palaces[i].name] = c.palaces[i];
+  var ji = P["疾厄"], fu = P["福德"], ming = P["命宫"];
+  if (!ji) return "";
+  var h = '<div class="card"><h2>体质与健康倾向</h2>';
+  h += '<div class="note">按《紫微斗數全書》「疾厄宫」一路看：命盘断的是<b>体质倾向</b>，不是诊断。哪里不舒服，请找医生。</div>';
+
+  /* 一、疾厄宫主星 → 体质基调 */
+  var mains = ji.mainStars || [];
+  var wxCount = {};
+  var starTxt = [];
+  for (var m = 0; m < mains.length; m++){
+    var w = H_STAR[mains[m]];
+    if (w){ wxCount[w] = (wxCount[w] || 0) + 1; }
+    starTxt.push(mains[m] + (w ? ("（" + w + "）") : ""));
+  }
+  if (!mains.length){
+    h += '<p style="font-size:13.5px">疾厄宫<b>无主星</b>（借对宫' + esc((P["父母"] ? P["父母"].mainStars.join("、") : "")) + '）——体质上属于「底子偏薄、要靠后天养」的类型，规律作息比进补更重要。</p>';
+  } else {
+    var parts = [];
+    for (var w2 in wxCount){
+      var info = H_WX[w2];
+      if (info) parts.push(w2 + "（" + info.zang + "）");
+    }
+    h += '<p style="font-size:13.5px">疾厄宫主星：<b>' + esc(starTxt.join("、")) + '</b></p>';
+    h += '<p style="font-size:13.5px">体质重点在：<b>' + esc(parts.join("、")) + '</b>。这一路是先天比较吃力的地方，也是你最该长期保养的方向。</p>';
+    /* 单一五行偏重时的提示 */
+    var keys = Object.keys(wxCount);
+    if (keys.length === 1){
+      var w3 = keys[0], i3 = H_WX[w3];
+      h += '<div class="ad">主星同属' + w3 + '，体质偏「' + w3 + '」：' + esc(i3.zang) + '这一路要留意，情志上忌「' + esc(i3.qing) + '」，体表看' + esc(i3.biao) + '。</div>';
+    } else if (keys.length >= 2){
+      h += '<div class="ad">主星分属' + esc(keys.join("、")) + '两路以上：体质不算偏枯，但容易「这边好了那边出问题」，重在平衡，不宜偏补。</div>';
+    }
+  }
+
+  /* 二、煞星 */
+  var shas = [];
+  for (var k = 0; k < (ji.stars || []).length; k++){
+    var st = ji.stars[k];
+    if (H_SHA[st]) shas.push(st + "：" + H_SHA[st]);
+  }
+  if ((ji.hua || []).length){
+    for (var q = 0; q < ji.hua.length; q++){
+      if (ji.hua[q].indexOf("忌") >= 0) shas.push("化忌：" + H_SHA["化忌"]);
+    }
+  }
+  if (shas.length){
+    h += '<h3>要特别留意的</h3><ul class="tight">';
+    for (var z = 0; z < shas.length; z++) h += "<li>" + esc(shas[z]) + "</li>";
+    h += "</ul>";
+  } else {
+    h += '<div class="ad">疾厄宫不见煞星 —— 先天体质算干净，问题多来自后天作息，不是底子坏。</div>';
+  }
+
+  /* 三、长生十二神 */
+  var cs = ji.changsheng || "";
+  if (cs && H_CS[cs]) h += '<div class="note">疾厄宫长生神为「<b>' + esc(cs) + '</b>」：' + esc(H_CS[cs]) + '。</div>';
+
+  /* 四、当前大限 */
+  var ps = c.palaces, cur = null;
+  for (var t = 0; t < ps.length; t++){
+    if (ps[t].limit && age >= ps[t].limit.from && age <= ps[t].limit.to) cur = ps[t];
+  }
+  if (cur){
+    var curCs = cur.changsheng || "";
+    h += '<div class="note">虚岁 ' + age + ' 岁行至 <b>' + esc(cur.zhiName) + '宫（' + esc(cur.name) + '）</b>' +
+      (curCs ? ('，长生神「' + esc(curCs) + '」' + (H_CS[curCs] ? "：" + esc(H_CS[curCs]) : "")) : "") + '。</div>';
+  }
+
+  /* 五、后天怎么养（按五行给，通用不通灵） */
+  h += '<h3>后天怎么养</h3><ul class="tight">';
+  var allWx = [];
+  for (var m2 = 0; m2 < mains.length; m2++){ if (H_STAR[mains[m2]]) allWx.push(H_STAR[mains[m2]]); }
+  var uniq = [];
+  for (var u = 0; u < allWx.length; u++){ if (uniq.indexOf(allWx[u]) < 0) uniq.push(allWx[u]); }
+  var YANG = {
+    木: "少熬夜（熬夜最伤肝胆）、少动怒、多舒展筋骨；眼睛别长时间盯屏幕。",
+    火: "忌大喜大悲与过度兴奋、忌过食辛辣；留意睡眠与心跳，别把心事憋着。",
+    土: "忌思虑过度、忌不定时吃饭；脾胃靠规律，三餐按点比吃什么补品都强。",
+    金: "忌悲伤郁结、注意呼吸道与皮肤；空气差的地方少待，换季注意保暖。",
+    水: "忌恐惧焦虑、忌纵欲与过劳；腰、耳、骨这一路怕冷怕耗，保暖和睡足是第一位。"
+  };
+  if (uniq.length){
+    for (var y = 0; y < uniq.length; y++) h += "<li>主要偏「" + uniq[y] + "」：" + esc(YANG[uniq[y]] || "") + "</li>";
+  } else {
+    h += "<li>疾厄宫无主星：底子靠养。规律作息、按点吃饭、别熬夜，比任何补品都管用。</li>";
+  }
+  if (shas.length) h += "<li>宫里有煞星：<b>定期体检</b>比事后补救重要，尤其上面点出的那几项。</li>";
+  h += "<li>情志是最大变量：命盘上的弱点，多半是被长期情绪和作息「喂」出来的。</li>";
+  h += "</ul>";
+  h += '<div class="note">这一段按古籍「疾厄宫」的理路推演，给的是<b>体质方向</b>，不是病名、不是诊断。身体有不适请就医。</div>';
+  h += "</div>";
+  return h;
+}
+
 function zwReading(c, read, age){
   var h = '';
   /* 综合结论（最前面，一眼看完） */
@@ -1125,6 +1257,9 @@ function zwReading(c, read, age){
   h += '<ul class="tight">';
   for (var i=0;i<read.summary.length;i++) h += '<li>'+esc(read.summary[i])+'</li>';
   h += '</ul></div>';
+
+  /* 体质与健康（按疾厄宫推） */
+  h += zwHealth(c, read, age);
 
   /* 十二宫逐宫解读 */
   h += '<div class="card"><h2>十二宫详解</h2>';
