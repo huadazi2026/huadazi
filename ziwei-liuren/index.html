@@ -163,6 +163,13 @@ table.ketable tr:last-child td{border-bottom:0}
 .qc .tag{position:absolute;right:4px;bottom:3px;font-size:8.5px;color:var(--gold)}
 .qc.center{background:linear-gradient(160deg,#241a45,#1a1433)}
 
+/* ---------- 答案框样式 ---------- */
+.answerbox{border:1px solid var(--gold);border-radius:12px;padding:12px 13px;margin:2px 0 10px;
+  background:rgba(217,178,106,.07)}
+.answerbox .ans{font-size:23px;font-weight:700;line-height:1.35;letter-spacing:.5px}
+.answerbox .anss{font-size:12px;color:var(--dim2);margin-top:5px}
+.answerbox .ansq{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.5}
+
 /* ---------- 六爻 ---------- */
 .shaker{font-size:56px;text-align:center;line-height:1.2;margin:6px 0 2px}
 .shaker.hit{animation:sk .22s ease-in-out 2}
@@ -1103,15 +1110,57 @@ function zwReading(c, read, age){
   return h;
 }
 
-/* ---------- 综合结论（一眼看完 + 导出） ---------- */
+/* ---------- 通用：先给一句能直接用的话 ---------- */
+/* 判断问的是「哪种问题」，好给对应的答案格式 */
+function askKind(q){
+  q = String(q || '');
+  if (/该不该|要不要|去不去|做不做|接不接|换不换|买不买|投不投|辞不辞|辞职|分手|继续|值得|能不能做|可不可以|合适吗|合适不|行吗|好吗|可以吗|能不能去|能不能买/.test(q)) return 'should';
+  if (/什么时候|多久|哪天|几天|何时|几时|还要等|什么时候能/.test(q)) return 'when';
+  if (/能不能|可以|行不行|成不成|能否|会不会|是否|有没有|能不能成|能不能过|能不能签|能不能谈/.test(q)) return 'whether';
+  return 'whether';
+}
+/* 数字 → 最直接的答案 */
+function answerOf(q, prob){
+  var kind = askKind(q);
+  if (kind === 'when'){
+    if (prob >= 66) return { txt:'快了 —— 十天到一个月内会有消息', short:'快了' };
+    if (prob >= 54) return { txt:'有信儿，但要等 —— 一到三个月', short:'要等' };
+    if (prob >= 46) return { txt:'时间不定 —— 眼下看不出准信', short:'不定' };
+    if (prob >= 36) return { txt:'短期没戏 —— 至少三个月内别指望', short:'没戏' };
+    return { txt:'暂时等不到 —— 这件事近期不会给你回应', short:'等不到' };
+  }
+  if (kind === 'should'){
+    if (prob >= 62) return { txt:'去 / 该做 —— 可以下手', short:'该做' };
+    if (prob >= 52) return { txt:'可以做，但先补条件 —— 别裸着上', short:'有条件地做' };
+    if (prob >= 44) return { txt:'先别急着定 —— 两边都差不离，再等一步信息', short:'先别定' };
+    if (prob >= 34) return { txt:'先别做 —— 时机不对，做了容易后悔', short:'先别做' };
+    return { txt:'不要去 / 不该做 —— 这件事对你不利', short:'别做' };
+  }
+  /* whether：能 / 不能 */
+  if (prob >= 66) return { txt:'能 —— 成', short:'能' };
+  if (prob >= 56) return { txt:'能，但要人帮一把', short:'能（需借力）' };
+  if (prob >= 48) return { txt:'能，但慢 —— 得熬', short:'能（慢）' };
+  if (prob >= 38) return { txt:'悬 —— 一半一半，看你后面怎么走', short:'悬' };
+  if (prob >= 28) return { txt:'不能 —— 眼下不成', short:'不能' };
+  return { txt:'不能 —— 而且别硬来', short:'不能' };
+}
+
 /* 通用的「最可能的结果 + 为什么」卡片 */
 function likelyCard(o){
-  /* o = { title, verdict, tag, prob, probText, reasons:[], pros:[], cons:[], condition } */
+  /* o = { title, verdict, tag, prob, probText, reasons:[], pros:[], cons:[], condition, question } */
   var col = o.tag === '吉' ? 'var(--good)' : (o.tag === '凶' ? 'var(--bad)' : 'var(--warn)');
   var h = '<div class="verdict" style="border-color:'+col+'">';
   h += '<h2 style="margin:0 0 8px;font-size:14px;color:var(--gold);display:flex;align-items:center;gap:6px">'+
        '<span style="width:3px;height:13px;border-radius:2px;background:var(--gold)"></span>'+esc(o.title||'最可能的结果')+'</h2>';
-  h += '<div class="v1" style="color:'+col+'">'+esc(o.verdict)+'</div>';
+  /* —— 答案区：最显眼 —— */
+  if (o.answer){
+    h += '<div class="answerbox" style="border-color:'+col+'">'+
+         '<div class="ans" style="color:'+col+'">'+esc(o.answer)+'</div>'+
+         (o.question ? '<div class="ansq">你问的是：'+esc(o.question)+'</div>' : '')+
+         '<div class="anss">按下面给出的依据推到这一步；换一门再占、或者过一阵条件变了，答案会跟着变。</div>'+
+         '</div>';
+  }
+  h += '<div class="v1" style="font-size:14px;color:var(--txt)">'+esc(o.verdict)+'</div>';
   h += '<div style="margin:2px 0 4px">';
   h += '<span class="badge" style="color:'+col+';border-color:'+col+'">把握度 '+esc(o.prob+'%')+'</span>';
   if (o.tag) h += '<span class="badge">'+esc(o.tag)+'</span>';
@@ -1218,6 +1267,10 @@ function zwLikely(c, read, age, lim, ming, guan, cai){
     '，就会比这个判断差一档。命理看的是倾向，具体结果还是你每天的选择在定。';
 
   return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    answer: prob >= 66 ? ('这盘：能靠本事吃饭，越往后越顺')
+          : prob >= 56 ? ('这盘：稳中能成，但急不来')
+          : prob >= 46 ? ('这盘：一半一半，看你这几年怎么选')
+          : ('这盘：先难后易，三十岁前是交学费的阶段'),
     probText:'（这张盘综合出来的倾向强度）', reasons:reasons, pros:pros, cons:cons, condition:condition });
 }
 
@@ -1513,6 +1566,7 @@ function lrLikely(K, read, q){
     '，结果会好一档；如果逆着来（该缓的时候急、该找人时硬扛），就会差一档。课是死的，怎么走是活的。';
 
   return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    answer: (q ? answerOf(q, prob).txt : null), question: q,
     probText:'（课面综合评分 '+read.score+'，把握度 '+esc(read.confidence)+'）',
     reasons:reasons, pros:pros, cons:cons, condition:condition });
 }
@@ -1655,6 +1709,7 @@ function xlrHtml(k, q, mode){
     '如果这件事本身拖过了一两个月，或者中间有大的变化（换人、换条件），就该重新起一次。';
 
   h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    answer: (q ? answerOf(q, prob).txt : null), question: q,
     probText:'（'+esc(k.gong)+'宫，'+esc(info.luck)+'）', reasons:reasons, pros:pros, cons:cons, condition:condition });
 
   h += '<div class="verdict">';
@@ -1807,6 +1862,7 @@ function mhHtml(r){
   for (var b=0;b<v.donts.length && b<3;b++) cons.push(v.donts[b]);
 
   h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    answer: (r.question ? answerOf(r.question, prob).txt : null), question: r.question,
     probText:'（体用「'+esc(r.rel.key)+'」+ 变卦「'+esc(r.bianRel.key)+'」合出来的）',
     reasons:reasons, pros:pros, cons:cons,
     condition:'梅花讲「不动不占」：如果你问这件事的时候心里其实已经有答案、只是想要个支持，那这个卦的参考价值会打折。' +
@@ -2065,6 +2121,7 @@ function qmLikely(p, yong, byG, q){
   if (!cons.length) cons.push('用神宫没有明显凶象，风险主要来自时机和执行');
 
   return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    answer: (q ? answerOf(q, prob).txt : null), question: q,
     probText:'（用神宫：'+g.name+'宫 '+g.men+' + '+g.star+' + '+g.shen+'）',
     reasons:reasons, pros:pros, cons:cons,
     condition:'奇门是"问事"的盘，同一个问题换一个时辰起局结果就会变。如果这件事拖了几天还没动，' +
@@ -2322,6 +2379,7 @@ function lyHtml(r){
   if (!cons.length) cons.push('没有明显凶象，风险主要来自时间和执行');
 
   h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    answer: (r.question ? answerOf(r.question, prob).txt : null), question: r.question,
     probText:'（本卦'+esc(ben.name)+' · 用神'+esc(useQin)+' · 动爻'+(r.dong.length?r.dong.join('、'):'无')+'）',
     reasons:reasons, pros:pros, cons:cons,
     condition:'六爻讲「一事一卦、一事一占」：同一个问题反复摇，卦就不准了。如果这件事拖过了旬（十天）或者中间条件变了（换人、改价、改时间），' +
