@@ -2012,10 +2012,10 @@ function xlrTopicDo(gong, topic){
 
 function xlrHtml(k, q, mode){
   var G = XiaoLiuRen.GONG, info = k.info;
+  var h = '';
   /* 第 1 步：问事 */
   h += askCard(q, '小六壬');
-  var h = '';
-  var topic = askTopic(q);
+    var topic = askTopic(q);
   var topicAns = xlrTopicAnswer(k.gong, topic);
   /* 最可能的结果 */
   var PROB = { '大安':72, '速喜':76, '小吉':80, '留连':42, '赤口':34, '空亡':26 };
@@ -2215,10 +2215,10 @@ function mhGuaHtml(title, g, hitLine, hitCls){
 }
 function mhHtml(r){
   var v = r.verdict;
+  var h = '';
   /* 第 1 步：问事 */
   h += askCard(r.question, '梅花易数');
-  var h = '';
-
+  
   /* 最可能的结果：本卦体用定倾向，变卦看后劲 */
   var BASE = { '用生体':76, '体克用':70, '比和':62, '体生用':44, '用克体':30 };
   var prob = BASE[r.rel.key] || 50;
@@ -2701,6 +2701,7 @@ function lyGuaHtml(title, up, low, dong, cls){
 
 function lyHtml(r){
   var h = '';
+  h += askCard(r.question, '六爻');
   var ben = r.ben;
   var dongSet = r.dong;
 
