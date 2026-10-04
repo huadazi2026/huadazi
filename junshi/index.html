@@ -371,7 +371,13 @@
     </div>
     <div class="grp">
       <h2>🎤 朗读与语音</h2>
-      <label>朗读嗓音（系统里的中文嗓音）—— 想要 <b>Siri 的声音</b>请看下面的 📢</label>
+      <label>用哪个声音读</label>
+      <select id="cfgVoiceSrc">
+        <option value="pack">🧠 华言 · 神经语音（内嵌模型，推荐）</option>
+        <option value="system">📱 系统嗓音（婷婷 / 美嘉 这类）</option>
+      </select>
+      <div class="hint" id="vpDiag"></div>
+      <label>系统嗓音（选了「系统嗓音」才有用）—— 想要 <b>Siri 的声音</b>请看下面的 📢</label>
       <select id="cfgVoice" size="1"></select>
       <label>语速 <span id="statRate" class="stat"></span></label>
       <input type="range" id="cfgRate" min="0.6" max="1.8" step="0.05">
@@ -417,6 +423,7 @@
   </div>
 </div>
 
+<script src="voicepack.js"></script>
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
@@ -602,6 +609,7 @@ function load(){
   cfg.model = cfg.model || "deepseek-chat";
   cfg.key   = cfg.key   || "";
   if(cfg.qface === undefined) cfg.qface = true;
+  if(cfg.voice === undefined) cfg.voice = "pack";     // 默认用内嵌神经语音
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   ctxText = localStorage.getItem(LS_CTX) || DEFAULT_CONTEXT;
   try{ convs = JSON.parse(localStorage.getItem(LS_CONV)||"[]") || []; }catch(e){ convs=[]; }
@@ -1040,6 +1048,23 @@ function applyTtsSettings(){
 }
 function initTtsControls(){
   if(!$("cfgRate")) return;
+  // 声音来源
+  const src = $("cfgVoiceSrc");
+  if(src){
+    src.value = cfg.voice || "pack";
+    src.addEventListener("change", ()=>{
+      cfg.voice = src.value;
+      saveCfg();
+      stopRead();
+      if(cfg.voice === "pack"){
+        showVpDiag();
+        vpInit().then(()=>{ showVpDiag(); });
+      }else{
+        showVpDiag();
+      }
+    });
+  }
+  showVpDiag();
   $("cfgRate").value  = ttsRate();
   $("cfgPitch").value = ttsPitch();
   $("statRate").textContent  = "（" + ttsRate().toFixed(2) + " 倍）";
@@ -1136,6 +1161,90 @@ function markRange(el, start, len){
     catch(err){ mk.appendChild(r.extractContents()); r.insertNode(mk); }
   }catch(e){}
 }
+/* ---------- 神经语音包（不依赖系统 TTS） ---------- */
+const VP_BASE = "voice/";          // 里面有 huayan.meta.json + huayan.pack
+let vp = null, vpReady = false, vpLoading = false, vpErr = "";
+let vpMarks = [], vpTick = null;          // 当前朗读的音节范围，用来打高亮
+
+function useVoicePack(){ return cfg.voice === "pack"; }
+// 语音包可用性：加载清单和字符表（很小，之后音节按需取）
+async function vpInit(){
+  if(vpReady || vpLoading) return vpReady;
+  if(typeof window.VoicePack !== "function"){ vpErr = "播放器脚本没加载"; return false; }
+  vpLoading = true;
+  try{
+    vp = new window.VoicePack(VP_BASE);
+    await vp.load();
+    vpReady = true; vpErr = "";
+  }catch(e){
+    vpErr = (e && e.message) || String(e);
+    vpReady = false;
+  }finally{
+    vpLoading = false;
+    showVpDiag();
+  }
+  return vpReady;
+}
+// 用音节边界把整段文字切开，记录每个音节对应原文的字符区间（供高亮和"点字起读"用）
+function vpSegment(text){
+  if(!vp) return [];
+  const segs = [];
+  let idx = 0;
+  for(const ch of String(text)){
+    if(vp.charMap[ch]) segs.push({ ch: ch, syl: vp.charMap[ch], at: idx, len: 1 });
+    idx += 1;
+  }
+  return segs;
+}
+// 把字符偏移换算成"第几个音节"
+function vpIndexFromChar(segs, chOff){
+  if(!segs.length) return 0;
+  for(let i = 0; i < segs.length; i++){
+    if(segs[i].at + segs[i].len > chOff) return i;
+  }
+  return 0;
+}
+// 播一个音节片段序列；用 vpMarks 把原文区间高亮出来
+function vpPlay(segs, fromIdx, onEnd){
+  const arr = segs.slice(fromIdx).map(s => s.syl);
+  vpMarks = segs.slice(fromIdx);
+  return vp.speakUnits(arr, {
+    onUnit: (i)=>{
+      const m = vpMarks[i];
+      if(m && ttsBubble) markRangeByChar(ttsBubble, m.at, m.len);
+    },
+    onDone: ()=>{ if(onEnd) onEnd(); }
+  });
+}
+// 按原文的字符区间打高亮（和系统朗读用的 markRange 同款，只是定位方式不同）
+function markRangeByChar(el, start, len){
+  if(!el) return;
+  const mk = el.querySelector("mark.readnow");
+  if(mk){
+    const p = mk.parentNode;
+    while(mk.firstChild) p.insertBefore(mk.firstChild, mk);
+    p.removeChild(mk);
+    if(p.normalize) p.normalize();
+  }
+  if(!(len > 0)) return;
+  try{
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    let acc = 0, sN = null, sO = 0, eN = null, eO = 0, n;
+    while((n = walk.nextNode())){
+      const L = n.nodeValue.length;
+      if(sN === null && acc + L > start){ sN = n; sO = start - acc; }
+      if(sN !== null && acc + L >= start + len){ eN = n; eO = start + len - acc; break; }
+      acc += L;
+    }
+    if(!sN || !eN) return;
+    const r = document.createRange();
+    r.setStart(sN, sO); r.setEnd(eN, eO);
+    const m = document.createElement("mark");
+    m.className = "readnow";
+    try{ r.surroundContents(m); }catch(e){ m.appendChild(r.extractContents()); r.insertNode(m); }
+  }catch(e){}
+}
+
 function speakOne(){
   if(ttsStop || ttsCi >= ttsChunks.length){
     if(!ttsStop) resetReadUI();          // 读完了，自己复位
@@ -1168,6 +1277,8 @@ function resetReadUI(){
 function stopRead(){
   ttsStop = true;
   try{ window.speechSynthesis.cancel(); }catch(e){}
+  try{ if(vp) vp.stop(); }catch(e){}
+  vpMarks = [];
   resetReadUI();
 }
 function setReadBtn(btn, on){
@@ -1177,6 +1288,20 @@ function setReadBtn(btn, on){
   btn.title = on ? "停止朗读" : "朗读（也可点正文里某个字，从那里读）";
 }
 function startRead(el, text, from, btn){
+  // 神经语音包：绕开系统 TTS，直接用预渲染音节
+  if(useVoicePack()){
+    if(vpReady) return startReadPack(el, text, from, btn);
+    // 第一次用要先加载（清单+字符表不到 120KB），加载完自动接着读
+    stopRead();
+    ttsBubble = el; ttsBtn = btn || null;
+    el.classList.add("reading"); setReadBtn(ttsBtn, true);
+    showErr("正在加载神经语音包（第一次会慢几秒，之后就快了）…");
+    vpInit().then(ok => {
+      if(!ok){ resetReadUI(); showErr("神经语音包加载失败：" + vpErr + "。可以在设置里改回系统嗓音。"); return; }
+      startReadPack(el, text, from, btn);
+    });
+    return;
+  }
   if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
   stopRead();
   ttsStop = false;
@@ -1189,7 +1314,7 @@ function startRead(el, text, from, btn){
   const go = ()=>{ if(!ttsStop) speakOne(); };
   const vs = window.speechSynthesis.getVoices() || [];
   if(!vs.length && "onvoiceschanged" in window.speechSynthesis){
-    // 语音列表是异步加载的，等一下；万一是真的没有语音，也得开读，不能卡住
+    // 语音列表是异步加载的，默认等 800ms；万一是真的没有语音，也得开读
     let done = false;
     const handler = ()=>{ if(done) return; done = true; go(); };
     window.speechSynthesis.onvoiceschanged = handler;
@@ -1197,6 +1322,19 @@ function startRead(el, text, from, btn){
   }else{
     go();
   }
+}
+// 用神经语音包读：整段切音节，按字符区间打高亮
+function startReadPack(el, text, from, btn){
+  stopRead();
+  ttsStop = false;
+  ttsBubble = el;
+  ttsBtn = btn || null;
+  el.classList.add("reading");
+  setReadBtn(ttsBtn, true);
+  const segs = vpSegment(text);
+  if(!segs.length){ resetReadUI(); showErr("这段内容里没有可读的中文。"); return; }
+  const startIdx = vpIndexFromChar(segs, Math.max(0, from || 0));
+  vpPlay(segs, startIdx, ()=>{ if(!ttsStop) resetReadUI(); });
 }
 // 点气泡里的任意一个字 -> 从那个字开始读
 function charOffsetFromPoint(el, x, y){
@@ -1616,6 +1754,27 @@ function markDirty(on){
 function confirmLeave(){
   if(!dirty) return true;
   return confirm("设置里有改动还没保存，就这么走？\n（不保存的话，人设和背景资料的改动会丢）");
+}
+// 语音包状态提示
+function showVpDiag(){
+  const el = $("vpDiag");
+  if(!el) return;
+  if(!useVoicePack()){
+    el.innerHTML = "现在用<b>系统嗓音</b>——iPhone 上通常只有婷婷和美嘉两个，比较机械。";
+    return;
+  }
+  if(vpReady){
+    el.innerHTML = "✅ 神经语音包已就绪：<b>" + (vp.manifest.count) + "</b> 个音节，采样率 "
+      + vp.manifest.sr + " Hz。这是内嵌的神经模型声音，<b>不依赖苹果、断网也能读</b>。"
+      + "<br>第一次用会按需下载音节片段（整包约 7.7 MB），之后浏览器会缓存。";
+  }else if(vpLoading){
+    el.innerHTML = "正在加载神经语音包…";
+  }else if(vpErr){
+    el.innerHTML = "<b style='color:var(--danger)'>语音包加载失败：</b>" + vpErr
+      + "<br>可以先切换到「系统嗓音」用着。";
+  }else{
+    el.innerHTML = "还没加载。第一次点「▶ 朗读」时会自动加载（清单+字符表不到 120 KB）。";
+  }
 }
 function statLine(){
   if($("statVer")) $("statVer").textContent = APP_VER;
