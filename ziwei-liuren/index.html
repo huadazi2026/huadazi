@@ -441,6 +441,10 @@ nav button.on{color:var(--gold)}
         <input type="checkbox" id="zw-truesolar" checked>
         <label for="zw-truesolar" style="margin:0">启用真太阳时校正（按出生地经度）</label>
       </div>
+      <div class="switch">
+        <input type="checkbox" id="zw-latezi" checked>
+        <label for="zw-latezi" style="margin:0">晚子时按前一天（23:00–24:00 生，日子退一天；《天纪》口径）</label>
+      </div>
       <button class="btn" id="zw-go">排 命 盘</button>
     </div>
     <div id="zw-out"></div>
@@ -996,6 +1000,7 @@ function renderZiwei(){
       gender: zwGender,
       leapMode: leapModeUse,
       monthMode: monthModeUse,
+      lateZi: ($('zw-latezi') ? $('zw-latezi').checked : true),
       trueSolar: useTS, longitude: lng, useEoT: true
     });
     c._age = age;
@@ -1262,7 +1267,126 @@ function zwGeju(c, t){
   return G;
 }
 
+/* ================================================================
+   夹宫格局 + 命名格局 —— 依据《天纪》讲义「总格介绍」
+   夹宫：吉凶星入本宫左右两邻宫都叫「夹」
+   ================================================================ */
+function zwJiaju(c, palaceName){
+  var P = {};
+  for (var i = 0; i < c.palaces.length; i++) P[c.palaces[i].name] = c.palaces[i];
+  var p0 = P[palaceName];
+  if (!p0) return [];
+  /* 十二宫按地支顺行，左邻 = zhi-1，右邻 = zhi+1 */
+  var L = c.palaces[(p0.zhi + 11) % 12];
+  var R = c.palaces[(p0.zhi + 1) % 12];
+  function stars(pp){ var o = {}; for (var k = 0; k < (pp.stars || []).length; k++) o[pp.stars[k]] = 1; return o; }
+  function mains(pp){ var o = {}; for (var k = 0; k < (pp.mainStars || []).length; k++) o[pp.mainStars[k]] = 1; return o; }
+  var ls = stars(L), rs = stars(R), lm = mains(L), rm = mains(R);
+  var miao = (typeof root !== "undefined" && root.zwMiao) ? root.zwMiao : null;
+  function isXian(pp, st){ return miao ? (miao(pp.zhiName, st) === "陷") : false; }
+  var out = [];
+  /* 1 日月夹财：太阳太阴夹命（讲义：即使命无主星，也一世财运） */
+  var sunL = lm["太阳"] || ls["太阳"], moonL = lm["太阴"] || ls["太阴"];
+  var sunR = rm["太阳"] || rs["太阳"], moonR = rm["太阴"] || rs["太阴"];
+  if ((sunL && moonR) || (moonL && sunR))
+    out.push({ n:"日月夹财", good:true, why:"太阳太阴分夹" + palaceName + "两侧（" + L.zhiName + "宫与" + R.zhiName + "宫）—— 《天纪》：即使本宫无主星，也主一世财运。" });
+  /* 日月反背夹命：太阳太阴双双落陷夹命 → 一世辛劳 */
+  var sunP = sunL ? L : (sunR ? R : null), moonP = moonL ? L : (moonR ? R : null);
+  if (sunP && moonP && sunP !== moonP && isXian(sunP, "太阳") && isXian(moonP, "太阴"))
+    out.push({ n:"日月反背夹命", good:false, why:"太阳太阴双双落陷夹" + palaceName + " —— 《天纪》：一世辛劳，工作披星戴月、六亲不靠、性情刚燥。" });
+  /* 2 紫府夹权：紫微天府夹命 */
+  var ziL = lm["紫微"] || ls["紫微"], fuL = lm["天府"] || ls["天府"];
+  var ziR = rm["紫微"] || rs["紫微"], fuR = rm["天府"] || rs["天府"];
+  if ((ziL && fuR) || (fuL && ziR))
+    out.push({ n:"紫府夹权", good:true, why:"紫微天府分夹" + palaceName + "两侧 —— 《天纪》：主有权势。" });
+  /* 3 魁钺夹贵：天魁天钺夹命 */
+  var kuiL = ls["天魁"], kuiR = rs["天魁"], yueL = ls["天钺"], yueR = rs["天钺"];
+  if ((kuiL && yueR) || (yueL && kuiR))
+    out.push({ n:"魁钺夹贵", good:true, why:"天魁天钺分夹" + palaceName + "两侧 —— 一生多贵人，科甲顺利。" });
+  /* 4 羊陀夹杀：擎羊陀罗夹命 */
+  var yangL = ls["擎羊"], yangR = rs["擎羊"], tuoL = ls["陀罗"], tuoR = rs["陀罗"];
+  if ((yangL && tuoR) || (tuoL && yangR))
+    out.push({ n:"羊陀夹杀", good:false, why:"擎羊陀罗分夹" + palaceName + "两侧 —— 《天纪》：犯小人，容易被人影响；身体主开刀血光。" });
+  /* 5 火铃夹 */
+  if ((ls["火星"] && rs["铃星"]) || (ls["铃星"] && rs["火星"]))
+    out.push({ n:"火铃夹", good:false, why:"火星铃星分夹" + palaceName + "两侧 —— 性急、冲突、易有火厄。" });
+  /* 6 空劫夹 */
+  if ((ls["地空"] && rs["地劫"]) || (ls["地劫"] && rs["地空"]))
+    out.push({ n:"空劫夹", good:false, why:"地空地劫分夹" + palaceName + "两侧 —— 主耗，投入易落空。" });
+  return out;
+}
+
+/* 命名格局：按命宫落宫与主星（《天纪》总格） */
+function zwMingGe(c){
+  var P = {};
+  for (var i = 0; i < c.palaces.length; i++) P[c.palaces[i].name] = c.palaces[i];
+  var ming = P["命宫"], shen = P["身宫"];
+  if (!ming) return [];
+  var out = [];
+  var i = c.mingPos;                       /* 命宫地支序 0=子 */
+  var ms = ming.mainStars || [];
+  var set = {}; for (var k = 0; k < ms.length; k++) set[ms[k]] = 1;
+  var miao = (typeof root !== "undefined" && root.zwMiao) ? root.zwMiao : null;
+  function L(st){ return miao ? miao(ming.zhiName, st) : ""; }
+  function miaoW(st){ var v = L(st); return v === "庙" || v === "旺"; }
+  /* 紫府坐垣：命宫在寅或申，紫微天府同宫且入庙 */
+  if ((i === 2 || i === 8) && set["紫微"] && set["天府"])
+    out.push({ n:"紫府坐垣", good:true, why:"命宫在" + ming.zhiName + "，紫微天府同宫入庙 —— 《天纪》：位列三台（将相），爵禄荣昌。对宫即为七杀朝斗。" });
+  /* 七杀朝斗：命宫在寅或申，七杀独坐入庙 */
+  if ((i === 2 || i === 8) && ms.length === 1 && set["七杀"] && miaoW("七杀"))
+    out.push({ n:"七杀朝斗", good:true, why:"命宫在" + ming.zhiName + "，七杀独坐入庙 —— 将星入命，威震边疆、爵禄荣昌。" });
+  /* 雄宿朝元：廉贞孤星独守，命在申或寅 */
+  if ((i === 2 || i === 8) && ms.length === 1 && set["廉贞"])
+    out.push({ n:"雄宿朝元", good:true, why:"廉贞孤星独守于" + ming.zhiName + "宫 —— 《天纪》：利军人出将相、商人做老板；但后期会毁在桃花上。" });
+  /* 日月并明：太阳太阴会于命宫丑未（讲义：做事左右逢源，一辈子荣华） */
+  if ((i === 1 || i === 7) && set["太阳"] && set["太阴"])
+    out.push({ n:"日月并明", good:true, why:"命宫在" + ming.zhiName + "，太阳太阴同时会到 —— 做事左右逢源，一辈子荣华。" });
+  /* 日月反背：太阳太阴双陷（讲义：主离祖、性刚、外出发展） */
+  if (set["太阳"] && set["太阴"] && L("太阳") === "陷" && L("太阴") === "陷")
+    out.push({ n:"日月反背", good:false, why:"太阳太阴双陷同宫 —— 工作披星戴月、六亲不靠、性情刚燥，一般要离开家乡发展。" });
+  /* 紫微无左右 = 孤君 */
+  if (set["紫微"] && !(P["命宫"].stars.indexOf("左辅") >= 0 || P["命宫"].stars.indexOf("右弼") >= 0))
+    out.push({ n:"紫微孤君", good:false, why:"命宫紫微而无左辅右弼 —— 为僧道之象，或人厚道而性情孤独。女命紫微独在福德宫主一世孤单。" });
+  /* 火贪格 / 火贵格 */
+  if (ms.indexOf("贪狼") >= 0 && (P["命宫"].stars.indexOf("火星") >= 0 || P["命宫"].stars.indexOf("铃星") >= 0))
+    out.push({ n:"火贪格", good:true, why:"贪狼与火（铃）同宫 —— 《天纪》：火贵格，主出武官、武贵。" });
+  /* 将星得地：武曲破军同会 */
+  if (set["武曲"] && set["破军"])
+    out.push({ n:"将星得地", good:true, why:"武曲破军同宫 —— 权力欲望极强；男命最好，出来就化将。" });
+  /* 廉贞七杀 / 廉贞贪狼 / 廉贞破军 的凶组合 */
+  if (set["廉贞"] && set["七杀"] && L("廉贞") === "陷" && L("七杀") === "陷")
+    out.push({ n:"廉杀双陷", good:false, why:"廉贞七杀双双落陷 —— 《天纪》：半路埋尸，横死之象。" });
+  if (set["廉贞"] && set["贪狼"] && L("廉贞") === "陷" && L("贪狼") === "陷")
+    out.push({ n:"廉贪双陷", good:false, why:"廉贞贪狼双双落陷 —— 横夭、先天疾病或自杀倾向，是命里最重的一格。" });
+  if (set["廉贞"] && set["破军"])
+    out.push({ n:"廉破", good:false, why:"廉贞破军同宫 —— 水中作冢，主横祸意外，一般主人孤单。" });
+  /* 巨日格：命宫三方四正巨门会太阳 */
+  if (typeof zwTriad === "function"){
+    var t = zwTriad(c, ming.zhi);
+    var hasJu = false, hasTai = false;
+    for (var q = 0; q < t.mains.length; q++){
+      if (t.mains[q].star === "巨门") hasJu = true;
+      if (t.mains[q].star === "太阳") hasTai = true;
+    }
+    if (hasJu && hasTai){
+      var taiMiao = "";
+      for (var q2 = 0; q2 < t.mains.length; q2++) if (t.mains[q2].star === "太阳") taiMiao = miao ? miao(t.mains[q2].from, "太阳") : "";
+      var zheng = (taiMiao === "庙" || taiMiao === "旺");
+      out.push({ n:"巨日格" + (zheng ? "（成格）" : "（落陷）"), good:zheng,
+        why: zheng ? "巨门会太阳且庙旺 —— 《天纪》：大生意人、巨富；落父母宫主继承祖业。"
+                   : "巨门会太阳但落陷 —— 不入正格：男命表里不一、喜怒无常；女命为偏房命。" });
+    }
+  }
+  /* 禄马交驰：禄存（化禄）与天马同宫 */
+  var mingStars = ming.stars || [];
+  var hasLu = mingStars.indexOf("禄存") >= 0, hasMa = mingStars.indexOf("天马") >= 0;
+  if (hasLu && hasMa)
+    out.push({ n:"禄马交驰", good:true, why:"禄存与天马同宫 —— 辛苦赚大钱，巨富；若再逢巨门入庙，主豪门宅第。" });
+  return out;
+}
+
 /* 紫微核心：三方四正总览（放在「命盘总述」之后） */
+function c2m(cls){ return cls === "good" ? "◎ " : (cls === "bad" ? "△ " : "○ "); }
 function zwSanfang(c, read, age){
   var P = {};
   for (var i = 0; i < c.palaces.length; i++) P[c.palaces[i].name] = c.palaces[i];
@@ -1288,6 +1412,18 @@ function zwSanfang(c, read, age){
       h += '<div class="ad">' + (cls2 === "good" ? "◎ " : (cls2 === "bad" ? "△ " : "○ ")) + '<b>' + esc(gs[g].n) + '</b>：' + esc(gs[g].why) + '</div>';
     }
     h += "</div>";
+  }
+  /* 《天纪》总格：命名格局 + 夹宫格局 */
+  var geList = [];
+  if (typeof zwMingGe === "function") geList = geList.concat(zwMingGe(c));
+  if (typeof zwJiaju === "function") geList = geList.concat(zwJiaju(c, "命宫"));
+  if (geList.length){
+    h += '<h3>总格（《天纪》）</h3>';
+    for (var gg = 0; gg < geList.length; gg++){
+      var g2 = geList[gg];
+      var c3 = g2.good === true ? "good" : (g2.good === false ? "bad" : "");
+      h += '<div class="ad">' + (c2m(c3)) + '<b>' + esc(g2.n) + '</b>：' + esc(g2.why) + '</div>';
+    }
   }
   h += '<div class="note">古法：「吉星要拱才算真吉，凶星要冲才算真凶」。单看一宫易误判 —— 本宫弱但对宫强、三合有吉星来拱，往往反而成事。</div>';
   h += "</div>";
@@ -1468,6 +1604,7 @@ function zwReading(c, read, age){
   h += zwHealth(c, read, age);
 
   /* 十二宫逐宫解读（每宫带三方四正一句） */
+  /* 说明：逐宫的夹宫格局在下面的 palread 里附带 */
   h += '<div class="card"><h2>十二宫详解</h2>';
   for (var k=0;k<read.palaces.length;k++){
     var pr = read.palaces[k];

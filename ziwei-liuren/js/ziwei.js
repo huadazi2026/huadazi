@@ -236,8 +236,17 @@
     info.yearGZ = GAN[yearGanIdx] + ZHI[yearZhiIdx];
     info.shengXiao = LC.SHENGXIAO[yearZhiIdx];
 
-    /* 农历 */
-    var lunar = LC.solarToLunar(ty, tm, td);
+    /* 农历
+       晚子时换日（倪海厦《天纪》：23:00-24:00 为晚子时，日子按前一天算；
+       00:00-01:00 为早子时，按当天算）。开着时只把「农历日」退回一天 ——
+       年柱仍按立春、命宫月仍按节气/农历月，只有紫微起星用的日数跟着退。 */
+    var lunarSolarY = ty, lunarSolarM = tm, lunarSolarD = td;
+    if (opts.lateZi && thh === 23) {
+      var pd = new Date(Date.UTC(ty, tm - 1, td - 1));
+      lunarSolarY = pd.getUTCFullYear(); lunarSolarM = pd.getUTCMonth() + 1; lunarSolarD = pd.getUTCDate();
+      info.lateZiRolled = true;
+    }
+    var lunar = LC.solarToLunar(lunarSolarY, lunarSolarM, lunarSolarD);
     if (!lunar) throw new Error('日期超出农历数据范围（1900-01-31 ~ 2100-12-31）。' +
       (useTrueSolar && tstInfo ? '当前开启了真太阳时校正，会把钟表时间前移到 ' + ty + '-' + LC.pad(tm) + '-' + LC.pad(td) +
         '，已贴近可用范围边界；把出生日期往后调一天、或关掉真太阳时校正即可。' : ''));
