@@ -1025,7 +1025,7 @@ function zwHeader(c){
 
 function zwGrid(c, read){
   /* 传统布局：巳午未申 / 辰酉 / 卯戌 / 寅丑子亥 —— 用 4x4 网格，四角留空 */
-  var layout = [5,6,7,8, 4,-1,9,-1, 3,-1,10,-1, 2,1,0,11];
+  var layout = [5,6,7,8, 4,-1,-1,9, 3,-1,-1,10, 2,1,0,11];
   var cur = currentLimitPos(c, read);
   var h = '<div class="grid">';
   for (var k=0;k<layout.length;k++){
@@ -1624,7 +1624,7 @@ function lrHeader(K, q){
 
 function lrPlate(K){
   /* 天地盘：按 4x4 传统布局展示，每格 天盘(将) / 天将 / 地盘 */
-  var layout = [5,6,7,8, 4,-1,9,-1, 3,-1,10,-1, 2,1,0,11];
+  var layout = [5,6,7,8, 4,-1,-1,9, 3,-1,-1,10, 2,1,0,11];
   var h = '<div class="card"><h2>天地盘（十二宫）</h2><div class="plate">';
   for (var k=0;k<layout.length;k++){
     var di = layout[k];
@@ -1836,9 +1836,10 @@ function topicAnswer(topic, prob, opt){
   var strong = prob >= 62, weak = prob < 44;
   switch (topic){
     case 'weather':
-      return strong ? '明天是晴天／好天，不会下雨（断天气看「父母」爻：父母旺则雨，子孙旺则晴 —— 你现在子孙得力）'
-                    : (weak ? '会下雨／下雪，或者阴沉一天（父母爻旺、子孙受制）'
-                            : '天阴或有零星雨，不成大雨；想准一点建议用小六壬问（大安晴、留空亡雨，最直接）');
+      /* 各门断天气的用神不同，这里只说结论，术语放到「为什么」里 */
+      return strong ? '明天是晴天／好天，不会下雨'
+                    : (weak ? '会下雨／下雪，或者阴沉一天'
+                            : '天阴或有零星雨，不成大雨');
     case 'lost':
       return strong ? '找得回来，东西没丢远' : (weak ? '找不回来了，多半彻底没了' : '悬：可能压在什么地方或被人顺手收走，仔细再翻一遍');
     case 'person':
@@ -2549,43 +2550,62 @@ function qmPickYongShen(p, q){
   var byG = {};
   for (var i=0;i<p.gongs.length;i++) byG[p.gongs[i].gong] = p.gongs[i];
   var txt = q || '';
-  var rules = [
-    [['钱','财','投资','赚','生意','买卖','回款','工资','收入'], '戊', '问财：以「戊」（资金/本金）为用神'],
-    [['工作','事业','职位','升','领导','上司','老板','官'], '开门', '问事业：以「开门」为用神'],
-    [['合作','合伙','谈判','签','合同','对方','中介'], '六合', '问合作：以「六合」为用神'],
-    [['考试','学','文书','证','报告','方案'], '天辅', '问文书学业：以「天辅」为用神'],
-    [['病','健康','身体','医'], '天芮', '问疾病：以「天芮」（病星）为用神'],
-    [['婚姻','感情','女朋友','男朋友','老婆','老公','复婚'], '六合', '问感情：以「六合」为用神'],
-    [['走','搬','出行','去','离开','挪'], '天马', '问行动：以「天马/驿马」为用神'],
-    [['钱','纠纷','官司','诉讼','争执'], '惊门', '问口舌官非：以「惊门」为用神']
-  ];
-  for (var r=0;r<rules.length;r++){
-    var keys = rules[r][0];
-    for (var k=0;k<keys.length;k++){
-      if (txt.indexOf(keys[k]) >= 0){
-        var tag = rules[r][1], gong = null;
-        if (tag === '开门' || tag === '惊门'){
-          for (var i2=0;i2<p.gongs.length;i2++) if (p.gongs[i2].men === tag) gong = p.gongs[i2].gong;
-        } else if (tag === '六合'){
-          for (var i3=0;i3<p.gongs.length;i3++) if (p.gongs[i3].shen === '六合') gong = p.gongs[i3].gong;
-        } else if (tag === '天辅' || tag === '天芮' || tag === '天马'){
-          if (tag === '天马'){ gong = null; }
-          else for (var i4=0;i4<p.gongs.length;i4++) if (p.gongs[i4].star === tag) gong = p.gongs[i4].gong;
-        } else {
-          gong = p.diPan.gong[tag] || null;
-        }
-        if (gong) return { gong: gong, reason: rules[r][2] + '（落在' + p.meta.GONG_NAME[gong] + '宫）' };
-      }
+  /* 按「事类」取用神 —— 和小六壬/梅花/六爻/大六壬用同一套归类（askTopic） */
+  var topic = (typeof askTopic === 'function') ? askTopic(txt) : 'general';
+  /* 事类 → 用神符号（奇门断事的正统取法） */
+  var T = {
+    weather: { tag:'天蓬', why:'断天气：以「天蓬」（水星，主雨雪）为用神，兼看「天英」（火，主晴）' },
+    lost:    { tag:'伤门', why:'断失物：以「伤门」（主遗失、捕亡）为用神' },
+    person:  { tag:'六合', why:'断等人／消息：以「六合」（主中介、传信）为用神' },
+    money:   { tag:'戊',    why:'问财：以「戊」（资金/本金）为用神，兼看生门' },
+    career:  { tag:'开门',  why:'问事业功名：以「开门」为用神，兼看天心（主官）' },
+    love:    { tag:'六合',  why:'问感情婚姻：以「六合」（主婚姻媒合）为用神' },
+    health:  { tag:'天芮',  why:'问疾病：以「天芮」（病星）为用神，兼看死门' },
+    travel:  { tag:'天马',  why:'问出行：以「天马/驿马」为用神，兼看伤门（车马）' },
+    legal:   { tag:'开门',  why:'问官非诉讼：以「开门」（主官方）为用神，兼看惊门（主口舌）' },
+    people:  { tag:'六合',  why:'问求人办事：以「六合」（主中介说合）为用神' }
+  };
+  var pick = T[topic];
+  if (!pick){
+    /* 没归类出来时，退回关键词（但要覆盖得更全） */
+    var rules = [
+      [/钱|财|投资|赚|生意|买卖|回款|工资|收入|价|款/, '戊', '问财：以「戊」（资金/本金）为用神'],
+      [/工作|事业|职位|升|领导|上司|老板|官|辞职|离职|面试|考|编|项目|签|谈成/, '开门', '问事业：以「开门」为用神'],
+      [/合作|合伙|谈判|对方|中介|帮忙|托/, '六合', '问合作：以「六合」为用神'],
+      [/病|健康|身体|医|手术|住院/, '天芮', '问疾病：以「天芮」（病星）为用神'],
+      [/婚|感情|女朋友|男朋友|老婆|老公|复合|表白|相亲/, '六合', '问感情：以「六合」为用神'],
+      [/走|搬|出行|去|离开|挪|出差|旅行/, '天马', '问行动：以「天马/驿马」为用神'],
+      [/纠纷|官司|诉讼|争执|报警|仲裁/, '惊门', '问口舌官非：以「惊门」为用神'],
+      [/文书|证|报告|方案|学|快递/, '天辅', '问文书学业：以「天辅」为用神']
+    ];
+    for (var r=0;r<rules.length && !pick;r++){
+      if (rules[r][0].test(txt)) pick = { tag: rules[r][1], why: rules[r][2] };
     }
+  }
+  if (pick){
+    var tag = pick.tag, gong = null;
+    if (tag === '开门' || tag === '惊门' || tag === '伤门' || tag === '生门' || tag === '死门'){
+      for (var i2=0;i2<p.gongs.length;i2++) if (p.gongs[i2].men === tag) gong = p.gongs[i2].gong;
+    } else if (tag === '六合'){
+      for (var i3=0;i3<p.gongs.length;i3++) if (p.gongs[i3].shen === '六合') gong = p.gongs[i3].gong;
+    } else if (tag === '天蓬' || tag === '天芮' || tag === '天辅' || tag === '天心' || tag === '天英'){
+      for (var i4=0;i4<p.gongs.length;i4++) if (p.gongs[i4].star === tag) gong = p.gongs[i4].gong;
+    } else if (tag === '天马'){
+      gong = null;   /* 驿马随支转，落到值符宫看 */
+    } else {
+      gong = p.diPan.gong[tag] || null;   /* 三奇六仪按地盘取宫 */
+    }
+    if (!gong) gong = p.diPan.gong[p.xunYi] || null;
+    if (gong) return { gong: gong, reason: pick.why + '（落在' + p.meta.GONG_NAME[gong] + '宫）' };
   }
   /* 默认用日干 */
   var dayGan = p.gz.day.charAt(0);
   var useGan = (dayGan === '甲') ? p.xunYi : dayGan;
   var g = p.diPan.gong[useGan];
-  return { gong: g, reason: '未指定具体事：以日干「' + dayGan + '」为用神（落' + (g ? p.meta.GONG_NAME[g] + '宫' : '中宫') + '）' };
+  return { gong: g, reason: '没说明具体问什么事：以日干「' + dayGan + '」为用神（落' + (g ? p.meta.GONG_NAME[g] + '宫' : '中宫') +
+    '）—— 写清楚问的是哪一类事（财/事业/感情/天气…），取用神会更准。' };
 }
 
-/* 奇门：最可能的结果 */
 function qmLikely(p, yong, byG, q){
   if (!yong.gong) return '';
   var h = '';
