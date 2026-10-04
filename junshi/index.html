@@ -122,10 +122,9 @@
   #emojiGrid button i{font-size:10.5px; color:var(--dim); font-style:normal}
   em.qf{font-style:normal; font-size:1.15em; line-height:1; display:inline-block; vertical-align:-2px; margin:0 1px}
   /* 收音中 */
-  footer #btnMic{background:var(--panel2); border:1px solid var(--line); color:var(--sub); padding:11px 13px; font-size:16px; border-radius:12px; font-weight:400}
-  footer #btnMic:active{background:var(--line)}
-  footer #btnMic.rec{background:var(--danger); border-color:var(--danger); color:#fff; animation:pulse 1.1s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  footer #btnHold:active,footer #btnHold.rec{animation:none}
+  #btnHold.wait{animation:pulse 1.1s infinite}
   .acts{display:flex; gap:6px; flex-wrap:wrap}
   .acts button{
     background:transparent; border:1px solid var(--line); color:var(--dim);
@@ -146,21 +145,10 @@
   }
   footer textarea{
     flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--ink);
-    border-radius:12px; padding:10px 12px; font-family:inherit; font-size:16px;
-    resize:none; line-height:1.5; min-height:44px; max-height:130px;
+    border-radius:10px; padding:11px 12px; font-family:inherit; font-size:16px;
+    resize:none; line-height:1.4; min-height:44px; max-height:130px;
   }
   footer textarea:focus{outline:none; border-color:var(--accent)}
-  footer button{
-    background:var(--accent); color:#241a06; border:none; border-radius:12px;
-    padding:11px 16px; font-size:15px; font-weight:700; cursor:pointer; flex:none;
-  }
-  footer button:disabled{opacity:.45}
-  footer button.stop{background:var(--danger); color:#fff}
-  footer #btnImg,footer #btnEmoji{
-    background:var(--panel2); border:1px solid var(--line); color:var(--sub);
-    padding:11px 13px; font-size:16px; border-radius:12px; font-weight:400;
-  }
-  footer #btnImg:active,footer #btnEmoji:active{background:var(--line)}
   /* 设置 / 历史抽屉 */
   #overlay{
     position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
@@ -226,6 +214,56 @@
   }
   .hitem .hdel:active{color:var(--danger)}
   .hempty{color:var(--dim); font-size:13px; text-align:center; padding:18px 0}
+
+  /* ============ 输入区（照微信做：输入框一行，下面 🎤 🙂 ➕ 一排，发在右） ============ */
+  footer{display:flex !important; flex-direction:column; gap:7px}
+  /* 微信那个样子：输入框占满剩余空间、发送在右、下面一排工具靠左。
+     注意不能用 justify-content:flex-end —— 那样没有剩余空间，textarea 的 flex:1 会失效被压窄。 */
+  #cmpTop{display:flex; align-items:flex-end; gap:8px; justify-content:flex-start; width:100%}
+  #cmpTop #input{flex:1 1 auto; width:0; text-align:left}
+  #cmpTop #btnSend{
+    flex:none; background:var(--accent); color:#241a06; border:none;
+    border-radius:10px; padding:0 18px; height:44px; font-size:15.5px;
+    font-weight:700; cursor:pointer;
+  }
+  #cmpTop #btnSend.stop{background:var(--danger); color:#fff}
+  #cmpTop #btnSend:disabled{opacity:.45}
+  #cmpTools{display:flex; align-items:center; gap:6px; justify-content:flex-start; width:100%}
+  #cmpTools button{
+    background:transparent; border:1px solid transparent; color:var(--sub);
+    width:40px; height:36px; font-size:21px; line-height:1; border-radius:9px;
+    cursor:pointer; padding:0; flex:none;
+  }
+  #cmpTools button:active{background:var(--panel2)}
+  #cmpTools button.on{color:var(--accent); border-color:var(--line); background:var(--panel2)}
+  #btnHold{
+    flex:1; height:44px; border-radius:10px; background:var(--panel2);
+    border:1px solid var(--line); color:var(--sub); font-size:14.5px;
+    font-weight:600; cursor:pointer; user-select:none; -webkit-user-select:none;
+    display:none; align-items:center; justify-content:center;
+  }
+  #btnHold:active{background:var(--line)}
+  #btnHold.rec{background:var(--danger); border-color:var(--danger); color:#fff}
+  footer.voice #input, footer.voice #btnSend, footer.voice #micHint{display:none}
+  footer.voice #btnHold{display:flex}
+  #micHint{display:none; color:var(--dim); font-size:11.5px; line-height:1.5}
+  footer.voice #micHint{display:block}
+
+  /* ➕ 面板，微信那个样子 */
+  #plusPanel{display:none; grid-template-columns:repeat(4, 1fr); gap:14px 8px; padding-top:4px}
+  #plusPanel.show{display:grid}
+  #plusPanel button{
+    background:none; border:none; color:var(--sub); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    font-size:11.5px; padding:0;
+  }
+  #plusPanel button i{
+    width:56px; height:56px; border-radius:14px; background:var(--panel2);
+    border:1px solid var(--line); display:flex; align-items:center;
+    justify-content:center; font-size:26px; font-style:normal;
+  }
+  #plusPanel button:active i{background:var(--line)}
+  #plusPanel button em{font-style:normal}
 </style>
 </head>
 <body>
@@ -249,13 +287,30 @@
 <div id="errbox"></div>
 <div id="pending"></div>
 <footer>
-  <textarea id="input" rows="1" placeholder="说点什么…"></textarea>
-  <button id="btnEmoji" type="button" title="表情">🙂</button>
-  <button id="btnImg" type="button" title="加图片">🖼</button>
-  <button id="btnMic" type="button" title="语音转文字" style="display:none">🎤</button>
-  <button id="btnSend">发送</button>
+  <div id="cmpTop">
+    <textarea id="input" rows="1" placeholder="说点什么…"></textarea>
+    <button id="btnHold" type="button">按住 说话</button>
+    <button id="btnSend">发送</button>
+  </div>
+  <div id="cmpTools">
+    <button id="btnVoice" type="button" title="语音输入">🎤</button>
+    <button id="btnEmoji" type="button" title="表情">🙂</button>
+    <button id="btnPlus"  type="button" title="更多">➕</button>
+  </div>
+  <div id="micHint"></div>
+  <div id="plusPanel">
+    <button id="plAlbum"  type="button"><i>🖼</i><em>相册</em></button>
+    <button id="plCamera" type="button"><i>📷</i><em>拍摄</em></button>
+    <button id="plFile"   type="button"><i>📁</i><em>文件</em></button>
+    <button id="plVoice"  type="button"><i>🎤</i><em>语音输入</em></button>
+    <button id="plClear"  type="button"><i>🧹</i><em>清空当前</em></button>
+    <button id="plExport" type="button"><i>💾</i><em>导出对话</em></button>
+    <button id="plHist"   type="button"><i>🗂</i><em>对话历史</em></button>
+    <button id="plSet"    type="button"><i>⚙️</i><em>设置</em></button>
+  </div>
 </footer>
 <input type="file" id="filePick" accept="image/*" multiple style="display:none">
+<input type="file" id="camPick"  accept="image/*" capture="environment" style="display:none">
 <div id="emojiPanel">
   <div class="ehd">
     <b>QQ 表情</b>
@@ -976,17 +1031,28 @@ function readToggle(i, btn){
   startRead(bubble, String(m.content || ""), 0);
 }
 
-/* ---------- 语音转文字 ---------- */
+/* ---------- 语音转文字（微信那种：点🎤->整行变“按住 说话”） ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recog = null, recOn = false, recPrefix = "", sttPrefix = "";
+let recog = null, recOn = false, recPrefix = "", sttPrefix = "", voiceMode = false;
 
 function recSupported(){ return !!SR; }
-function toggleRec(){
-  if(!recSupported()){
-    showErr("这个浏览器不支持语音转文字。iPhone 上请用键盘自带的 🎤 听写（在设置里打开「键盘 → 启用听写」）。");
-    return;
-  }
-  if(recOn){ stopRec(); return; }
+function setHoldBtn(state){
+  const b = $("btnHold");
+  b.classList.remove("rec","wait");
+  if(state === "rec"){ b.classList.add("rec"); b.textContent = "松开 结束"; }
+  else if(state === "wait"){ b.classList.add("wait"); b.textContent = "正在听…"; }
+  else { b.textContent = "按住 说话"; }
+}
+// iOS 上没有网页语音识别，只能借键盘自带的听写
+function focusForDictation(){
+  const ta = $("input");
+  toggleVoiceMode(false);
+  ta.focus();
+  showErr("iPhone 上网页拿不到麦克风，只能借键盘的听写：点键盘右下角那个 🎤 就能说话。\n（设置 → 通用 → 键盘 → 启用听写，打开一次以后一直有）");
+}
+function recStart(){
+  if(recOn) return;
+  if(!recSupported()){ focusForDictation(); return; }
   let r;
   try{ r = new SR(); }
   catch(e){ showErr("麦克风启动失败：" + e.message); return; }
@@ -997,12 +1063,10 @@ function toggleRec(){
   recPrefix = $("input").value;
   if(recPrefix && !/\s$/.test(recPrefix)) recPrefix += " ";
   recOn = true;
-  $("btnMic").classList.add("rec");
-  $("btnMic").textContent = "⏺";
+  setHoldBtn("wait");
   const put = (txt, interim)=>{
     $("input").value = recPrefix + txt;
     $("input").style.opacity = interim ? ".75" : "1";
-    grow($("input"));
   };
   r.onresult = e=>{
     let fin = "", itm = "";
@@ -1020,19 +1084,35 @@ function toggleRec(){
                   "audio-capture":"找不到麦克风。",
                   "network":"语音识别要联网，检查一下网络。" };
     showErr("语音识别出错：" + (map[ev.error] || ev.error));
-    stopRec();
+    recStop();
   };
-  r.onend = ()=>{ if(recOn) stopRec(); };
+  r.onend = ()=>{ if(recOn) recStop(); };
   try{ r.start(); }
-  catch(e){ showErr("麦克风启动不了：" + e.message); recOn = false; $("btnMic").classList.remove("rec"); $("btnMic").textContent = "🎤"; return; }
+  catch(e){ showErr("麦克风启动不了：" + e.message); recOn = false; setHoldBtn(""); return; }
   recog = r;
 }
-function stopRec(){
-  recOn = false;
-  $("btnMic").classList.remove("rec");
-  $("btnMic").textContent = "🎤";
-  $("input").style.opacity = "1";
+function recStop(){
   if(recog){ try{ recog.stop(); }catch(e){} recog = null; }
+  if(recOn){
+    recOn = false;
+    $("input").style.opacity = "1";
+    if($("input").value.trim()){ toggleVoiceMode(false); grow($("input")); }
+    else setHoldBtn("");
+  }
+}
+function toggleVoiceMode(force){
+  const on = force === undefined ? !voiceMode : !!force;
+  voiceMode = on;
+  document.querySelector("footer").classList.toggle("voice", on);
+  $("btnVoice").classList.toggle("on", on);
+  if(on){
+    if(!recSupported()) $("micHint").textContent = "这个浏览器不支持网页语音识别。点一下上面的按钮，用键盘自带的 🎤 听写。";
+    else $("micHint").textContent = "按住说话 · 松开结束 · 识别结果接在你打的字后面";
+    if(recSupported()) recStart(); else { toggleVoiceMode(false); focusForDictation(); }
+  }else{
+    recStop();
+    setHoldBtn("");
+  }
 }
 
 /* ---------- 报错解析 ---------- */
@@ -1121,7 +1201,7 @@ async function send(text, opts){
 
   const c = active(); if(!c) return;
   stopRead();
-  if(recOn){ sttPrefix = recPrefix; stopRec(); } else { sttPrefix = ""; }
+  if(recOn){ sttPrefix = recPrefix; recStop(); } else { sttPrefix = ""; }
   $("input").value = ""; grow($("input"));
   if(!opts.noImg && !opts.keepUser){
     // 只清真正要发出去的那几张；发失败时会把它们放回来
@@ -1360,11 +1440,14 @@ $("input").addEventListener("keydown", function(e){
   if(e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); if(!busy) send(this.value); }
 });
 $("input").addEventListener("input", function(){ grow(this); });
-/* ---- 图片：点按钮选、直接粘贴、拖进来 ---- */
-$("btnImg").addEventListener("click", ()=>$("filePick").click());
+/* ---- 图片：➕ 面板 / 相册 / 拍摄 / 粘贴 / 拖进来 ---- */
 $("filePick").addEventListener("change", function(){
   addFiles(this.files);
   this.value = "";                 // 允许连续选同一张
+});
+$("camPick").addEventListener("change", function(){
+  addFiles(this.files);
+  this.value = "";
 });
 $("input").addEventListener("paste", e=>{
   const items = (e.clipboardData && e.clipboardData.items) || [];
@@ -1383,12 +1466,42 @@ document.addEventListener("drop", e=>{
   if(files && files.length){ e.preventDefault(); addFiles(files); }
 });
 $("lightbox").addEventListener("click", closeLightbox);
-$("btnEmoji").addEventListener("click", ()=>toggleEmoji());
+$("btnEmoji").addEventListener("click", ()=>{ togglePlus(false); toggleEmoji(); });
 $("emojiClose").addEventListener("click", ()=>toggleEmoji(false));
-$("btnMic").addEventListener("click", toggleRec);
 $("emojiPanel").addEventListener("click", e=>e.stopPropagation());
-$("input").addEventListener("click", ()=>{ if($("emojiPanel").classList.contains("show")) toggleEmoji(false); });
-document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeLightbox(); });
+
+/* ---- 微信式输入区：➕ 面板 / 🎤 语音模式 / 按住说话 ---- */
+function togglePlus(force){
+  const p = $("plusPanel");
+  const on = force === undefined ? !p.classList.contains("show") : !!force;
+  if(on) toggleEmoji(false);
+  p.classList.toggle("show", on);
+  $("btnPlus").classList.toggle("on", on);
+}
+$("btnPlus").addEventListener("click", ()=>togglePlus());
+$("btnVoice").addEventListener("click", ()=>toggleVoiceMode());
+$("input").addEventListener("click", ()=>{
+  if($("emojiPanel").classList.contains("show")) toggleEmoji(false);
+  if($("plusPanel").classList.contains("show")) togglePlus(false);
+});
+$("btnHold").addEventListener("pointerdown", e=>{
+  e.preventDefault();
+  if(!recSupported()){ focusForDictation(); return; }
+  setHoldBtn("rec");
+  recStart();
+});
+["pointerup","pointercancel","pointerleave"].forEach(t=>{
+  $("btnHold").addEventListener(t, ()=>{ if(recOn) recStop(); });
+});
+$("plAlbum").addEventListener("click", ()=>{ togglePlus(false); $("filePick").click(); });
+$("plCamera").addEventListener("click", ()=>{ togglePlus(false); $("camPick").click(); });
+$("plFile").addEventListener("click", ()=>{ togglePlus(false); $("filePick").click(); });
+$("plVoice").addEventListener("click", ()=>{ togglePlus(false); toggleVoiceMode(true); });
+$("plClear").addEventListener("click", ()=>{ togglePlus(false); $("btnClear").click(); });
+$("plExport").addEventListener("click", ()=>{ togglePlus(false); exportOne(); });
+$("plHist").addEventListener("click", ()=>{ togglePlus(false); $("btnHist").click(); });
+$("plSet").addEventListener("click", ()=>{ togglePlus(false); $("btnSet").click(); });
+document.addEventListener("keydown", e=>{ if(e.key === "Escape"){ closeLightbox(); togglePlus(false); toggleEmoji(false); } });
 window.addEventListener("beforeunload", e=>{
   if(pendingImgs.length){ e.preventDefault(); e.returnValue = ""; }
 });
@@ -1448,8 +1561,8 @@ $("btnClear").addEventListener("click", ()=>{
 $("btnExport").addEventListener("click", exportOne);
 $("btnExportAll").addEventListener("click", exportAll);
 
-if(recSupported()) $("btnMic").style.display = "";
-else $("btnMic").title = "这个浏览器不支持语音转文字";
+// iPhone 上没有网页语音识别，语音按钮改成“调键盘听写”的入口
+$("btnVoice").title = recSupported() ? "语音输入（按住说话）" : "调起键盘听写";
 buildEmojiPanel();
 
 load();
