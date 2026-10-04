@@ -204,6 +204,18 @@ table.ketable tr:last-child td{border-bottom:0}
 .st-tag b{flex:0 0 auto;width:21px;height:21px;border-radius:11px;background:var(--gold);
   color:#1a1428;font-size:12px;display:flex;align-items:center;justify-content:center}
 .st-tag span{font-size:11px;color:var(--dim2);font-weight:400}
+/* 继续询问 */
+.askagain{margin:18px 0 6px;padding:13px;border:1px solid #3a3260;border-radius:14px;
+  background:linear-gradient(180deg,rgba(124,92,200,.10),rgba(124,92,200,.02))}
+.askagain h2{margin:0 0 4px;font-size:15px;color:var(--gold);display:flex;align-items:center;gap:7px}
+.askagain h2 b{width:21px;height:21px;border-radius:11px;background:var(--gold);color:#1a1428;
+  font-size:12px;display:flex;align-items:center;justify-content:center}
+.askagain .tip{font-size:11.5px;color:var(--dim2);line-height:1.6;margin:4px 0 9px}
+.askagain textarea{width:100%;min-height:62px}
+.followans{margin-top:12px;border-top:1px dashed #3a3260;padding-top:11px}
+.followans .fq{font-size:12px;color:var(--dim2);margin-bottom:6px}
+.followans .fr{font-size:13.5px;color:var(--txt);line-height:1.75;margin-top:8px}
+.followans .fr b{color:var(--gold2)}
 
 
 .answerbox{border:1px solid var(--gold);border-radius:12px;padding:12px 13px;margin:2px 0 10px;
@@ -423,6 +435,7 @@ nav button.on{color:var(--gold)}
       <button class="btn" id="zw-go">排 命 盘</button>
     </div>
     <div id="zw-out"></div>
+    <div id="zw-out-ask"></div>
   </section>
 
   <!-- ============ 六壬 ============ -->
@@ -465,6 +478,7 @@ nav button.on{color:var(--gold)}
       <button class="btn ghost" id="lr-refresh">用当前时刻重新起课</button>
     </div>
     <div id="lr-out"></div>
+    <div id="lr-out-ask"></div>
   </section>
 
   <!-- ============ 小六壬 ============ -->
@@ -518,6 +532,7 @@ nav button.on{color:var(--gold)}
       <div class="note">小六壬只用<b>农历月、日、时辰</b>三个数：从「大安」起数月，月上起日、日上起时，落在哪一宫就以该宫断事。不需要生辰八字。</div>
     </div>
     <div id="xlr-out"></div>
+    <div id="xlr-out-ask"></div>
   </section>
 
   <!-- ============ 梅花易数 ============ -->
@@ -572,6 +587,7 @@ nav button.on{color:var(--gold)}
       <div class="note">梅花易数讲「不动不占」：心里真有事、真拿不定主意时起卦最准，一天别反复起同一件事。</div>
     </div>
     <div id="mh-out"></div>
+    <div id="mh-out-ask"></div>
   </section>
 
   <!-- ============ 奇门遁甲 ============ -->
@@ -615,6 +631,7 @@ nav button.on{color:var(--gold)}
       <div class="note">时家奇门：以节气定阴阳遁与局数，值符随时干、值使门加时支转动九星八门。断事看<b>用神所在宫</b>的星门神仪与旺衰。</div>
     </div>
     <div id="qm-out"></div>
+    <div id="qm-out-ask"></div>
   </section>
 
   <!-- ============ 六爻 ============ -->
@@ -653,6 +670,7 @@ nav button.on{color:var(--gold)}
       <div class="note">摇卦规矩：三枚铜钱掷一次得一爻 —— 三个背＝老阳（动）、两背一字＝少阴、一背两字＝少阳、三个字＝老阴（动）。老阳老阴是<b>动爻</b>，会变出另一个卦。</div>
     </div>
     <div id="ly-out"></div>
+    <div id="ly-out-ask"></div>
   </section>
 </main>
 
@@ -994,9 +1012,10 @@ function zwOneHtml(item){
   h += stepper(2) + stepTag(2, '排盘 · 十二宫命盘', '第 2 / 4 步');
   h += zwHeader(c);
   h += zwGrid(c, read);
-  /* 第 3 步 + 第 4 步：解盘（zwReading 开头就是「最可能的结果」卡） */
-  h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
+  /* 第 3 步：解盘（zwReading 末尾是第 4 步结果） */
+  h += stepper(3) + stepTag(3, '解盘 · 逐宫详解', '第 3 / 4 步');
   h += zwReading(c, read, read._age);
+  showAsk('ziwei', { ming: c.mingGanZhi });
   return h;
 }
 
@@ -1113,14 +1132,6 @@ function zwReading(c, read, age){
   for (var i=0;i<read.summary.length;i++) h += '<li>'+esc(read.summary[i])+'</li>';
   h += '</ul></div>';
 
-  /* 优势与风险 */
-  h += '<div class="card"><h2>优势与风险</h2>';
-  h += '<h3>可以依靠的地方</h3><ul class="tight">';
-  for (var a=0;a<read.strengths.length;a++) h += '<li>'+esc(read.strengths[a])+'</li>';
-  h += '</ul><h3>要提前防的地方</h3><ul class="tight">';
-  for (var b=0;b<read.risks.length;b++) h += '<li>'+esc(read.risks[b])+'</li>';
-  h += '</ul></div>';
-
   /* 十二宫逐宫解读 */
   h += '<div class="card"><h2>十二宫详解</h2>';
   for (var k=0;k<read.palaces.length;k++){
@@ -1137,34 +1148,6 @@ function zwReading(c, read, age){
   }
   h += '</div>';
 
-  /* 分类建议 */
-  h += '<div class="card"><h2>事业 · 财富 · 感情 · 健康</h2>';
-  h += '<h3>事业方向</h3><p style="font-size:13.5px;margin:0 0 6px">适合：'+
-       esc((read.career.suitable||[]).join('、'))+'</p>';
-  if (read.career.avoid && read.career.avoid.length)
-    h += '<p style="font-size:13.5px;margin:0 0 6px;color:var(--dim)">不建议：'+esc(read.career.avoid.join('、'))+'</p>';
-  h += '<p style="font-size:13px;color:var(--dim);margin:0 0 10px">'+esc(read.career.note||'')+'</p>';
-  h += '<h3>财运</h3><p style="font-size:13px;margin:0 0 6px">'+esc(read.wealth.pattern)+'</p>';
-  h += '<p style="font-size:13px;color:var(--gold2);margin:0 0 10px">'+esc(read.wealth.advice)+'</p>';
-  h += '<h3>感情</h3><p style="font-size:13px;margin:0 0 6px">'+esc(read.love.pattern)+'</p>';
-  h += '<p style="font-size:13px;color:var(--gold2);margin:0 0 10px">'+esc(read.love.advice)+'</p>';
-  h += '<h3>健康</h3><p style="font-size:13px;margin:0 0 6px">留意：'+esc((read.health.watch||[]).join('、'))+'</p>';
-  h += '<p style="font-size:13px;color:var(--gold2);margin:0">'+esc(read.health.advice)+'</p>';
-  h += '</div>';
-
-  /* 时机 */
-  h += '<div class="card"><h2>当前与未来时机</h2>';
-  h += '<p style="font-size:13.5px;margin:0 0 8px">'+esc(read.timing.current)+'</p>';
-  h += '<p style="font-size:13.5px;margin:0">'+esc(read.timing.tips)+'</p></div>';
-
-  /* 行动清单 */
-  h += '<div class="card"><h2>给你的行动清单</h2>';
-  for (var q=0;q<read.actionPlan.length;q++){
-    var it = read.actionPlan[q];
-    h += '<div class="plan"><div class="w">'+esc(it.when)+'</div><div class="c">'+
-         '<div class="t">'+esc(it.what)+'</div><div class="y">依据：'+esc(it.why)+'</div></div></div>';
-  }
-  h += '<div class="note">'+esc(read.disclaimer||'')+'</div></div>';
   /* ═══ 第 4 步：结果 + 原因 ═══ */
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += zwLikely(c, read, age, zwCurLimit(c, age), zwShortPalace(c, '命宫'), zwShortPalace(c, '官禄'), zwShortPalace(c, '财帛'));
@@ -1173,6 +1156,85 @@ function zwReading(c, read, age){
 }
 
 /* ---------- 通用：先给一句能直接用的话 ---------- */
+/* ================================================================
+   第 5 步：继续询问 —— 不重新起卦，就着这一卦接着问别的事
+   ================================================================ */
+var FOLLOW = { kind: null, data: null };
+var F_TOPIC = { weather:"天气", lost:"失物", person:"等人的消息", money:"钱财", career:"事业",
+  love:"感情", health:"身体", travel:"出行", legal:"官非", people:"求人", general:"这件事" };
+var F_QIN = { money:"妻财", career:"官鬼", health:"官鬼", legal:"官鬼", love:"妻财",
+  lost:"妻财", travel:"父母", weather:"父母", people:"父母", person:"应爻" };
+var F_BOX = { ziwei:"zw-out", liuren:"lr-out", xiaoliuren:"xlr-out", meihua:"mh-out", liuyao:"ly-out", qimen:"qm-out" };
+
+function showAsk(kind, data){
+  FOLLOW.kind = kind; FOLLOW.data = data;
+  var box = $(F_BOX[kind] + "-ask");
+  if (!box) return;
+  box.className = "askagain";
+  box.innerHTML = "<h2><b>5</b>继续询问</h2>" +
+    "<div class=\"tip\">不用重新起卦 —— 就着这一卦接着问<b>别的事</b>。例：上面问「这单生意能不能签」，这里接着问「款项什么时候到」「对方什么态度」。</div>" +
+    "<div class=\"field\"><textarea id=\"fa-q\" placeholder=\"接着问：这笔款项什么时候能到？／对方是什么态度？\"></textarea></div>" +
+    "<button class=\"btn\" id=\"fa-go\">继续问这一卦</button>" +
+    "<div id=\"fa-out\"></div>";
+  var go = $("fa-go");
+  if (go) go.onclick = function(){
+    var q2 = ($("fa-q") && $("fa-q").value || "").trim();
+    if (!q2){ showErr3("fa-out", "先把要问的写进去"); return; }
+    var o = $("fa-out");
+    if (o) o.innerHTML = "<div class=\"followans\"><div class=\"fq\">你接着问：" + esc(q2) + "</div>" +
+      "<div class=\"fr\">" + buildFollow(q2) + "</div></div>";
+  };
+}
+
+function buildFollow(q2){
+  var k = FOLLOW.kind, d = FOLLOW.data, tp = askTopic(q2);
+  var name = F_TOPIC[tp] || "这件事";
+  var lines = [];
+  try {
+    if (k === "xiaoliuren"){
+      var info = XiaoLiuRen.INFO[d.gong], ta = xlrTopicAnswer(d.gong, tp);
+      lines.push("<b>卦不动，还是那一宫</b>：" + d.gong + "（" + info.wuxing + "·" + info.fangwei + "）。你这次问的是<b>" + name + "</b>，这一宫断这类事是：<b>" + (ta || info.xiang) + "</b>");
+      lines.push("<b>为什么</b>：" + (ta ? ("小六壬一卦只落一宫，同一宫对每类事都有固定断语 —— " + d.gong + " 断「" + name + "」就是上面那句。") : ("掌诀里「" + name + "」没有专门断语，按这一宫本义看：" + info.shi)));
+    } else if (k === "liuyao"){
+      var qin = F_QIN[tp] || "世爻", hit = null;
+      for (var i = 0; i < d.lines.length; i++){
+        var L = d.lines[i];
+        if (qin === "应爻" ? L.ying : (qin === "世爻" ? L.shi : L.qin === qin)) { hit = L; break; }
+      }
+      if (!hit) for (var j = 0; j < d.lines.length; j++){ if (d.lines[j].qin === qin) { hit = d.lines[j]; break; } }
+      lines.push("<b>卦还是那一卦</b>：本卦「" + d.ben.name + "」。你这次问的是<b>" + name + "</b>，六爻取用神看「<b>" + qin + "</b>」爻。");
+      if (hit){
+        lines.push("<b>它在卦里是</b>：" + hit.name + "　" + hit.qin + " " + hit.zhi + "（" + hit.wuxing + "）　" + hit.shen +
+          (hit.shi ? "　【临世爻】" : "") + (hit.ying ? "　【临应爻】" : "") + (hit.kong ? "　【空亡】" : "") + (hit.old ? "　【发动】" : ""));
+        lines.push("<b>怎么断</b>：" + (hit.kong ? "落空亡 —— 这一环看着有、实际虚，先别把希望押这上面。" : (hit.old ? "这一爻发动 —— 事情正从这一环起变化，是这次要盯的地方。" : "这一爻安静 —— 这一环暂时不会有大变动，按现状推就行。")) + "六神是" + hit.shen + "。");
+      } else {
+        lines.push("<b>用神不上卦</b>：本卦六亲里没有「" + qin + "」—— 这一环在卦里是缺的，通常主不顺、多费周折。");
+      }
+    } else if (k === "qimen"){
+      var p2 = d, yy = qmPickYongShen(p2, q2), gg = null;
+      for (var a = 0; a < p2.gongs.length; a++){ if (p2.gongs[a].gong === yy.gong) gg = p2.gongs[a]; }
+      lines.push("<b>盘还是那一盘</b>：" + p2.ju.dun + p2.ju.ju + "局。你这次问的是<b>" + name + "</b>，" + esc(yy.reason));
+      if (gg){
+        lines.push("<b>这一宫是</b>：" + gg.name + "宫（" + gg.dir + "）　" + (gg.star || "") + "　" + (gg.men || "") + "　" + (gg.shen || "") + "　天盘" + (gg.tianGan || "—") + " 地盘" + (gg.diGan || "—"));
+        lines.push("<b>怎么断</b>：门是「" + gg.men + "」。" + (([ "开门","休门","生门" ].indexOf(gg.men) >= 0) ? "三吉门临用神，这一环是通的。" : (([ "死门","惊门","伤门" ].indexOf(gg.men) >= 0) ? "凶门临用神，这一环有阻，先避开。" : "中平门，看具体条件。")));
+      }
+    } else if (k === "meihua"){
+      lines.push("<b>卦还是那一卦</b>：本卦「" + d.ben.name + "」，互卦「" + d.hu.name + "」，变卦「" + d.bian.name + "」（动爻第 " + d.dong + " 爻，" + d.rel.key + "）。");
+      lines.push("<b>你这次问的是「" + name + "」</b>：梅花一卦对应一件事，标准做法是<b>另起一卦</b>；就这一卦只能套体用：" + d.rel.text + " —— " + (d.rel.note || ""));
+      lines.push("<b>建议</b>：换一件事，回上面重新起一卦，那一卦的体用才是冲着这件事来的。");
+    } else if (k === "liuren"){
+      lines.push("<b>课还是那一课</b>：" + (d.body || "") + (d.sanChuan ? ("，三传 " + d.sanChuan.join(" → ")) : ""));
+      lines.push("<b>你这次问的是「" + name + "」</b>：大六壬一课断一事，换事情要另起一课（换时刻）。课体「" + (d.body || "") + "」的性质可先参考：" + (d.bodyNote || ""));
+      lines.push("<b>建议</b>：回上面把新问题填进去、重新起一课。");
+    } else if (k === "ziwei"){
+      lines.push("<b>命盘不变</b>：同一张盘能回答很多问题；但落到具体一件事，用<b>六爻／奇门</b>问更准。");
+    }
+  } catch (e){
+    lines.push("（这一卦里取不到对应位置：" + esc(e.message) + "）");
+  }
+  return lines.join("<br>");
+}
+
 /* ---------- 四步流程：通用构件 ---------- */
 function stepper(cur){
   var S = [['1','问事'],['2','出卦排盘'],['3','解卦'],['4','结果·原因']];
@@ -1748,24 +1810,11 @@ function lrReading(K, read, q){
   }
   h += '</div>';
 
-  h += '<div class="card"><h2>该做与不该做</h2>';
-  h += '<h3>✅ 该做</h3><ul class="tight">';
-  for (var d=0;d<read.advice.dos.length;d++) h += '<li>'+esc(read.advice.dos[d])+'</li>';
-  h += '</ul><h3>⛔ 别做</h3><ul class="tight">';
-  for (var n=0;n<read.advice.donts.length;n++) h += '<li>'+esc(read.advice.donts[n])+'</li>';
-  h += '</ul>';
-  if (read.advice.timing) h += '<h3>时机</h3><p style="font-size:13.5px;margin:0">'+esc(read.advice.timing)+'</p>';
-  h += '</div>';
-
-  h += '<div class="card"><h2>解决方法（分步）</h2><ol class="steps">';
-  var m = read.advice.method;
-  var steps = (m && m.length) ? (Object.prototype.toString.call(m)==='[object Array]' ? m : [m]) : [];
-  for (var s=0;s<steps.length;s++) h += '<li>'+esc(steps[s])+'</li>';
-  h += '</ol></div>';
   /* ═══ 第 4 步：结果 + 原因 ═══ */
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += resultBox(L);
 
+  showAsk('liuren', K);
   return h;
 }
 
@@ -2088,26 +2137,6 @@ function xlrHtml(k, q, mode){
 
   /* 建议：问明了事类就按事类给，否则用六宫通用清单 */
   var topicDo = xlrTopicDo(k.gong, topic);
-  h += '<div class="card"><h2>该做与不该做</h2>' + (topicDo ? '<div class="note">你问的是<b>'+
-    TOPIC_NAME[topic]+'</b>，所以下面按这一类事给，不是通用那套。</div>' : '') +
-    '<h3>✅ 该做</h3><ul class="tight">';
-  var yis = topicDo ? topicDo[0] : info.yi;
-  var jis = topicDo ? topicDo[1] : info.ji;
-  for (var a2=0;a2<yis.length;a2++) h += '<li>'+esc(yis[a2])+'</li>';
-  h += '</ul><h3>⛔ 别做</h3><ul class="tight">';
-  for (var b2=0;b2<jis.length;b2++) h += '<li>'+esc(jis[b2])+'</li>';
-  h += '</ul>';
-  /* 针对问题的一句 */
-  if (q){
-    h += '<div class="ad" style="margin-top:10px">针对「'+esc(q)+'」：'+esc(xlrFit(k, q, topic))+'</div>';
-  }
-  h += '</div>';
-  h += '<div class="card"><h2>怎么用这个结果</h2><ul class="tight">'+
-       '<li>小六壬是<b>快断</b>用的：适合问「今天/这几天」的短事，不适合问终身大事。'+
-       (topic === 'weather' ? '问天气本来就只看一两天的短期，正好对口。' : '') + '</li>'+
-       '<li>同一件事<b>不要反复起课</b>，第一次的结果最准；事情有变化了再起一次。</li>'+
-       '<li>它给的是<b>倾向和姿态</b>，不是判决：'+esc(info.luck==='吉'||info.luck==='大吉'?'吉宫也要自己动手去接':'凶宫更该按上面「别做」的清单避开坑')+'。</li>'+
-       '</ul><div class="note">断语依据通行掌诀口诀，仅供决策参考。</div></div>';
   /* ═══ 第 4 步：结果 + 原因 ═══ */
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += resultBox({ answer: (q ? answerOf(q, prob, topicAns).txt : null), question: q,
@@ -2115,6 +2144,7 @@ function xlrHtml(k, q, mode){
     probText: '（' + esc(k.gong) + '宫 · ' + (topicAns ? ('问' + TOPIC_NAME[topic]) : '未指明事类') + ' · ' + esc(info.luck) + '）',
     reasons: reasons, pros: pros, cons: cons, condition: condition });
 
+  showAsk('xiaoliuren', k);
   return h;
 }
 function xlrFit(k, q, topic){
@@ -2372,29 +2402,6 @@ function mhHtml(r){
   }
   h += '</div>';
 
-  var dos = (adj && adj[0]) || v.dos, donts = (adj && adj[1]) || v.donts;
-  h += '<div class="card"><h2>该做与不该做</h2>' +
-    (adj ? '<div class="note">按你问的<b>' + TOPIC_NAME[mhTp] + '</b>这一类事，配合本卦「' + esc(r.rel.key) + '」给：</div>' : '') +
-    '<h3>✅ 该做</h3><ul class="tight">';
-  for (var a=0;a<dos.length;a++) h += '<li>'+esc(dos[a])+'</li>';
-  h += '</ul><h3>⛔ 别做</h3><ul class="tight">';
-  for (var b=0;b<donts.length;b++) h += '<li>'+esc(donts[b])+'</li>';
-  h += '</ul><h3>时机</h3><p style="font-size:13.5px;margin:0">' +
-    ((mhTp === 'weather' || mhTp === 'lost' || mhTp === 'person')
-      ? ('这是眼前短事，应期看动爻数：动爻第 ' + r.dong + ' 爻 → 大约 ' +
-         (r.dong <= 2 ? '一两天内' : (r.dong <= 4 ? '三到五天内' : '一周左右')) + '见分晓。')
-      : esc(v.timing)) + '</p></div>';
-
-  h += '<div class="card"><h2>怎么做（分步）</h2><ol class="steps">';
-  for (var s=0;s<v.method.length;s++) h += '<li>'+esc(v.method[s])+'</li>';
-  h += '</ol></div>';
-  h += '<div class="card"><h2>怎么读这个卦</h2><ul class="tight">'+
-       '<li><b>体用生克是主判</b>：用生体最好（外力来帮），体克用次之（你压得住但要出力），比和平顺，体生用是你在往外贴，用克体最凶（外压你）。</li>'+
-       '<li><b>互卦看过程</b>：事情进行中会走到「'+esc(r.hu.name)+'」这个局面，提前有数。</li>'+
-       '<li><b>变卦看结果</b>：最后落在「'+esc(r.bian.name)+'」，据此定收尾方式。</li>'+
-       '<li><b>应期</b>：梅花常用卦数定应期，动爻数越小应期越近，仅供参考。</li>'+
-       '</ul><div class="note">卦辞与生克按传统梅花易数规则推演，仅供决策参考。</div></div>';
-  /* ═══ 第 1 步：问事 ═══ */
   /* ═══ 第 4 步：结果 + 原因 ═══ */
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += resultBox({ answer: (r.question ? answerOf(r.question, prob, topicAnswer(askTopic(r.question), prob)).txt : null),
@@ -2404,6 +2411,7 @@ function mhHtml(r){
     condition: '梅花讲「不动不占」：如果你问这件事的时候心里其实已经有答案、只是想要个支持，那这个卦的参考价值会打折。' +
       '另外应期按卦数看，' + esc(v.timing) });
 
+  showAsk('meihua', r);
   return h;
 }
 
@@ -2496,6 +2504,7 @@ function qmHtml(p, q){
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += resultBox(LYD);
 
+  showAsk('qimen', p);
   return h;
 }
 
@@ -2529,20 +2538,6 @@ function qmReading(p, q){
   h += '<div class="note">'+esc(qmAdvice(p, yong, byG))+'</div>';
   h += '</div>';
 
-  /* 三奇六仪与门迫速查 */
-  h += '<div class="card"><h2>本局要点</h2><ul class="tight">';
-  var lines = qmHighlights(p);
-  for (var i=0;i<lines.length;i++) h += '<li>'+lines[i]+'</li>';
-  h += '</ul></div>';
-
-  /* 九星八门说明 */
-  h += '<div class="card"><h2>怎么读这张盘</h2><ul class="tight">' +
-       '<li><b>先看值符宫</b>：值符所在宫＝当前主导力量（主事的人、主方向）。</li>' +
-       '<li><b>再看用神宫</b>：问事就找对应的宫，看那一宫的星门神组合吉凶。</li>' +
-       '<li><b>八门定吉凶</b>：开、休、生为三吉门；死、惊、伤为凶门；杜、景为中平。</li>' +
-       '<li><b>九星看气势</b>：天辅、天心、天禽、天任为吉星；天蓬、天芮、天柱偏凶。</li>' +
-       '<li><b>八神看背景</b>：值符贵人、太阴暗助、六合中介为吉；螣蛇、白虎、玄武为凶。</li>' +
-       '</ul><div class="note">本盘为时家奇门拆补法；局数由节气三元与日在六十甲子中的位次确定，值符随时干、值使门加时支。断语为经验模型，仅供参考。</div></div>';
   return h;
 }
 
@@ -2990,20 +2985,21 @@ function lyHtml(r){
          '动爻变出的这个卦，就是事情「变完之后」的样子 —— 看结果重点看它。</div></div>';
   }
 
-  /* —— 怎么读 —— */
-  h += '<div class="card"><h2>怎么读这一卦</h2><ul class="tight">' +
-       '<li><b>先取用神</b>：问什么事就找对应的六亲（财看妻财、事业看官鬼、文书看父母、子女看子孙、竞争看兄弟）。</li>' +
-       '<li><b>再看用神旺不旺</b>：临世应、发动、不落空 → 得力；落空、被克 → 受伤。</li>' +
-       '<li><b>动爻是关节</b>：动爻所在的那一爻，就是事情起变化的地方，爻辞就是卦在跟你说的话。</li>' +
-       '<li><b>变卦看结果</b>：本卦是现在，变卦是后来。</li>' +
-       '<li><b>六神看气质</b>：同样的爻，临青龙偏喜、临白虎偏凶、临玄武偏暗、临朱雀偏口舌。</li>' +
-       '</ul><div class="note">装卦规则按《增删卜易》《卜筮正宗》一脉的纳甲筮法：八宫定卦宫、世应、纳甲配六亲、日干起六神、日辰定旬空。' +
-       '卦辞爻辞取通行本《周易》。断语为经验模型，仅供参考。</div></div>';
+  /* ═══ 第 4 步：结果 + 原因 ═══ */
+  h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
+  h += resultBox({ answer: (r.question ? answerOf(r.question, prob, topicAnswer(topic, prob)).txt : null),
+    question: r.question, verdict: verdict, tag: tag, prob: prob,
+    probText: '（本卦' + esc(ben.name) + ' · 用神' + esc(useQin) + ' · 动爻' + (r.dong.length ? r.dong.join('、') : '无') + '）',
+    reasons: reasons, pros: pros, cons: cons,
+    condition: '六爻讲「一事一卦、一事一占」：同一个问题反复摇，卦就不准了。如果这件事拖过了旬（十天）或者中间条件变了，就重新起一卦。' });
 
   /* —— 导出 —— */
   h += '<div class="btnrow" style="margin-bottom:14px">'+
        '<button class="btn ghost" id="ly-copy" style="margin-top:0">复制完整结论</button>'+
        '<button class="btn ghost" id="ly-download" style="margin-top:0">下载成文本</button></div>';
+
+  showAsk('liuyao', r);
+  return h;
 
 
 function lyYaoRead(ln, useQin, prob){
