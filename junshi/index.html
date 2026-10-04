@@ -91,13 +91,6 @@
   }
   #lightbox.show{display:flex}
   #lightbox img{max-width:100%; max-height:100%; border-radius:8px}
-  /* 朗读 */
-  .bubble.reading{cursor:pointer; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
-  #chat mark.readnow{
-    background:var(--accent); color:#1a1206; font-weight:600;
-    border-radius:3px; padding:0 1px;
-  }
-  .acts button.readon{border-color:var(--accent); color:var(--accent)}
   /* 表情面板 */
   #emojiPanel{
     position:fixed; left:10px; right:10px; bottom:0; z-index:60;
@@ -379,39 +372,6 @@
       </label>
       <div class="hint">关掉之后它就只跟你讲干货，一个表情都不加。你自己照样可以随时用 🙂 按钮发表情。</div>
     </div>
-    <div class="grp">
-      <h2>🎤 朗读与语音</h2>
-      <label>用哪个声音读</label>
-      <select id="cfgVoiceSrc">
-        <option value="pack">🧠 华言 · 神经语音（内嵌模型，推荐）</option>
-        <option value="system">📱 系统嗓音（婷婷 / 美嘉 这类）</option>
-      </select>
-      <div class="row"><button id="btnVpReload">重新下载语音包</button><button id="btnVpClear">清掉本地语音缓存</button></div>
-      <div class="hint" id="vpDiag"></div>
-      <label>系统嗓音（选了「系统嗓音」才有用）—— 想要 <b>Siri 的声音</b>请看下面的 📢</label>
-      <select id="cfgVoice" size="1"></select>
-      <label>语速 <span id="statRate" class="stat"></span></label>
-      <input type="range" id="cfgRate" min="0.6" max="1.8" step="0.05">
-      <label>音调（调高一点更年轻、更“御姐”） <span id="statPitch" class="stat"></span></label>
-      <input type="range" id="cfgPitch" min="0.6" max="1.9" step="0.05">
-      <div class="row"><button id="btnVoiceTry">▶ 试听这个嗓音</button><button id="btnVoiceScan">🔍 重新扫描嗓音</button></div>
-      <div class="hint" id="voiceDiag"></div>
-      <div class="hint">
-        <b>军师每条回复下面有两个读法：</b><br>
-        <b>▶ 朗读</b> —— 用浏览器里能拿到的嗓音（就是上面选的这个）。点一下从头读，按钮变「⏹ 停止」；
-        <b>点回复里的任意一个字，就从那个字往下读</b>；<b>读的时候点别处一下就停</b>，高亮和外框都会清掉。<br>
-        <b>📢 Siri 读</b> —— <b>想听 Siri 的声音就用这个。</b>点一下把内容交给系统，然后
-        <b>两根手指从屏幕顶部往下滑</b>，Siri 就开始读整页；再点一下屏幕停。
-        第一次要开：设置 → 辅助功能 → 朗读内容 → 打开「朗读屏幕」；换声音在同页 → 声音 → 中文。<br>
-        ⚠️ <b>网页直接读不出 Siri 和林志玲。</b>Siri 的声音锁在 iOS 私有框架里，网页的语音接口拿不到；
-        林志玲那种是商业授权音源，只有付费 App 内置才有。所以这两条路分别是：<b>Siri 走系统朗读屏幕</b>（就是上面那个按钮），
-        <b>林志玲没有路</b>。<br>
-        网页自己能调的只有系统基础嗓音，但换一个 + 把音调调高、语速调慢，也能顺耳不少。
-        装语音包：安卓「设置 → 系统 → 语言和输入 → 文字转语音 → 安装语音数据」；iPhone「辅助功能 → 朗读内容 → 声音 → 中文」。<br>
-        语音输入用输入框旁边的 🎤（安卓 Chrome / 电脑上能用）。<b>iPhone 上系统不给网页语音识别</b>，
-        点 🎤 会自动帮你调出键盘，用键盘自带的 🎤 听写。
-      </div>
-    </div>
     <div class="row">
       <button class="primary" id="btnSave">保存</button>
       <button id="btnExport">导出当前</button>
@@ -436,11 +396,10 @@
 </div>
 
 <script src="version.js"></script>
-<script src="voicepack.js"></script>
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.2.1";
+const APP_VER = "v3.3";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -622,7 +581,6 @@ function load(){
   cfg.model = cfg.model || "deepseek-chat";
   cfg.key   = cfg.key   || "";
   if(cfg.qface === undefined) cfg.qface = true;
-  if(cfg.voice === undefined) cfg.voice = "pack";     // 默认用内嵌神经语音
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   ctxText = localStorage.getItem(LS_CTX) || DEFAULT_CONTEXT;
   try{ convs = JSON.parse(localStorage.getItem(LS_CONV)||"[]") || []; }catch(e){ convs=[]; }
@@ -728,20 +686,6 @@ function renderChat(){
       b.dataset.raw = m.content;
       b.innerHTML = mdLite(m.content);
 
-      // 点气泡里的任意一个字，就从那个字开始往下读。
-      // 读的时候点别处 = 停止并清掉高亮和外框（不能只切不清理，那样高亮会留在原地）。
-      if(m.role === "assistant" && ttsSupported()){
-        b.title = "点某个字，从那里开始读";
-        b.addEventListener("click", ev=>{
-          if(ev.target.closest && ev.target.closest("pre, code")) return;
-          if(ttsBubble === b && !ttsStop){ stopRead(); return; }
-          const off = charOffsetFromPoint(b, ev.clientX, ev.clientY);
-          const row = b.closest(".msg");
-          const rb = row && [...row.querySelectorAll(".acts button")].find(x=>/朗读/.test(x.textContent));
-          if(ttsBubble) stopRead();               // 先清掉上一条的高亮
-          startRead(b, String(m.content || ""), off == null ? 0 : off, rb);
-        });
-      }
       col.appendChild(b);
     }
 
@@ -755,8 +699,6 @@ function renderChat(){
       acts.appendChild(mkAct("删除", ()=>delMsg(i)));
     }else{
       acts.appendChild(mkAct("复制", ()=>copyText(m.content)));
-      if(ttsSupported()) acts.appendChild(mkAct("▶ 朗读", function(){ readToggle(i, this); }));
-      acts.appendChild(mkAct("📢 Siri 读", ()=>handOffToSystem(String(m.content || ""))));
       acts.appendChild(mkAct("重新回答", ()=>retryOne(i)));
       acts.appendChild(mkAct("引用追问", ()=>{
         $("input").value = "关于你上面说的「" + m.content.replace(/\s+/g," ").slice(0,18) + "…」，我再问一句：";
@@ -927,500 +869,6 @@ function openLightbox(src){
 }
 function closeLightbox(){ $("lightbox").classList.remove("show"); }
 
-/* ---------- 朗读（可从句中任意一个字开始） ---------- */
-let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null, ttsBtn = null, warmTried = false;
-
-function ttsSupported(){ return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function"; }
-function zhVoices(){
-  const vs = window.speechSynthesis.getVoices() || [];
-  const seen = {};
-  const out = [];
-  vs.filter(v=>/^zh/i.test(v.lang)).forEach(v=>{
-    // iOS 会把同一个嗓音按不同语言变体报好几遍（都显示成“婷婷”），
-    // 按名字只留第一个，不然下拉框里全是重复项
-    const key = v.name;
-    if(seen[key]) return;
-    seen[key] = 1;
-    out.push(v);
-  });
-  // 离线（localService）的排前面：在线嗓音断网就哑了
-  return out.sort((a,b)=> (b.localService?1:0) - (a.localService?1:0));
-}
-function pickVoice(){
-  const list = zhVoices();
-  // 用户选过就按名字找（现在的语音列表是异步来的，不缓存对象）
-  let saved = "";
-  try{ saved = localStorage.getItem("junshi_voice_v1") || ""; }catch(e){}
-  if(saved){
-    const hit = list.find(v=>v.name === saved);
-    if(hit) return hit;
-  }
-  return list.find(v=>/^zh[-_]CN/i.test(v.lang)) || list[0] ||
-         (window.speechSynthesis.getVoices() || [])[0] || null;
-}
-function ttsRate(){
-  try{ return parseFloat(localStorage.getItem("junshi_tts_rate_v1")) || 1; }catch(e){ return 1; }
-}
-function ttsPitch(){
-  try{ return parseFloat(localStorage.getItem("junshi_tts_pitch_v1")) || 1; }catch(e){ return 1; }
-}
-function saveTts(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
-// 把系统里所有中文嗓音列出来给用户挑 —— 这是“换成林志玲/御姐音”唯一可行的做法
-function fillVoiceSel(){
-  const sel = $("cfgVoice");
-  if(!sel) return;
-  const all = (ttsSupported() && window.speechSynthesis.getVoices()) || [];
-  const list = zhVoices();
-  const cur = pickVoice();
-  const prev = sel.value;
-  sel.innerHTML = "";
-  if(!list.length){
-    const o = document.createElement("option");
-    o.value = ""; o.textContent = (all.length ? "（这 " + all.length + " 个嗓音里没有中文的）" : "（还没拿到嗓音列表）");
-    sel.appendChild(o);
-  }else{
-    list.forEach(v=>{
-      const o = document.createElement("option");
-      o.value = v.name;
-      const bits = [];
-      if(v.localService) bits.push("离线");
-      if(/xiaoxiao|xiaoyi|huihui|yaoyao|女|Female|Xiaomo|Meijia|Tingting/i.test(v.name)) bits.push("偏女声");
-      o.textContent = v.name + (bits.length ? "（" + bits.join("·") + "）" : "");
-      sel.appendChild(o);
-    });
-    sel.value = (prev && list.some(v=>v.name===prev)) ? prev : (cur ? cur.name : list[0].name);
-  }
-  showVoiceDiag(all.length, list.length, sel.value);
-}
-// iPhone 上第一次进设置常常是空的（getVoices 异步），把实情摊开给用户看
-function showVoiceDiag(allCount, zhCount, selected){
-  const el = $("voiceDiag");
-  if(!el) return;
-  if(!ttsSupported()){ el.textContent = "这个浏览器不支持朗读。"; return; }
-  const list = zhVoices();
-  // 拿不到任何嗓音 —— 这才是 iOS 那个异步问题（有嗓音但没中文是另一回事）
-  if(!allCount){
-    el.innerHTML = "<b style='color:var(--danger)'>现在还没拿到嗓音列表。</b>这是 iPhone Safari 的常见情况——"
-      + "它要等你<b>先用过一次朗读</b>才会把嗓音报出来。<br>"
-      + "点上面的「▶ 试听这个嗓音」或随便读一条，然后再点「🔍 重新扫描嗓音」。";
-    return;
-  }
-  // 去重后只剩老式离线嗓音时，把话说清楚：iPhone 上网页拿不到晓晓那种自然音
-  const natural = list.some(v=>/Natural|Online|晓晓|晓伊|云希|云扬|Xiaoxiao|Xiaoyi|Yunxi/i.test(v.name));
-  const redHint = (fn)=>{
-    el.innerHTML = list.length + " 个中文嗓音（去重后）：<b>" + list.map(v=>v.name).join("</b>、<b>") + "</b>。"
-      + "当前选中：<b>" + (selected || "没选") + "</b>"
-      + "<br><b style='color:var(--danger)'>" + fn + "</b>";
-  };
-  if(!list.length){
-    el.innerHTML = "这台设备报了 <b>" + allCount + "</b> 个嗓音，但<b>没有中文的</b>。"
-      + "去装一个：设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 右上角「下载」。";
-  }else if(list.length === 1){
-    redHint("只有一个，没得挑。想换就先去装：设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 右上角「下载」，装完回来点「🔍 重新扫描嗓音」。");
-  }else if(!natural){
-    redHint("这几个都是 iOS 自带的<b>老式离线嗓音</b>，听着都比较机械。"
-      + "iPhone 上网页<b>拿不到晓晓/晓伊那种自然音</b>（那些只在系统的「朗读屏幕」里用，就是上面的 📢 Siri 读）。"
-      + "可试的办法：① 换一个 + 把<b>音调</b>往上拖一点、<b>语速</b>调慢些；"
-      + "② 或者直接用 <b>📢 Siri 读</b>—— 那个是 Siri 的声音，比这两个都自然。"
-      + "③ 想要更多嗓音：设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 右上角「下载」。");
-  }else{
-    el.innerHTML = "这台设备一共报了 <b>" + allCount + "</b> 个嗓音，中文（去重后）<b>" + list.length + "</b> 个。"
-      + "当前选中：<b>" + (selected || "没选") + "</b>。"
-      + "<br>名字里带 <b>(Natural)</b> 的最自然，优先试那几个。";
-  }
-}
-// iOS 上 getVoices() 常要等第一次朗读之后才有值，这里主动催一下
-function warmUpVoices(){
-  if(!ttsSupported() || warmTried) return;
-  warmTried = true;
-  try{
-    if((window.speechSynthesis.getVoices() || []).length) return;
-    const u = new SpeechSynthesisUtterance(" ");
-    u.volume = 0; u.rate = 2;
-    window.speechSynthesis.speak(u);
-    setTimeout(()=>{ try{ window.speechSynthesis.cancel(); }catch(e){} fillVoiceSel(); }, 350);
-    setTimeout(fillVoiceSel, 1200);
-  }catch(e){}
-}
-function applyTtsSettings(){
-  const sel = $("cfgVoice");
-  if(sel && sel.value) saveTts("junshi_voice_v1", sel.value);
-  else { try{ localStorage.removeItem("junshi_voice_v1"); }catch(e){} }
-  saveTts("junshi_tts_rate_v1",  $("cfgRate").value);
-  saveTts("junshi_tts_pitch_v1", $("cfgPitch").value);
-  $("statRate").textContent  = "（" + Number($("cfgRate").value).toFixed(2) + " 倍）";
-  $("statPitch").textContent = "（" + Number($("cfgPitch").value).toFixed(2) + "）";
-  fillVoiceSel();                                       // 顺手刷新诊断，让它显示刚选的那个
-  if(ttsSupported()){                                   // 正在读的话立刻换嗓音
-    if(ttsBubble && !ttsStop){
-      const t = ttsChunks.slice(ttsCi).map(c=>c.text).join("");
-      const b = ttsBubble;
-      stopRead();
-      if(b) startRead(b, t, 0, null);
-    }
-  }
-}
-function initTtsControls(){
-  if(!$("cfgRate")) return;
-  // 声音来源
-  const src = $("cfgVoiceSrc");
-  if(src){
-    src.value = cfg.voice || "pack";
-    src.addEventListener("change", ()=>{
-      cfg.voice = src.value;
-      saveCfg();
-      stopRead();
-      if(cfg.voice === "pack"){
-        showVpDiag();
-        vpInit().then(()=>{ showVpDiag(); });
-      }else{
-        showVpDiag();
-      }
-    });
-  }
-  showVpDiag();
-  $("cfgRate").value  = ttsRate();
-  $("cfgPitch").value = ttsPitch();
-  $("statRate").textContent  = "（" + ttsRate().toFixed(2) + " 倍）";
-  $("statPitch").textContent = "（" + ttsPitch().toFixed(2) + "）";
-  fillVoiceSel();
-  // 语音列表是异步来的，来了再填一次
-  if(ttsSupported() && "onvoiceschanged" in window.speechSynthesis){
-    window.speechSynthesis.onvoiceschanged = ()=>{ fillVoiceSel(); };
-  }
-  $("btnVoiceTry").addEventListener("click", ()=>{
-    if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
-    applyTtsSettings();
-    warmTried = true;
-    try{ window.speechSynthesis.cancel(); }catch(e){}
-    const u = new SpeechSynthesisUtterance("你好，我是军师。这句话是用来试嗓音的，你听着顺耳吗？");
-    const v = pickVoice();
-    if(v){ try{ u.voice = v; }catch(e){} }
-    u.lang = (v && v.lang) || "zh-CN";
-    u.rate = ttsRate(); u.pitch = ttsPitch();
-    window.speechSynthesis.speak(u);
-    toast("正在试读 —— 觉得不对就换一个嗓音、再拖一下音调和语速。" + (zhVoices().length > 1 ? "" : "（这台设备只有 " + zhVoices().length + " 个中文嗓音，装一个语音包会多出更多选择）"), true);
-    setTimeout(fillVoiceSel, 600);   // iOS 读完第一次才会报出完整嗓音列表
-  });
-  $("btnVpReload").addEventListener("click", ()=>{
-    vpReady = false; vpErr = ""; vpProg = ""; vpCacheNote = ""; if(vp) vp = null;
-    showVpDiag();
-    vpInit().then(ok => {
-      if(ok) toast("语音包已就绪，现在可以点「▶ 朗读」了。", true);
-      else showErr("还是不行：" + (vpErr || "没有返回原因"));
-    });
-  });
-  $("btnVpClear").addEventListener("click", ()=>{
-    if(!confirm("清掉本机缓存的语音包？下次要重新下载。")) return;
-    (vp ? vp.clearCache() : Promise.resolve(false)).then(()=>{
-      vpReady = false; if(vp) vp = null; showVpDiag();
-      toast("已清掉本地语音缓存。", true);
-    });
-  });
-  $("btnVoiceScan").addEventListener("click", ()=>{
-    const before = zhVoices().length;
-    fillVoiceSel();
-    toast("重新扫描完成：中文嗓音 " + zhVoices().length + " 个" + (before === zhVoices().length ? "（没变化）" : ""), true);
-  });
-}
-// 先按标点切成句子，再把句子合并成不超过 max 字的朗读块。
-// 这样“从某个字开始读”会自然地从那句话读起，而不是漏掉半句。
-function splitForRead(text, start, max){
-  max = max || 160;
-  const out = [];
-  const sents = [];
-  let b = 0;
-  for(let i = 0; i < text.length; i++){
-    if(/[。！？；\n]/.test(text[i])){
-      let e = i + 1;
-      while(e < text.length && /[」』”"）)]/.test(text[e])) e++;
-      sents.push([b, e]);
-      b = e;
-    }
-  }
-  if(b < text.length) sents.push([b, text.length]);
-  if(!sents.length) return out;
-  // 找到落点所在的那句
-  let s = 0;
-  while(s < sents.length - 1 && sents[s][1] <= start) s++;
-  let i = s;
-  while(i < sents.length){
-    const from = (i === s) ? Math.max(sents[i][0], start) : sents[i][0];
-    const lead = text.slice(from, sents[i][1]).length -
-                 text.slice(from, sents[i][1]).replace(/^\s+/, "").length;
-    let at = from + lead, end = sents[i][1], j = i;
-    while(j + 1 < sents.length && sents[j + 1][1] - at <= max) end = sents[++j][1];
-    const t = text.slice(at, end).trim();
-    if(t) out.push({text:t, at:at});
-    i = j + 1;
-  }
-  return out;
-}
-function clearReadMark(){
-  if(!ttsBubble) return;
-  const mk = ttsBubble.querySelector("mark.readnow");
-  if(mk){
-    const p = mk.parentNode;
-    while(mk.firstChild) p.insertBefore(mk.firstChild, mk);
-    p.removeChild(mk);
-    if(p.normalize) p.normalize();
-  }
-}
-// 用 DOM Range 框住正在读的那一段 —— 不用重建源码，速度和真实感都够
-function markRange(el, start, len){
-  clearReadMark();
-  // 整块太长时（比如全文不到 160 字、合并成一块）不刷高亮，
-  // 否则满屏黄底反而看不清。这种情况靠边框和「停止」按钮表示正在读。
-  if(!(len > 0 && len <= 240)) return;
-  try{
-    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-    let acc = 0, sN = null, sO = 0, eN = null, eO = 0, n;
-    while((n = walk.nextNode())){
-      const L = n.nodeValue.length;
-      if(sN === null && acc + L > start){ sN = n; sO = start - acc; }
-      if(sN !== null && acc + L >= start + len){ eN = n; eO = start + len - acc; break; }
-      acc += L;
-    }
-    if(!sN || !eN) return;
-    const r = document.createRange();
-    r.setStart(sN, sO); r.setEnd(eN, eO);
-    const mk = document.createElement("mark");
-    mk.className = "readnow";
-    try{ r.surroundContents(mk); }
-    catch(err){ mk.appendChild(r.extractContents()); r.insertNode(mk); }
-  }catch(e){}
-}
-/* ---------- 神经语音包（不依赖系统 TTS） ---------- */
-const VP_BASE = "voice/";          // 里面有 huayan.meta.json + huayan.pack
-let vp = null, vpReady = false, vpLoading = false, vpErr = "", vpProg = "", vpCacheNote = "";
-let vpMarks = [], vpTick = null;          // 当前朗读的音节范围，用来打高亮
-
-function useVoicePack(){ return cfg.voice === "pack"; }
-// 语音包可用性：加载清单和字符表（很小，之后音节按需取）
-async function vpInit(){
-  if(vpReady || vpLoading) return vpReady;
-  if(typeof window.VoicePack !== "function"){ vpErr = "播放器脚本没加载"; return false; }
-  vpLoading = true;
-  vpErr = "";
-  vpProg = "";
-  try{
-    vp = new window.VoicePack(VP_BASE);
-    await vp.load(function(o){
-      if(o.stage === "meta") vpProg = "正在准备…";
-      else if(o.stage === "cached") vpProg = "从本地缓存读取…";
-      else if(o.stage === "chunk"){
-        var pct = Math.round((o.loaded / (o.bytes || o.loaded)) * 100);
-        vpProg = "正在下载语音包 " + (o.loaded/1048576).toFixed(1) + " / "
-               + ((o.bytes||o.loaded)/1048576).toFixed(1) + " MB（" + pct + "%）";
-      }
-      else if(o.stage === "saved"){ vpCacheNote = o.note || ""; }
-      if($("vpDiag")) showVpDiag();
-    });
-    vpReady = true; vpErr = "";
-  }catch(e){
-    vpErr = (e && e.message) ? e.message : (e ? String(e) : "未知错误");
-    if(!vpErr || vpErr === "[object Object]") vpErr = "加载中断（可能是网络断了或存储被拒）";
-    vpReady = false;
-  }finally{
-    vpLoading = false;
-    vpProg = "";
-    showVpDiag();
-  }
-  return vpReady;
-}
-// 用音节边界把整段文字切开，记录每个音节对应原文的字符区间（供高亮和"点字起读"用）
-function vpSegment(text){
-  if(!vp) return [];
-  const segs = [];
-  let idx = 0;
-  for(const ch of String(text)){
-    if(vp.charMap[ch]) segs.push({ ch: ch, syl: vp.charMap[ch], at: idx, len: 1 });
-    idx += 1;
-  }
-  return segs;
-}
-// 把字符偏移换算成"第几个音节"
-function vpIndexFromChar(segs, chOff){
-  if(!segs.length) return 0;
-  for(let i = 0; i < segs.length; i++){
-    if(segs[i].at + segs[i].len > chOff) return i;
-  }
-  return 0;
-}
-// 播一个音节片段序列；用 vpMarks 把原文区间高亮出来
-function vpPlay(segs, fromIdx, onEnd){
-  const arr = segs.slice(fromIdx).map(s => s.syl);
-  vpMarks = segs.slice(fromIdx);
-  return vp.speakUnits(arr, {
-    onUnit: (i)=>{
-      const m = vpMarks[i];
-      if(m && ttsBubble) markRangeByChar(ttsBubble, m.at, m.len);
-    },
-    onDone: ()=>{ if(onEnd) onEnd(); }
-  });
-}
-// 按原文的字符区间打高亮（和系统朗读用的 markRange 同款，只是定位方式不同）
-function markRangeByChar(el, start, len){
-  if(!el) return;
-  const mk = el.querySelector("mark.readnow");
-  if(mk){
-    const p = mk.parentNode;
-    while(mk.firstChild) p.insertBefore(mk.firstChild, mk);
-    p.removeChild(mk);
-    if(p.normalize) p.normalize();
-  }
-  if(!(len > 0)) return;
-  try{
-    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-    let acc = 0, sN = null, sO = 0, eN = null, eO = 0, n;
-    while((n = walk.nextNode())){
-      const L = n.nodeValue.length;
-      if(sN === null && acc + L > start){ sN = n; sO = start - acc; }
-      if(sN !== null && acc + L >= start + len){ eN = n; eO = start + len - acc; break; }
-      acc += L;
-    }
-    if(!sN || !eN) return;
-    const r = document.createRange();
-    r.setStart(sN, sO); r.setEnd(eN, eO);
-    const m = document.createElement("mark");
-    m.className = "readnow";
-    try{ r.surroundContents(m); }catch(e){ m.appendChild(r.extractContents()); r.insertNode(m); }
-  }catch(e){}
-}
-
-function speakOne(){
-  if(ttsStop || ttsCi >= ttsChunks.length){
-    if(!ttsStop) resetReadUI();          // 读完了，自己复位
-    return;
-  }
-  const c = ttsChunks[ttsCi];
-  markRange(ttsBubble, c.at, c.text.length);
-  const u = new SpeechSynthesisUtterance(c.text);
-  const v = pickVoice();
-  // 嗓音对象可能是失效的（系统语音包被卸载、列表变了），赋值会抛异常。
-  // 不能让它把整条朗读链打断 —— 退化成默认嗓音继续读完。
-  if(v){ try{ u.voice = v; }catch(e){} }
-  u.lang = (v && v.lang) || "zh-CN";
-  u.rate = ttsRate();
-  u.pitch = ttsPitch();
-  // iOS 上第一次朗读之后嗓音列表才会补齐，读的时候顺手记一下实情
-  setTimeout(()=>{ if($("voiceDiag") && $("settings").style.display !== "none") fillVoiceSel(); }, 500);
-  u.onend = ()=>{ ttsCi++; speakOne(); };
-  u.onerror = ()=>{ ttsCi++; speakOne(); };
-  window.speechSynthesis.speak(u);
-}
-// 所有复位都走这里：高亮 + 外框 + 按钮图标，一个都不落
-function resetReadUI(){
-  clearReadMark();
-  if(ttsBubble) ttsBubble.classList.remove("reading");
-  if(ttsBtn){ ttsBtn.classList.remove("readon"); ttsBtn.textContent = "▶ 朗读"; ttsBtn.title = "朗读"; }
-  ttsBubble = null; ttsBtn = null; ttsChunks = [];
-}
-// 停止并复位。任何入口（按钮、点空白、切对话、发消息）都调它，行为一致。
-function stopRead(){
-  ttsStop = true;
-  try{ window.speechSynthesis.cancel(); }catch(e){}
-  try{ if(vp) vp.stop(); }catch(e){}
-  vpMarks = [];
-  resetReadUI();
-}
-function setReadBtn(btn, on){
-  if(!btn) return;
-  btn.classList.toggle("readon", on);
-  btn.textContent = on ? "⏹ 停止" : "▶ 朗读";
-  btn.title = on ? "停止朗读" : "朗读（也可点正文里某个字，从那里读）";
-}
-function startRead(el, text, from, btn){
-  // 神经语音包：绕开系统 TTS，直接用预渲染音节
-  if(useVoicePack()){
-    if(vpReady) return startReadPack(el, text, from, btn);
-    // 第一次用要先加载（清单+字符表不到 120KB），加载完自动接着读
-    stopRead();
-    ttsBubble = el; ttsBtn = btn || null;
-    el.classList.add("reading"); setReadBtn(ttsBtn, true);
-    showErr("正在加载神经语音包（第一次会慢几秒，之后就快了）…");
-    vpInit().then(ok => {
-      if(!ok){
-        resetReadUI();
-        showErr("神经语音包加载失败 —— " + (vpErr || "没有返回原因")
-          + "\n点「设置 → 朗读与语音 → 重新下载语音包」可以再试；"
-          + "也可以先切到「系统嗓音」。");
-        return;
-      }
-      startReadPack(el, text, from, btn);
-    });
-    return;
-  }
-  if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
-  stopRead();
-  ttsStop = false;
-  ttsBubble = el;
-  ttsBtn = btn || null;
-  ttsChunks = splitForRead(text, Math.max(0, from || 0));
-  ttsCi = 0;
-  el.classList.add("reading");
-  setReadBtn(ttsBtn, true);
-  const go = ()=>{ if(!ttsStop) speakOne(); };
-  const vs = window.speechSynthesis.getVoices() || [];
-  if(!vs.length && "onvoiceschanged" in window.speechSynthesis){
-    // 语音列表是异步加载的，默认等 800ms；万一是真的没有语音，也得开读
-    let done = false;
-    const handler = ()=>{ if(done) return; done = true; go(); };
-    window.speechSynthesis.onvoiceschanged = handler;
-    setTimeout(()=>{ if(!done){ done = true; go(); } }, 800);
-  }else{
-    go();
-  }
-}
-// 用神经语音包读：整段切音节，按字符区间打高亮
-function startReadPack(el, text, from, btn){
-  stopRead();
-  ttsStop = false;
-  ttsBubble = el;
-  ttsBtn = btn || null;
-  el.classList.add("reading");
-  setReadBtn(ttsBtn, true);
-  const segs = vpSegment(text);
-  if(!segs.length){ resetReadUI(); showErr("这段内容里没有可读的中文。"); return; }
-  const startIdx = vpIndexFromChar(segs, Math.max(0, from || 0));
-  vpPlay(segs, startIdx, ()=>{ if(!ttsStop) resetReadUI(); });
-}
-// 点气泡里的任意一个字 -> 从那个字开始读
-function charOffsetFromPoint(el, x, y){
-  let node = null, off = 0;
-  if(document.caretRangeFromPoint){
-    const r = document.caretRangeFromPoint(x, y);
-    if(r){ node = r.startContainer; off = r.startOffset; }
-  }else if(document.caretPositionFromPoint){
-    const p = document.caretPositionFromPoint(x, y);
-    if(p){ node = p.offsetNode; off = p.offset; }
-  }
-  if(!node || !el.contains(node)) return null;
-  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-  let acc = 0, n, idx = null;
-  while((n = walk.nextNode())){
-    if(n === node){ idx = acc + off; break; }
-    acc += n.nodeValue.length;
-  }
-  if(idx === null) return null;
-  const txt = el.textContent || "";
-  // 手指点在两个字中间时，光标会吸到最近的边界。人点字是点在“字上”，
-  // 所以先把标点/空格往左传一格，再退到这一句的开头 —— 朗读是按句读的，
-  // 位置不对齐的话会出现“从第 20 个字读起、内容却是第 19 个字”这种错位。
-  while(idx > 0 && /[\s，。！？；：、,.!?;:）)\]】」』”"…—]/.test(txt.charAt(idx))) idx--;
-  while(idx > 0 && !/[。！？；\n]/.test(txt.charAt(idx - 1))) idx--;
-  return Math.max(0, Math.min(idx, txt.length));
-}
-function readToggle(i, btn){
-  const c = active(); if(!c) return;
-  const m = c.msgs[i];
-  if(!m || m.role !== "assistant") return;
-  const row = btn.closest(".msg");
-  const bubble = row && row.querySelector(".bubble");
-  if(ttsBubble === bubble && !ttsStop){ stopRead(); return; }   // 再点一下 = 停止
-  startRead(bubble, String(m.content || ""), 0, btn);
-}
-
 /* ---------- 语音转文字（微信那种：点🎤->整行变“按住 说话”） ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recog = null, recOn = false, recPrefix = "", sttPrefix = "", voiceMode = false;
@@ -1522,33 +970,6 @@ function copyText(text){
     navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
   }else{ fallbackCopy(text, done); }
 }
-// 把内容交给系统的朗读（iPhone 的「朗读屏幕」用的就是 Siri 的声音）。
-// 网页的 speechSynthesis 拿不到 Siri —— 它锁在 iOS 私有框架里，只走系统功能这条路。
-const SIRI_TIP = "现在让它用 Siri 的声音读：\n"
-  + "两根手指从屏幕顶部往下滑 → Siri 就开始读整页，再点一下屏幕停。\n\n"
-  + "第一次要开：设置 → 辅助功能 → 朗读内容 → 打开「朗读屏幕」。\n"
-  + "换声音（含 Siri 音色）：同页 → 声音 → 中文";
-function handOffToSystem(text){
-  const showSiriTip = ()=>{
-    toast("已经把这段话交出去了 ✅\n\n" + SIRI_TIP, true);
-  };
-  // 自动复制失败也不能挡住说明 —— 用户至少要知道怎么用 Siri 读
-  const showSiriErr = ()=>{
-    showErr("没能自动复制（浏览器没给剪贴板权限）。你长按上面的正文选一下、或点「复制」，再：\n\n" + SIRI_TIP);
-  };
-  const tryCopy = ()=>{
-    if(typeof navigator.clipboard !== "undefined" && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(showSiriTip).catch(()=>{ fallbackCopy(text, showSiriTip, true) || showSiriErr(); });
-    }else{
-      fallbackCopy(text, showSiriTip, true) || showSiriErr();
-    }
-  };
-  // 有系统分享就先走分享
-  if(typeof navigator.share === "function"){
-    try{ navigator.share({ text: text }).then(showSiriTip).catch(tryCopy); return; }catch(e){}
-  }
-  tryCopy();
-}
 function fallbackCopy(text, done, keepQuiet){
   const ta = document.createElement("textarea");
   ta.value = text;
@@ -1620,7 +1041,6 @@ async function send(text, opts){
   if(!cfg.key){ showErr("还没填 API Key —— 点右上角「设置」填一下。"); return; }
 
   const c = active(); if(!c) return;
-  stopRead();
   if(recOn){ sttPrefix = recPrefix; recStop(); } else { sttPrefix = ""; }
   $("input").value = ""; grow($("input"));
   if(!opts.noImg && !opts.keepUser){
@@ -1803,28 +1223,6 @@ function markDirty(on){
 function confirmLeave(){
   if(!dirty) return true;
   return confirm("设置里有改动还没保存，就这么走？\n（不保存的话，人设和背景资料的改动会丢）");
-}
-// 语音包状态提示
-function showVpDiag(){
-  const el = $("vpDiag");
-  if(!el) return;
-  if(!useVoicePack()){
-    el.innerHTML = "现在用<b>系统嗓音</b>——iPhone 上通常只有婷婷和美嘉两个，比较机械。";
-    return;
-  }
-  if(vpReady){
-    el.innerHTML = "✅ 神经语音包已就绪：<b>" + (vp.manifest.count) + "</b> 个音节。"
-      + "这是内嵌的神经模型声音，<b>不依赖苹果、断网也能读</b>。"
-      + "<br>" + (vpCacheNote || "已缓存到本机") + "，下次打开不用再下。";
-  }else if(vpLoading){
-    el.innerHTML = "正在加载神经语音包…" + (vpProg ? "<br>" + vpProg : "");
-  }else if(vpErr){
-    el.innerHTML = "<b style='color:var(--danger)'>语音包加载失败：</b>" + vpErr
-      + "<br>点上面的「重新下载语音包」再试一次，或者先切到「系统嗓音」。";
-  }else{
-    el.innerHTML = "还没加载。第一次点「▶ 朗读」时会自动下载"
-      + "（约 7.8 MB，分 16 块，每块失败会自动重试）。";
-  }
 }
 /* ---------- 检查更新 ---------- */
 // 思路：version.js 里有个 build 号。
@@ -2062,8 +1460,6 @@ $("btnSet").addEventListener("click", ()=>{
   $("cfgQface").checked = cfg.qface !== false;
   $("cfgPersona").value = persona; $("cfgContext").value = ctxText;
   statLine(); markDirty(false);
-  fillVoiceSel();            // iPhone 上嗓音列表可能这会儿才拿到，每次开面板都刷一遍
-  warmUpVoices();            // 空列表就主动催一次
   $("drawer").style.display = "none";
   $("settings").style.display = "block";
   $("overlay").classList.add("show");
@@ -2104,17 +1500,7 @@ $("btnExportAll").addEventListener("click", exportAll);
 // iPhone 上没有网页语音识别，语音按钮改成“调键盘听写”的入口
 $("btnVoice").title = recSupported() ? "语音输入（按住说话）" : "调起键盘听写";
 buildEmojiPanel();
-initTtsControls();
 initUpdateUI();
-// 语速/音调拖动即时生效，不用点保存
-(function(){
-  const r = $("cfgRate"), p = $("cfgPitch"), v = $("cfgVoice");
-  if(r) r.addEventListener("input", applyTtsSettings);
-  if(p) p.addEventListener("input", applyTtsSettings);
-  if(v) v.addEventListener("change", applyTtsSettings);
-  // 切到后台/离开页面就把朗读停掉，别在后台一直读
-  document.addEventListener("visibilitychange", ()=>{ if(document.hidden) stopRead(); });
-})();
 
 load();
 $("input").focus();
