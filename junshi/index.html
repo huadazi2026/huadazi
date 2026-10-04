@@ -509,7 +509,7 @@
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.7";
+const APP_VER = "v3.8";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -1366,58 +1366,63 @@ function confirmLeave(){
   if(!dirty) return true;
   return confirm("设置里有改动还没保存，就这么走？\n（不保存的话，人设和背景资料的改动会丢）");
 }
-/* ---------- 手机上收键盘 + 修底部留白 ---------- */
+/* ---------- 手机上：键盘 / 视口高度 ---------- */
 //
-// 上一版的做法：点空白后等 320ms 再修正高度、再滚到底。
-// 结果就是"点一下要愣一下"，而且等待期间留白明明白白摆在那儿 —— 反而更难看。
+// 这里踩过一个坑，记下来免得以后再犯：
 //
-// 这一版改成事件驱动，一帧都不等：
-//   * 键盘弹起/收起时，visualViewport 会连续触发 resize，每帧都跟着改
-//   * 用 requestAnimationFrame 合并，同一帧里只算一次
-//   * 只读不写、不在 pointerdown 里做重活，避免打断点击响应
-//   * 滚回底部只在"你本来就在底部附近"时才做，不跟你抢滚动位置
+//   iOS 键盘弹起时，它自己会把整个网页往上推，好让你看见输入框。
+//   我上一版在 visualViewport 的每次 scroll 事件里都执行 window.scrollTo(0,0)，
+//   等于一直在把它推回去 —— 两边打架，表现就是：
+//     · 点输入框后输入框跑出屏幕，看不见打的字
+//     · 打字时画面疯狂闪烁
+//
+//   教训：**键盘弹起期间，绝对不要碰滚动位置。**
+//   只在键盘收起后、页面真的被顶歪了，才校正一次。
 //
 (function(){
   const vv = window.visualViewport;
-  let shown = 0;       // 当前生效的高度
-  let want  = 0;       // 待应用的高度
-  let raf   = 0;
+  let shown = 0, want = 0, raf = 0;
+  let kbOpen = false;                 // 键盘是不是开着
+  const isField = (el)=> !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || "");
 
   const cssVar = (h)=> document.documentElement.style.setProperty("--app-h", h + "px");
 
   function apply(){
     raf = 0;
+    // 键盘开着时：什么都别做。让 iOS 自己去顶、自己去滚。
+    if(kbOpen) return;
     if(want && want !== shown){ shown = want; cssVar(want); }
-    // iOS 有时会把整页往上顶，顶出一片空白 —— 拉回来
-    const y = vv ? (vv.offsetTop || 0) : window.scrollY;
-    if(y > 0) window.scrollTo(0, 0);
+    // 键盘收起后页面可能还歪着 —— 拉回顶部，多出来的空白就没了
+    if((vv && vv.offsetTop > 0) || (!vv && window.scrollY > 0)) window.scrollTo(0, 0);
   }
-  // 合并到下一帧，避免键盘动画期间狂算布局
   function schedule(){ if(!raf) raf = requestAnimationFrame(apply); }
 
-  // 键盘弹出时 vv.height 会明显小于 innerHeight。
-  // 只在两者接近（键盘没开）时才动高度 —— 键盘开着时页面高度不该被压矮。
   function measure(){
     const layout = window.innerHeight;
-    let h = vv ? vv.height : layout;
-    if(h > layout) h = layout;
-    if(Math.abs(h - layout) > 24) return;   // 差得多 = 键盘开着，不动
+    const vh = vv ? vv.height : layout;
+    // 可视高度明显小于布局高度 = 键盘开着
+    kbOpen = isField(document.activeElement) || (layout - vh > 120);
+    if(kbOpen) return;                // 键盘开着不动高度
+    let h = Math.min(vh, layout);
     want = h;
     schedule();
   }
 
   if(vv){
+    // 注意：scroll 事件这里不挂任何会改滚动的东西
     vv.addEventListener("resize", measure, {passive:true});
-    vv.addEventListener("scroll", schedule, {passive:true});
+    vv.addEventListener("scroll", ()=>{}, {passive:true});
   }
   window.addEventListener("resize", measure, {passive:true});
   window.addEventListener("orientationchange", ()=>setTimeout(measure, 200), {passive:true});
-  document.addEventListener("focusin",  measure, {passive:true});
-  // focusout 稍等一下：让 iOS 先把键盘动画走完
-  document.addEventListener("focusout", ()=>{ setTimeout(measure, 60); }, {passive:true});
+  document.addEventListener("focusin", measure, {passive:true});
+  document.addEventListener("focusout", ()=>{
+    // 键盘在收，稍等一下再量
+    setTimeout(()=>{ kbOpen = false; measure(); }, 280);
+  }, {passive:true});
 
   measure();
-  window.__vpFix = measure;
+  window.__vpFix = ()=>{ kbOpen = isField(document.activeElement); measure(); };
 })();
 
 // 点空白处把键盘收起来。
@@ -1450,18 +1455,15 @@ function confirmLeave(){
   document.addEventListener("pointerup", ()=>{
     if(!pending) return;
     pending = false;
-    // 等 iOS 把键盘动画走完（大约就是它自己那个时长），然后只做一次校正
+    // 等键盘收完再校正。期间不碰滚动位置 —— 碰了就跟系统打架。
     setTimeout(()=>{
-      measureNow();
+      if(typeof window.__vpFix === "function") window.__vpFix();
       if(wasAtBottom){
-        // 用即时滚动，别用平滑 —— 平滑在高度变化时会一顿一顿的
         const c = chat();
         if(c) c.scrollTop = c.scrollHeight;
       }
-    }, 260);
+    }, 300);
   }, {capture:true, passive:true});
-
-  function measureNow(){ if(typeof window.__vpFix === "function") window.__vpFix(); }
 })();
 
 /* ---------- 主题 ---------- */
