@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src *; base-uri 'none'; form-action 'none'">
-<meta name="theme-color" content="#0f1117">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,9 +16,24 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <title>军师</title><style>
   :root{
+    /* 深色（默认）。浅色在下面「跟随系统」那段里覆盖。 */
     --bg:#0f1117; --panel:#171a23; --panel2:#1e222d; --line:#2b303d;
     --ink:#e6e8f0; --sub:#8f96a8; --dim:#5d6478;
     --me:#3d6bff; --ai:#20242f; --accent:#ffb454; --danger:#ff6b6b;
+
+    --on-accent:#241a06;          /* 强调色上的字 */
+    --on-danger:#ffffff;          /* 危险色上的字 */
+    --code-bg:#0b0d12;            /* 代码块 / 图片底 */
+    --code-in-me:rgba(0,0,0,.28);
+    --code-line-in-me:rgba(255,255,255,.18);
+    --head-cell:#262b38;          /* 表格首行 */
+    --shadow:rgba(0,0,0,.45);
+
+    --danger-bg:#2a1c1c; --danger-line:#4a2b2b; --danger-ink:#ffb4b4;
+    --ok-bg:#182a1c;     --ok-line:#2b4a33;     --ok-ink:#b7f0c4;
+    --active-bg:#221d12;          /* 历史里选中的那条 */
+    --overlay:rgba(0,0,0,.6);
+    --lightbox:rgba(0,0,0,.94);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{height:100%}
@@ -68,7 +84,7 @@
   .imgs{display:flex; flex-wrap:wrap; gap:6px}
   .imgs img{
     max-width:210px; max-height:210px; border-radius:10px; cursor:zoom-in;
-    border:1px solid var(--line); display:block; background:#0b0d12;
+    border:1px solid var(--line); display:block; background:var(--code-bg);
   }
   /* 待发送的图 */
   #pending{display:none; gap:8px; padding:0 14px 8px; overflow-x:auto; flex:none}
@@ -80,13 +96,13 @@
   }
   #pending .pchip button{
     position:absolute; top:-6px; right:-6px; width:20px; height:20px; padding:0;
-    border-radius:50%; background:var(--danger); color:#fff; border:2px solid var(--panel);
+    border-radius:50%; background:var(--danger); color:var(--on-danger); border:2px solid var(--panel);
     font-size:12px; line-height:1; cursor:pointer;
   }
   #pending .ptip{align-self:center; color:var(--dim); font-size:11.5px; white-space:nowrap}
   /* 看图 */
   #lightbox{
-    position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:99;
+    position:fixed; inset:0; background:var(--lightbox); z-index:99;
     display:none; align-items:center; justify-content:center; padding:16px;
   }
   #lightbox.show{display:flex}
@@ -97,7 +113,7 @@
     background:var(--panel); border:1px solid var(--line); border-radius:14px 14px 0 0;
     padding:12px 12px calc(12px + env(safe-area-inset-bottom));
     max-height:52vh; overflow-y:auto; display:none;
-    box-shadow:0 -8px 24px rgba(0,0,0,.45);
+    box-shadow:0 -8px 24px var(--shadow);
   }
   #emojiPanel.show{display:block}
   #emojiPanel .ehd{display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--sub); font-size:12.5px; flex-wrap:wrap}
@@ -147,7 +163,7 @@
   footer textarea:focus{outline:none; border-color:var(--accent)}
   /* 设置 / 历史抽屉 */
   #overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+    position:fixed; inset:0; background:var(--overlay); display:none;
     z-index:50; align-items:flex-end; justify-content:center;
   }
   #overlay.show{display:flex}
@@ -190,32 +206,32 @@
     flex:1; min-width:110px; background:var(--panel2); border:1px solid var(--line);
     color:var(--ink); border-radius:10px; padding:10px; font-size:14px; cursor:pointer;
   }
-  .row button.primary{background:var(--accent); color:#241a06; border-color:var(--accent); font-weight:700}
-  .row button.danger{color:var(--danger); border-color:#4a2b2b}
+  .row button.primary{background:var(--accent); color:var(--on-accent); border-color:var(--accent); font-weight:700}
+  .row button.danger{color:var(--danger); border-color:var(--danger-line)}
   .typing{color:var(--dim); font-size:13px}
-  .err{color:#ffb4b4; font-size:13px; background:#2a1c1c; border:1px solid #4a2b2b; padding:8px 11px; border-radius:9px; margin:0 14px 8px; word-break:break-word}
-  .ok{color:#b7f0c4; font-size:13px; background:#182a1c; border:1px solid #2b4a33; padding:8px 11px; border-radius:9px; margin:0 14px 8px; white-space:pre-wrap; line-height:1.7}
+  .err{color:var(--danger-ink); font-size:13px; background:var(--danger-bg); border:1px solid var(--danger-line); padding:8px 11px; border-radius:9px; margin:0 14px 8px; word-break:break-word}
+  .ok{color:var(--ok-ink); font-size:13px; background:var(--ok-bg); border:1px solid var(--ok-line); padding:8px 11px; border-radius:9px; margin:0 14px 8px; white-space:pre-wrap; line-height:1.7}
   /* 代码块 / 表格卡片 */
-  .bubble code{background:#0b0d12; padding:1px 5px; border-radius:4px; font-size:13.5px}
-  .bubble pre{background:#0b0d12; border:1px solid var(--line); border-radius:9px; padding:10px 12px; overflow-x:auto; margin:8px 0}
+  .bubble code{background:var(--code-bg); padding:1px 5px; border-radius:4px; font-size:13.5px}
+  .bubble pre{background:var(--code-bg); border:1px solid var(--line); border-radius:9px; padding:10px 12px; overflow-x:auto; margin:8px 0}
   .bubble pre code{background:none; padding:0; font-size:13px; line-height:1.55}
   /* 用户气泡是蓝底，里面的代码块换成半透明深色，不然黑白撞得难看 */
-  .msg.user .bubble pre{background:rgba(0,0,0,.28); border-color:rgba(255,255,255,.18)}
-  .msg.user .bubble code{background:rgba(0,0,0,.28)}
+  .msg.user .bubble pre{background:var(--code-in-me); border-color:var(--code-line-in-me)}
+  .msg.user .bubble code{background:var(--code-in-me)}
   .sheet{display:flex; flex-direction:column; gap:8px; margin:10px 0; max-width:100%; overflow-x:auto}
   .sheet .sheetrow{display:flex; gap:8px}
   .sheet span{
     background:var(--panel2); border:1px solid var(--line); border-radius:8px;
     padding:6px 11px; font-size:13px; white-space:nowrap; flex:1;
   }
-  .sheet .sheetrow:first-child span{background:#262b38; color:var(--accent); font-weight:700}
+  .sheet .sheetrow:first-child span{background:var(--head-cell); color:var(--accent); font-weight:700}
   /* 历史列表 */
   .hitem{
     display:flex; align-items:center; gap:10px; padding:11px 12px;
     border:1px solid var(--line); border-radius:11px; background:var(--panel2);
     margin-bottom:8px; cursor:pointer;
   }
-  .hitem.active{border-color:var(--accent); background:#221d12}
+  .hitem.active{border-color:var(--accent); background:var(--active-bg)}
   .hitem .hmain{flex:1; min-width:0}
   .hitem .htitle{font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .hitem .hmeta{font-size:11.5px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px}
@@ -237,7 +253,7 @@
     border-radius:10px; padding:0 18px; height:44px; font-size:15.5px;
     font-weight:700; cursor:pointer;
   }
-  #cmpTop #btnSend.stop{background:var(--danger); color:#fff}
+  #cmpTop #btnSend.stop{background:var(--danger); color:var(--on-danger)}
   #cmpTop #btnSend:disabled{opacity:.45}
   #cmpTools{display:flex; align-items:center; gap:6px; justify-content:flex-start; width:100%}
   #cmpTools button{
@@ -254,7 +270,7 @@
     display:none; align-items:center; justify-content:center;
   }
   #btnHold:active{background:var(--line)}
-  #btnHold.rec{background:var(--danger); border-color:var(--danger); color:#fff}
+  #btnHold.rec{background:var(--danger); border-color:var(--danger); color:var(--on-danger)}
   footer.voice #input, footer.voice #btnSend, footer.voice #micHint{display:none}
   footer.voice #btnHold{display:flex}
   #micHint{display:none; color:var(--dim); font-size:11.5px; line-height:1.5}
@@ -275,11 +291,90 @@
   }
   #plusPanel button:active i{background:var(--line)}
   #plusPanel button em{font-style:normal}
-.verbadge{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);
+.verbadge{font-size:12px;font-weight:700;color:var(--sub);border:1px solid var(--line);
   border-radius:6px;padding:2px 6px;margin-left:6px;cursor:pointer;user-select:none;
   -webkit-tap-highlight-color:transparent;white-space:nowrap}
-.verbadge:active{background:var(--accent);color:#1a1206}
-.verbadge.new{color:#1a1206;background:var(--accent);border-color:var(--accent)}
+.verbadge:active{background:var(--accent);color:var(--on-accent)}
+.verbadge.new{color:var(--on-accent);background:var(--accent);border-color:var(--accent)}
+  /* ---------- 我发的消息用行楷 ---------- */
+  /* 行楷优先 STXingkai（华文行楷，iPhone/iPad/Mac 自带），
+     安卓和 Windows 上没有就逐级退回，最后退回默认黑体，不会变成乱码。 */
+  .msg.user .bubble{
+    font-family:"STXingkai","华文行楷","Xingkai SC","行楷",
+                "KaiTi","楷体","STKaiti","华文楷体",
+                "Kaiti SC","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:16px;          /* 行楷笔画偏细，比 15px 大好认 */
+    line-height:1.7;
+    letter-spacing:.4px;
+  }
+  /* 代码、表格、图片说明保持系统字体 —— 行楷认这些太费劲 */
+  .msg.user .bubble pre,
+  .msg.user .bubble code,
+  .msg.user .bubble .sheet,
+  .msg.user .bubble .imgs{
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  .msg.user .bubble pre code{font-size:13px}
+
+  /* ---------- 主题：跟随系统 / 手动指定 ---------- */
+  /* 手动选浅色 */
+  :root[data-theme="light"]{
+    color-scheme:light;
+    --bg:#ffffff; --panel:#f7f8fa; --panel2:#eef0f4; --line:#dfe3ea;
+    --ink:#1b1f2a; --sub:#5b6376; --dim:#8b93a5;
+    --me:#2f6bff; --ai:#f2f4f8; --accent:#e08a1e; --danger:#d64545;
+
+    --on-accent:#ffffff;
+    --on-danger:#ffffff;
+    --code-bg:#f0f2f6;
+    --code-in-me:rgba(255,255,255,.22);
+    --code-line-in-me:rgba(255,255,255,.45);
+    --head-cell:#e4e8ef;
+    --shadow:rgba(20,26,40,.14);
+
+    --danger-bg:#fdecec; --danger-line:#f3c9c9; --danger-ink:#b02a2a;
+    --ok-bg:#eaf7ee;     --ok-line:#c2e3cc;     --ok-ink:#1f7a3f;
+    --active-bg:#fdf3e2;
+    --overlay:rgba(20,26,40,.38);
+    --lightbox:rgba(255,255,255,.96);
+  }
+  /* 手动选深色 */
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#0f1117; --panel:#171a23; --panel2:#1e222d; --line:#2b303d;
+    --ink:#e6e8f0; --sub:#8f96a8; --dim:#5d6478;
+    --me:#3d6bff; --ai:#20242f; --accent:#ffb454; --danger:#ff6b6b;
+    --on-accent:#241a06; --on-danger:#ffffff;
+    --code-bg:#0b0d12; --code-in-me:rgba(0,0,0,.28);
+    --code-line-in-me:rgba(255,255,255,.18);
+    --head-cell:#262b38; --shadow:rgba(0,0,0,.45);
+    --danger-bg:#2a1c1c; --danger-line:#4a2b2b; --danger-ink:#ffb4b4;
+    --ok-bg:#182a1c; --ok-line:#2b4a33; --ok-ink:#b7f0c4;
+    --active-bg:#221d12; --overlay:rgba(0,0,0,.6); --lightbox:rgba(0,0,0,.94);
+  }
+  /* 跟随系统：没手动选过时，系统是浅色就用浅色 */
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme]){
+      color-scheme:light;
+      --bg:#ffffff; --panel:#f7f8fa; --panel2:#eef0f4; --line:#dfe3ea;
+      --ink:#1b1f2a; --sub:#5b6376; --dim:#8b93a5;
+      --me:#2f6bff; --ai:#f2f4f8; --accent:#e08a1e; --danger:#d64545;
+  
+      --on-accent:#ffffff;
+      --on-danger:#ffffff;
+      --code-bg:#f0f2f6;
+      --code-in-me:rgba(255,255,255,.22);
+      --code-line-in-me:rgba(255,255,255,.45);
+      --head-cell:#e4e8ef;
+      --shadow:rgba(20,26,40,.14);
+  
+      --danger-bg:#fdecec; --danger-line:#f3c9c9; --danger-ink:#b02a2a;
+      --ok-bg:#eaf7ee;     --ok-line:#c2e3cc;     --ok-ink:#1f7a3f;
+      --active-bg:#fdf3e2;
+      --overlay:rgba(20,26,40,.38);
+      --lightbox:rgba(255,255,255,.96);
+    }
+  }
 </style>
 </head>
 <body>
@@ -365,6 +460,16 @@
       <div class="hint">把你自己的情况写这儿——越具体，他的建议越准。以后有变化随时改。背景**不会**被截断，写多长都会完整发过去。<span id="statCtx"></span></div>
     </div>
     <div class="grp">
+      <h2>🎨 外观</h2>
+      <label>主题</label>
+      <select id="cfgTheme">
+        <option value="system">跟随系统（默认）</option>
+        <option value="light">一直用浅色</option>
+        <option value="dark">一直用深色</option>
+      </select>
+      <div class="hint">选「跟随系统」的话，手机切到白天模式它就跟着变亮。</div>
+    </div>
+    <div class="grp">
       <h2>🙂 表情</h2>
       <label style="display:flex; align-items:center; gap:9px; margin:0">
         <input type="checkbox" id="cfgQface" style="width:auto; padding:0">
@@ -400,7 +505,7 @@
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.4";
+const APP_VER = "v3.5";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -607,6 +712,7 @@ function load(){
   cfg.model = cfg.model || "deepseek-chat";
   cfg.key   = cfg.key   || "";
   if(cfg.qface === undefined) cfg.qface = true;
+  if(cfg.theme === undefined) cfg.theme = "system";   // system / light / dark
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   // 人设一旦存进 localStorage 就是"用户的"了，改默认值对它没用。
   // 存着的正好等于某一版旧默认 —— 说明用户压根没动过 —— 那就顺手升到新版。
@@ -1256,6 +1362,47 @@ function confirmLeave(){
   if(!dirty) return true;
   return confirm("设置里有改动还没保存，就这么走？\n（不保存的话，人设和背景资料的改动会丢）");
 }
+/* ---------- 主题 ---------- */
+// 三档：system（跟随系统）/ light / dark。
+// 生效方式：给 <html> 加 data-theme —— 加了就是手动指定，没加就走系统。
+function applyTheme(){
+  const t = (typeof cfg !== "undefined" && cfg && cfg.theme) || "system";
+  const el = document.documentElement;
+  if(t === "light" || t === "dark") el.setAttribute("data-theme", t);
+  else el.removeAttribute("data-theme");
+  syncThemeMeta();
+}
+// 顶栏/状态栏颜色。<meta> 不支持 disabled，所以只能直接改 content。
+// 实际以计算后的 body 背景为准，系统模式下自然就跟着系统走。
+function syncThemeMeta(){
+  const t = (typeof cfg !== "undefined" && cfg && cfg.theme) || "system";
+  const dark = (t === "dark") ? true
+             : (t === "light") ? false
+             : (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? false : true);
+  let m = document.querySelector('meta[name="theme-color"]');
+  if(!m){
+    m = document.createElement("meta");
+    m.setAttribute("name", "theme-color");
+    document.head.appendChild(m);
+  }
+  const bg = getComputedStyle(document.body).backgroundColor;
+  m.setAttribute("content", (bg && bg !== "rgba(0, 0, 0, 0)") ? bg : (dark ? "#0f1117" : "#ffffff"));
+}
+function setTheme(t){
+  cfg.theme = t;
+  saveCfg();
+  applyTheme();
+  if($("cfgTheme")) $("cfgTheme").value = t;
+}
+// 系统在深/浅之间切换时，只有"跟随系统"的才需要动
+if(window.matchMedia){
+  try{
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const on = ()=>{ if(((typeof cfg !== "undefined" && cfg && cfg.theme) || "system") === "system") applyTheme(); };
+    if(mq.addEventListener) mq.addEventListener("change", on);
+    else if(mq.addListener) mq.addListener(on);
+  }catch(e){}
+}
 /* ---------- 检查更新 ---------- */
 // 思路：version.js 里有个 build 号。
 // 本次加载用它初始化 APP_BUILD；检查更新时再带时间戳拉一次，
@@ -1540,6 +1687,11 @@ $("btnExportAll").addEventListener("click", exportAll);
 $("btnVoice").title = recSupported() ? "语音输入（按住说话）" : "调起键盘听写";
 buildEmojiPanel();
 initUpdateUI();
+  if($("cfgTheme")){
+    $("cfgTheme").value = cfg.theme || "system";
+    $("cfgTheme").addEventListener("change", ()=>setTheme($("cfgTheme").value));
+  }
+  applyTheme();
 
 load();
 $("input").focus();
