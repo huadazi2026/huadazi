@@ -278,12 +278,18 @@
   }
   #plusPanel button:active i{background:var(--line)}
   #plusPanel button em{font-style:normal}
+.verbadge{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);
+  border-radius:6px;padding:2px 6px;margin-left:6px;cursor:pointer;user-select:none;
+  -webkit-tap-highlight-color:transparent;white-space:nowrap}
+.verbadge:active{background:var(--accent);color:#1a1206}
+.verbadge.new{color:#1a1206;background:var(--accent);border-color:var(--accent)}
 </style>
 </head>
 <body>
 <header>
   <button class="iconbtn" id="btnHist">☰</button>
   <h1 id="ttl">军师</h1>
+  <span id="verBadge" class="verbadge" title="点一下：检查更新">v…</span>
   <span class="sp"></span>
   <button class="iconbtn" id="btnNew">新对话</button>
   <button class="iconbtn" id="btnSet">设置</button>
@@ -408,7 +414,8 @@
       <button id="btnExportAll">导出全部</button>
     </div>
     <div class="hint" style="margin-top:14px">
-      当前版本：<b id="statVer">…</b><br>
+      当前版本：<b id="statVer">…</b>（<span id="statBuild">…</span>）<br>
+  <div class="row"><button id="btnCheckUpd">检查更新</button><button id="btnForceUpd">强制重新加载</button></div>
       手机拿到的是旧版时，标题栏和这里都会显示旧版本号 —— 那就把页面下拉刷新一下，
       或者等十分钟（GitHub 会给页面加 10 分钟缓存，这个改不了）。
     </div>
@@ -424,11 +431,12 @@
   </div>
 </div>
 
+<script src="version.js"></script>
 <script src="voicepack.js"></script>
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.1";
+const APP_VER = "v3.2";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -818,6 +826,7 @@ function toast(msg, ok){
   $("errbox").innerHTML = "";
   $("errbox").appendChild(d);
   setTimeout(()=>{ if(d.parentNode) d.remove(); }, ok ? 1800 : 9000);
+  return d;
 }
 function showErr(msg){ toast(msg, false); }
 function grow(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 130) + "px"; }
@@ -1813,8 +1822,103 @@ function showVpDiag(){
       + "（约 7.8 MB，分 16 块，每块失败会自动重试）。";
   }
 }
+/* ---------- 检查更新 ---------- */
+// 思路：version.js 里有个 build 号。
+// 本次加载用它初始化 APP_BUILD；检查更新时再带时间戳拉一次，
+// 拿到线上的最新 build。不一样就说明有新版，重载时带上 ?b=<新build>，
+// 对 Safari 来说这是个全新网址，缓存一定绕过去。
+let APP_BUILD = (typeof window.JUNSHI_BUILD === "string") ? window.JUNSHI_BUILD : "dev";
+let uploadOk = false;          // 防止连点
+function localTime(ts){
+  if(!ts || ts.length < 12) return ts || "";
+  return ts.slice(0,4) + "-" + ts.slice(4,6) + "-" + ts.slice(6,8) + " "
+       + ts.slice(8,10) + ":" + ts.slice(10,12);
+}
+// 拉一次线上 build；force=true 时带时间戳绕过缓存
+async function fetchBuild(force){
+  const url = "version.js" + (force ? ("?t=" + Date.now()) : "");
+  const r = await fetch(url, force ? {cache: "no-store"} : {cache: "force-cache"});
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  const txt = await r.text();
+  const m = txt.match(/JUNSHI_BUILD\s*=\s*"([^"]+)"/);
+  if(!m) throw new Error("版本文件格式不对");
+  return m[1];
+}
+function reloadWith(build){
+  try{
+    const u = new URL(location.href);
+    u.searchParams.set("b", build || String(Date.now()));
+    location.replace(u.toString());
+  }catch(e){ location.reload(); }
+}
+// 手动检查（会明确告诉你在检查）
+async function checkUpdate(){
+  if(uploadOk) return;
+  uploadOk = true;
+  const t = toast("正在检查更新…", true);
+  let now;
+  try{
+    now = await fetchBuild(true);
+  }catch(e){
+    uploadOk = false;
+    showErr("检查更新失败：" + ((e && e.message) || e) + "\n（网络问题，不影响现在使用）");
+    return;
+  }
+  if(now !== APP_BUILD){
+    if(t) t.remove();
+    toast("发现新版本，正在更新…", true);
+    setTimeout(()=>reloadWith(now), 500);
+  }else{
+    uploadOk = false;
+    if(t) t.remove();
+    toast("已经是最新版（" + APP_VER + " · " + localTime(APP_BUILD) + "）。", true);
+  }
+}
+// 后台静默检查：只在回到前台时看一眼，不打扰
+let chkBusy = false;
+async function silentCheck(){
+  if(chkBusy || document.visibilityState !== "visible") return;
+  chkBusy = true;
+  try{
+    const now = await fetchBuild(true);
+    if(now !== APP_BUILD){
+      toast("有新版本，正在更新…", true);
+      setTimeout(()=>reloadWith(now), 700);
+    }else{
+      APP_BUILD = now;                 // 同版本，顺手对齐
+    }
+  }catch(e){ /* 静默失败，不打扰 */ }
+  finally{ chkBusy = false; }
+}
+function initUpdateUI(){
+  // 启动时就把版本号显示出来（statLine 依赖聊天数据，不能在这里调）
+  if($("verBadge")) $("verBadge").textContent = APP_VER;
+  if($("statVer")) $("statVer").textContent = APP_VER;
+  if($("statBuild")) $("statBuild").textContent = localTime(APP_BUILD);
+  if($("btnCheckUpd")) $("btnCheckUpd").addEventListener("click", checkUpdate);
+  if($("btnForceUpd")) $("btnForceUpd").addEventListener("click", ()=>{
+    if(!confirm("强制重新加载？会重新下载页面和脚本（语音包已缓存，不重复下）。")) return;
+    reloadWith(String(Date.now()));
+  });
+  const vb = $("verBadge");
+  if(vb){
+    vb.classList.add("tapver");
+    vb.title = "点一下：检查更新";
+    vb.addEventListener("click", (e)=>{ e.stopPropagation(); checkUpdate(); });
+  }
+  const st = $("statVer");
+  if(st){
+    const wrap = st.parentNode;
+    if(wrap){ wrap.style.cursor = "pointer"; wrap.title = "点一下：检查更新"; wrap.addEventListener("click", checkUpdate); }
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") silentCheck(); });
+  // 启动后 3 秒静默查一次
+  setTimeout(silentCheck, 3000);
+}
 function statLine(){
   if($("statVer")) $("statVer").textContent = APP_VER;
+  if($("statBuild")) $("statBuild").textContent = localTime(APP_BUILD);
+  if($("verBadge")) $("verBadge").textContent = APP_VER;
   $("statPersona").textContent = "　当前 " + persona.length + " 字";
   $("statCtx").textContent = "　当前 " + ctxText.length + " 字";
   let used = 0;
@@ -1997,6 +2101,7 @@ $("btnExportAll").addEventListener("click", exportAll);
 $("btnVoice").title = recSupported() ? "语音输入（按住说话）" : "调起键盘听写";
 buildEmojiPanel();
 initTtsControls();
+initUpdateUI();
 // 语速/音调拖动即时生效，不用点保存
 (function(){
   const r = $("cfgRate"), p = $("cfgPitch"), v = $("cfgVoice");
