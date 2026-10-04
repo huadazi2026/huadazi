@@ -699,12 +699,12 @@ nav button.on{color:var(--gold)}
 </main>
 
 <nav>
-  <button class="on" id="nav-ziwei"><span class="ic">☯</span>紫微</button>
+  <button class="on" id="nav-ziwei"><span class="ic"><svg viewBox="0 0 24 24" width="1.2em" height="1.2em" fill="currentColor" aria-hidden="true"><path d="M2.8 8.8L8.2 7.4 9.4 12.8 4.4 14.6Z" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M9.4 12.8L12.8 16.4 15.8 13.6 19.2 17.6 21.4 15.2" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2.8" cy="8.8" r="1.6"/><circle cx="8.2" cy="7.4" r="1.6"/><circle cx="9.4" cy="12.8" r="1.6"/><circle cx="4.4" cy="14.6" r="1.6"/><circle cx="12.8" cy="16.4" r="1.6"/><circle cx="15.8" cy="13.6" r="1.6"/><circle cx="19.2" cy="17.6" r="1.6"/></svg></span>紫微</button>
   <button id="nav-liuren"><span class="ic">䷀</span>大六壬</button>
-  <button id="nav-xiaoliuren"><span class="ic"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="18" height="2.4" rx="1.2"/><rect x="3" y="10" width="7.5" height="2.4" rx="1.2"/><rect x="13.5" y="10" width="7.5" height="2.4" rx="1.2"/><rect x="3" y="15" width="18" height="2.4" rx="1.2"/><rect x="3" y="20" width="7.5" height="2.4" rx="1.2"/><rect x="13.5" y="20" width="7.5" height="2.4" rx="1.2"/></svg></span>小六壬</button>
+  <button id="nav-xiaoliuren"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11.2V4.8a1.3 1.3 0 0 1 2.6 0V10"/><path d="M11.6 10V3.6a1.3 1.3 0 0 1 2.6 0V10"/><path d="M14.2 10.4V4.8a1.3 1.3 0 0 1 2.6 0V13"/><path d="M16.8 12.2V7.8a1.3 1.3 0 0 1 2.6 0V15c0 3.3-2.4 6-5.8 6h-1.2c-1.9 0-3.3-.8-4.3-2.3L5 14.4a1.4 1.4 0 0 1 2.2-1.7l1.8 1.9"/></svg></span>小六壬</button>
   <button id="nav-meihua"><span class="ic">❀</span>梅花</button>
-  <button id="nav-liuyao"><span class="ic">☰</span>六爻</button>
-  <button id="nav-qimen"><span class="ic">⛩</span>奇门</button>
+  <button id="nav-liuyao"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8.6" cy="15.2" r="5.9"/><rect x="6.9" y="13.5" width="3.4" height="3.4" rx=".4"/><circle cx="15.4" cy="8.8" r="5.9"/><rect x="13.7" y="7.1" width="3.4" height="3.4" rx=".4"/></svg></span>六爻</button>
+  <button id="nav-qimen"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" aria-hidden="true"><circle cx="12" cy="12" r="9.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M12 2.4a4.8 4.8 0 0 1 0 9.6 4.8 4.8 0 0 0 0 9.6A9.6 9.6 0 0 1 12 2.4z" fill="currentColor"/><circle cx="12" cy="7.2" r="1.5" fill="currentColor"/><circle cx="12" cy="16.8" r="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>奇门</button>
   <button id="nav-about"><span class="ic">ⓘ</span>说明</button>
 </nav>
 
@@ -879,9 +879,13 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v29 · 2026-10-05";
+var APP_BUILD = "v30 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v29", "这次的更新", [
+  ["v30", "这次的更新", [
+    "底栏图标换了四个：紫微＝北斗七星、小六壬＝手掌、六爻＝两枚铜钱、奇门＝太极图",
+    "四个图标都改成同一套线条风（原来小六壬是彩色 emoji 手掌，跟其他图标不统一）"
+  ]],
+  ["v29", "更早", [
     "小六壬图标换成线条卦形（原来是个彩色手掌 emoji，跟其他几个线条图标不统一）",
     "出生地：新增「直接写城市／县名」输入框，内置全国 3203 个行政区划的经纬度，离线也能查",
     "地名写法很宽松：「绍兴」「浙江省绍兴市」「新疆喀什」「无为县」「漠河」都能认出来",
