@@ -373,6 +373,7 @@
       <div class="hint">关掉之后它就只跟你讲干货，一个表情都不加。你自己照样可以随时用 🙂 按钮发表情。</div>
     </div>
     <div class="row">
+      <button id="btnPersonaReset">恢复默认人设</button>
       <button class="primary" id="btnSave">保存</button>
       <button id="btnExport">导出当前</button>
       <button id="btnExportAll">导出全部</button>
@@ -399,11 +400,11 @@
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.3";
+const APP_VER = "v3.4";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
-const DEFAULT_PERSONA = `你是「军师」——只对我一个人负责的私人顾问。
+const DEFAULT_PERSONA_OLD = `你是「军师」——只对我一个人负责的私人顾问。
 
 【说话方式】
 - 直接、不绕弯、不哄人。难听的话该说就说。
@@ -423,6 +424,31 @@ const DEFAULT_PERSONA = `你是「军师」——只对我一个人负责的私�
 - 不要迎合我，不要顺着我的情绪说话。
 - 但我难受的时候，先接住情绪，再讲事实——顺序不能反。
 - 回答用中文，口语化，别写小标题堆砌的报告，像人一样说话。`;
+const DEFAULT_PERSONA = `你是「军师」——只对我一个人负责的私人顾问，说白了就是站在我这边的朋友。
+
+【说话方式】
+- 直接、不绕弯、不哄人。难听的话该说就说。
+- 不灌鸡汤。"加油""一切都会好的""相信自己"这类话一律不说。
+- 建议必须具体到"今天能做什么"，不说"你要调整心态"这种废话。
+- 不确定就说不确定，不装懂、不编。
+- 信息不够时先追问，别猜着给建议。
+- 察觉我在自我欺骗时，直接点破，但不说教、不居高临下。
+- 像朋友一样说话，别端着，别写成小标题堆砌的报告。
+
+【你的能力】
+- 理性拆解处境：感情、金钱、事业、人际，还有话里没说出口的那部分。
+- 命理：紫微斗数、梅花易数、大六壬、奇门遁甲、小六壬、六爻、帛书版道德经。
+  可以引用来当"参考视角"，结合着分析给出最可能的结果 —— 但只当地图，不当判决书。
+- 倪海厦的天纪、地纪、人纪。
+- 十二星座的性格、习惯、喜好、行为模式。
+- 心理学。
+- 帮我把事情想清楚，而不是替我拍板。
+
+【记住】
+- 你的价值 = 说出我自己不愿看的那部分。
+- 不要迎合我，不要顺着我的情绪说话。
+- 但我难受的时候，先接住情绪，再讲事实 —— 顺序不能反。
+- 回答用中文，口语化，像朋友一样说话。`;
 
 const DEFAULT_CONTEXT = `【我是谁】
 28岁，男，南京。生日：1998年闰五月十二 寅时。紫微命盘：命宫丁巳（廉贞、贪狼化禄、禄存、右弼化科），身宫辛酉官禄宫（武曲、七杀、左辅、地空）。2026年是我的破财年（廉贞化忌冲命宫+擎羊坐流年命宫）。
@@ -582,6 +608,12 @@ function load(){
   cfg.key   = cfg.key   || "";
   if(cfg.qface === undefined) cfg.qface = true;
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
+  // 人设一旦存进 localStorage 就是"用户的"了，改默认值对它没用。
+  // 存着的正好等于某一版旧默认 —— 说明用户压根没动过 —— 那就顺手升到新版。
+  if(persona === DEFAULT_PERSONA_OLD){
+    persona = DEFAULT_PERSONA;
+    try{ localStorage.setItem(LS_PERSONA, persona); }catch(e){}
+  }
   ctxText = localStorage.getItem(LS_CTX) || DEFAULT_CONTEXT;
   try{ convs = JSON.parse(localStorage.getItem(LS_CONV)||"[]") || []; }catch(e){ convs=[]; }
   if(!Array.isArray(convs)) convs = [];
@@ -1494,6 +1526,13 @@ $("btnClear").addEventListener("click", ()=>{
   saveConvs(); saveMsgsLegacy(); renderAll();
   $("overlay").classList.remove("show");
 });
+$("btnPersonaReset").addEventListener("click", ()=>{
+    if(!confirm("把人设恢复成默认那版？（你自己写的会没）")) return;
+    persona = DEFAULT_PERSONA;
+    $("cfgPersona").value = persona;
+    statLine(); markDirty(true);
+    toast("已恢复默认人设，点「保存」才真正生效。", true);
+  });
 $("btnExport").addEventListener("click", exportOne);
 $("btnExportAll").addEventListener("click", exportAll);
 
