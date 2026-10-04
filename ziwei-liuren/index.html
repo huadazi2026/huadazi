@@ -215,6 +215,15 @@ table.ketable tr:last-child td{border-bottom:0}
 .tp-void{background:var(--card)}
 .tp-hole{background:var(--card2)}
 .tp-ming{background:rgba(217,178,106,.10);box-shadow:inset 0 0 0 1px rgba(217,178,106,.45)}
+/* 三方四正标记：本宫／三合／对宫 */
+.tp-r-ming{background:rgba(217,178,106,.11)}
+.tp-r-san{background:rgba(122,167,224,.07)}
+.tp-r-dui{background:rgba(95,191,138,.07)}
+.tp-role{position:absolute;right:0;top:0;font-size:9px;line-height:1;padding:2px 4px;
+  border-bottom-left-radius:6px;color:#12101c;font-weight:600}
+.tp-r-ming .tp-role{background:var(--gold)}
+.tp-r-san .tp-role{background:var(--info)}
+.tp-r-dui .tp-role{background:var(--good)}
 .tp-stars{flex:1}
 .tp-sr{display:flex;gap:3px;line-height:1.42}
 .tp-a{flex:0 0 52%;white-space:nowrap;overflow:hidden}
@@ -893,9 +902,13 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v32 · 2026-10-05";
+var APP_BUILD = "v33 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v32", "这次的更新", [
+  ["v33", "这次的更新", [
+    "三方四正改成「准确标注」：原来在盘上画斜线，但矩形宫格上画直线必然斜穿无关宫位（例如命宫在辰时，辰↔戌 那条会穿过午宫），看着像连上去了其实不是，会误导",
+    "现在给四个宫位直接打标签：本宫（金）／三合（蓝）／对宫（绿），一眼看清哪四宫是一组，不会牵进别的宫"
+  ]],
+  ["v32", "更早", [
     "修正十二时辰的钟点区间：子时之后整体少了 1 小时（原来丑时显示 02:00–04:00，正确是 01:00–03:00；子时与丑时之间少了 01:00–02:00）",
     "紫微与小六壬的时辰下拉都已修正；现在：子 23–01、丑 01–03、寅 03–05 …… 亥 21–23"
   ]],

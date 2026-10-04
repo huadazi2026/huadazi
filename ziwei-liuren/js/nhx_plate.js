@@ -66,7 +66,8 @@
   }
 
   /* 单格 */
-  function cell(c, zhi) {
+  /* role: 'ming' 本宫 ／ 'san' 三合 ／ 'dui' 对宫 ／ '' 无关 */
+  function cell(c, zhi, role) {
     var p = palaceOf(c, zhi);
     if (!p) return '<div class="tp-cell tp-void"></div>';
 
@@ -97,8 +98,11 @@
     }
     var rows = Math.max(big.length, small.length, 1);
     var gp = posOf(zhi) || { r: 0, c: 0 };
-    var h = '<div class="tp-cell' + (p.isMing ? ' tp-ming' : '') + '" data-zhi="' + zhi +
+    var roleCls = role === 'ming' ? ' tp-r-ming' : (role === 'san' ? ' tp-r-san' : (role === 'dui' ? ' tp-r-dui' : ''));
+    var roleTag = role === 'ming' ? '本宫' : (role === 'san' ? '三合' : (role === 'dui' ? '对宫' : ''));
+    var h = '<div class="tp-cell' + (p.isMing ? ' tp-ming' : '') + roleCls + '" data-zhi="' + zhi +
             '" style="grid-area:' + (gp.r + 1) + '/' + (gp.c + 1) + '">';
+    if (roleTag) h += '<span class="tp-role">' + roleTag + '</span>';
     h += '<div class="tp-stars">';
     for (var k = 0; k < rows; k++) {
       h += '<div class="tp-sr">';
@@ -135,28 +139,23 @@
     return h;
   }
 
-  /* 三方四正连线 */
-  function sanfangLines(c) {
+  /* 三方四正：本宫（命宫）+ 三合两宫(±4) + 对宫(+6)
+     矩形宫格上画直线必然斜穿无关宫位（会误导），所以改为给这四个宫位打标记 */
+  function sanfangSet(c) {
     var ming = null;
     for (var i = 0; i < c.palaces.length; i++) if (c.palaces[i].isMing) ming = c.palaces[i].zhiName;
-    if (ming == null) return '';
+    if (ming == null) return null;
     var mi = ZHI.indexOf(ming);
-    var p0 = ming, p1 = ZHI[(mi + 4) % 12], p2 = ZHI[(mi + 8) % 12], p3 = ZHI[(mi + 6) % 12];
-    var seg = [];
-    var a = cellCenter(p0), b = cellCenter(p3);
-    if (a && b) seg.push([a, b]);
-    var c1 = cellCenter(p1), c1o = cellCenter(ZHI[(ZHI.indexOf(p1) + 6) % 12]);
-    if (c1 && c1o) seg.push([c1, c1o]);
-    var c2 = cellCenter(p2), c2o = cellCenter(ZHI[(ZHI.indexOf(p2) + 6) % 12]);
-    if (c2 && c2o) seg.push([c2, c2o]);
-    var svg = '<svg class="tp-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">';
-    for (var k = 0; k < seg.length; k++) {
-      svg += '<line x1="' + seg[k][0].x + '" y1="' + seg[k][0].y + '" x2="' + seg[k][1].x + '" y2="' + seg[k][1].y + '"/>';
-    }
-    svg += '</svg>';
-    return svg;
+    return { ming: ming, san: [ZHI[(mi + 4) % 12], ZHI[(mi + 8) % 12]], dui: ZHI[(mi + 6) % 12] };
   }
-
+  function roleOf(c, zhi) {
+    var sf = sanfangSet(c);
+    if (!sf) return "";
+    if (sf.ming === zhi) return "ming";
+    if (sf.san.indexOf(zhi) >= 0) return "san";
+    if (sf.dui === zhi) return "dui";
+    return "";
+  }
   /* 整盘 */
   function plate(c, o) {
     o = o || {};
@@ -168,11 +167,10 @@
           h += '<div class="tp-hole" style="grid-area:' + (r + 1) + '/' + (col + 1) + '"></div>'; continue;
         }
         var z = LAYOUT[r][col];
-        h += z ? cell(c, z) : '<div class="tp-cell tp-void" style="grid-area:' + (r + 1) + '/' + (col + 1) + '"></div>';
+        h += z ? cell(c, z, roleOf(c, z)) : '<div class="tp-cell tp-void" style="grid-area:' + (r + 1) + '/' + (col + 1) + '"></div>';
       }
     }
     h += '</div>';
-    h += sanfangLines(c);   /* 连线放在网格之外：放进网格会被当成网格项，撑出第 5 行导致宫位错位 */
     h += '</div>';
     return h;
   }
