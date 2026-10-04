@@ -23,7 +23,7 @@
 html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%;overflow-x:hidden;max-width:100%}
-body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 a{color:var(--gold);text-decoration:none}
 
 /* 顶部 */
@@ -1040,6 +1040,123 @@ function zwReading(c, read, age){
 }
 
 /* ---------- 综合结论（一眼看完 + 导出） ---------- */
+/* 通用的「最可能的结果 + 为什么」卡片 */
+function likelyCard(o){
+  /* o = { title, verdict, tag, prob, probText, reasons:[], pros:[], cons:[], condition } */
+  var col = o.tag === '吉' ? 'var(--good)' : (o.tag === '凶' ? 'var(--bad)' : 'var(--warn)');
+  var h = '<div class="verdict" style="border-color:'+col+'">';
+  h += '<h2 style="margin:0 0 8px;font-size:14px;color:var(--gold);display:flex;align-items:center;gap:6px">'+
+       '<span style="width:3px;height:13px;border-radius:2px;background:var(--gold)"></span>'+esc(o.title||'最可能的结果')+'</h2>';
+  h += '<div class="v1" style="color:'+col+'">'+esc(o.verdict)+'</div>';
+  h += '<div style="margin:2px 0 4px">';
+  h += '<span class="badge" style="color:'+col+';border-color:'+col+'">把握度 '+esc(o.prob+'%')+'</span>';
+  if (o.tag) h += '<span class="badge">'+esc(o.tag)+'</span>';
+  if (o.probText) h += '<span style="font-size:12px;color:var(--dim)">'+esc(o.probText)+'</span>';
+  h += '</div>';
+  /* 把握度条 */
+  h += '<div style="height:6px;border-radius:4px;background:#2a2350;overflow:hidden;margin:8px 0 10px">'+
+       '<div style="height:100%;width:'+o.prob+'%;background:'+col+'"></div></div>';
+  /* 为什么 */
+  h += '<div class="vitem"><div class="vk">凭什么是这个结果</div><div class="vt"><ol class="steps" style="margin:0">';
+  for (var i=0;i<o.reasons.length;i++) h += '<li>'+o.reasons[i]+'</li>';
+  h += '</ol></div></div>';
+  if (o.pros && o.pros.length){
+    h += '<div class="vitem"><div class="vk" style="color:var(--good);border-color:rgba(95,191,138,.35)">往好的方向拉</div><div class="vt">';
+    for (var a=0;a<o.pros.length;a++) h += '· '+esc(o.pros[a])+'<br>';
+    h += '</div></div>';
+  }
+  if (o.cons && o.cons.length){
+    h += '<div class="vitem"><div class="vk" style="color:var(--bad);border-color:rgba(224,106,106,.35)">往坏的方向拉</div><div class="vt">';
+    for (var b=0;b<o.cons.length;b++) h += '· '+esc(o.cons[b])+'<br>';
+    h += '</div></div>';
+  }
+  if (o.condition){
+    h += '<div class="vitem"><div class="vk">什么情况下结论会翻</div><div class="vt">'+esc(o.condition)+'</div></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+/* 紫微：算「最可能的结果」——综合命宫/官禄/财帛/夫妻四个关键宫 + 当前大限 + 四化 */
+function zwLikely(c, read, age, lim, ming, guan, cai){
+  var P = {};
+  for (var i=0;i<read.palaces.length;i++) P[read.palaces[i].name] = read.palaces[i];
+  var sm = P['命宫'] ? P['命宫'].score : 50;
+  var sg = P['官禄'] ? P['官禄'].score : 50;
+  var sc = P['财帛'] ? P['财帛'].score : 50;
+  var sf = P['夫妻'] ? P['夫妻'].score : 50;
+  var avg = Math.round((sm + sg + sc + sf) / 4);
+  var limScore = lim ? (P[lim.name] ? P[lim.name].score : 50) : 55;
+
+  /* 四化落点：化禄/化权/化科加分，化忌扣分 */
+  var lu = null, ji = null;
+  for (var k=0;k<c.palaces.length;k++){
+    var p = c.palaces[k];
+    for (var q=0;q<p.hua.length;q++){
+      if (p.hua[q].hua === '化禄') lu = { star:p.hua[q].star, palace:p.name, zhi:p.zhiName };
+      if (p.hua[q].hua === '化忌') ji = { star:p.hua[q].star, palace:p.name, zhi:p.zhiName };
+    }
+  }
+  /* 命宫是否强：主星 + 吉星 */
+  var mingP = c.palaces.filter(function(x){ return x.isMing; })[0] || { mainStars:[], stars:[] };
+  var strong = mingP.mainStars.length >= 2;
+  var hasJi = mingP.stars.some(function(s){ return s.indexOf('化忌') >= 0 || ['擎羊','陀罗','火星','铃星','地空','地劫'].indexOf(s) >= 0; });
+
+  /* 概率：以平均分为基准，四化与大限微调；刻意压在 35-85 之间（命理不给绝对） */
+  var prob = avg;
+  if (limScore >= 65) prob += 6; else if (limScore <= 40) prob -= 6;
+  if (ji && ji.palace === '命宫') prob -= 5;
+  if (lu && (lu.palace === '财帛' || lu.palace === '官禄')) prob += 4;
+  prob = Math.max(35, Math.min(85, Math.round(prob)));
+
+  /* 吉凶标签 */
+  var tag = '偏吉';
+  if (prob >= 68) tag = '吉';
+  else if (prob >= 56) tag = '偏吉';
+  else if (prob >= 46) tag = '平';
+  else if (prob >= 38) tag = '偏凶';
+  else tag = '凶';
+
+  /* 最可能的结果：一句能给方向的话 */
+  var verdict;
+  if (prob >= 68){
+    verdict = '这张盘的路子是「靠自己的硬本事吃饭，越往后越稳」。今年到明年是修底盘的阶段，' +
+              '三十岁前后（下一大限）才是真正起势的时候——所以现在别急着证明什么，把本事和底子攒住。';
+  } else if (prob >= 56){
+    verdict = '路子是「稳中能成」：大方向没问题，但要靠时间换，急不来。' +
+              '短期一到两年内不会有大的跃升，把该修的功课（尤其下面「最要防」那条）补上，运气会明显好转。';
+  } else if (prob >= 46){
+    verdict = '一半一半：这张盘好坏参半，结果取决于你这几年的选择，而不是命里定死的。' +
+              '顺的时候容易松，不顺的时候容易急——两个毛病都是你的坑。';
+  } else {
+    verdict = '这张盘的路子是「先难后易」：早年（包括现在这个阶段）比较折腾，要交学费。' +
+              '好消息是这类盘的转折点通常在三十岁后，前提是这几年别把本金（钱、身体、信任）赔光。';
+  }
+
+  var reasons = [];
+  reasons.push('看<b>命宫</b>（'+esc(mingP.zhiName||'')+'宫，'+(mingP.mainStars.length?esc(mingP.mainStars.join('、')):'无主星')+
+    '）：这是你的底色，性格与天赋都写在这里。');
+  reasons.push('看四个关键宫的平均状态：命宫 '+sm+'、官禄 '+sg+'、财帛 '+sc+'、夫妻 '+sf+
+    ' → 平均 <b>'+avg+'</b> 分。分数越高，做事越顺、越少内耗。');
+  if (lim) reasons.push('看<b>当前大限</b>：虚岁 '+age+' 走在 '+esc(lim.zhiName)+'宫（'+esc(lim.name)+'，'+limScore+
+    ' 分）。这十年顺不顺，很大程度看这个宫。');
+  if (lu) reasons.push('看<b>化禄</b>：'+esc(lu.star)+'化禄在'+esc(lu.palace)+'（'+esc(lu.zhi)+'宫）—— 你的资源与机会主要从这个方向来，主动往那边靠。');
+  if (ji) reasons.push('看<b>化忌</b>：'+esc(ji.star)+'化忌在'+esc(ji.palace)+'（'+esc(ji.zhi)+'宫）—— 这是最容易反复吃亏、需要长期修的一块，别在这上面赌。');
+  reasons.push('最后看<b>格局</b>：命宫'+(strong?'主星同宫、力量集中，属于能扛事、走专精路线的结构':'主星偏少（或借对宫），说明你的力量不在"单点爆发"，而在借势与协作')+
+    (hasJi?'；但本宫带煞，遇事容易较劲、走极端，这一条要自觉':'')+'。');
+
+  var pros = [], cons = [];
+  for (var a=0;a<read.strengths.length && a<3;a++) pros.push(read.strengths[a]);
+  for (var b=0;b<read.risks.length && b<3;b++) cons.push(read.risks[b]);
+
+  var condition = '如果'+(ji?('「'+esc(ji.star)+'化忌在'+esc(ji.palace)+'」这一块你能主动避开、不硬顶'):'你按上面「别做」的清单行事')+
+    '，实际走势会比这个判断好一档；反过来，如果'+(lim?('在'+esc(lim.name)+'这条线上反复加杠杆、反复赌'):'在同一个坑里反复摔')+
+    '，就会比这个判断差一档。命理看的是倾向，具体结果还是你每天的选择在定。';
+
+  return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    probText:'（这张盘综合出来的倾向强度）', reasons:reasons, pros:pros, cons:cons, condition:condition });
+}
+
 function zwCurLimit(c, age){
   var ps = c.palaces;
   for (var i=0;i<ps.length;i++) if (ps[i].limit && age >= ps[i].limit.from && age <= ps[i].limit.to) return ps[i];
@@ -1058,8 +1175,10 @@ function zwVerdict(c, read, age){
   var cai  = zwShortPalace(c, '财帛');
   var fu   = zwShortPalace(c, '夫妻');
 
-  var h = '<div class="verdict"><h2 style="margin:0 0 8px;font-size:14px;color:var(--gold);display:flex;align-items:center;gap:6px">'+
-          '<span style="width:3px;height:13px;border-radius:2px;background:var(--gold)"></span>综合结论</h2>';
+  var h = zwLikely(c, read, age, lim, ming, guan, cai);
+
+  h += '<div class="verdict"><h2 style="margin:0 0 8px;font-size:14px;color:var(--gold);display:flex;align-items:center;gap:6px">'+
+       '<span style="width:3px;height:13px;border-radius:2px;background:var(--gold)"></span>逐项说明</h2>';
 
   /* 一句话定调 */
   var tone = (read.summary && read.summary[0]) ? read.summary[0] : read.headline;
@@ -1292,8 +1411,51 @@ function lrKeChuan(K){
   return h;
 }
 
+/* 六壬：最可能的结果 */
+function lrLikely(K, read, q){
+  var prob = read.score;
+  var tag = read.trend;
+  var verdict;
+  if (prob >= 68) verdict = '这事能成，而且路子是通的：课体清、三传不空，按正常节奏推进就会落地。该谈的谈、该签的签，别自己给自己加戏。';
+  else if (prob >= 56) verdict = '这事偏顺，但要有人从中牵线才走得快：课面显示力量不全在你手上，主动找个中间人比自己硬推省力得多。';
+  else if (prob >= 46) verdict = '这事平：可以办，但没什么助力，属于"使多大劲出多大结果"。想省事就往后拖一拖，想推进就得亲自盯着。';
+  else if (prob >= 36) verdict = '这事偏难：课面有拖、有阻，或者关键的一环是空的。不建议现在硬上，先把卡住的那一环找出来补掉。';
+  else verdict = '这事眼下不成：三传走势不利或落空，硬推多半白费力气，甚至越推越麻烦。要么换时间、要么换人、要么干脆先放下。';
+
+  var reasons = [];
+  reasons.push('先看<b>课体</b>：本课是「'+esc(K.body)+'」'+(K.bodyNote?('（'+esc(K.bodyNote)+'）'):'')+
+    '，取传用「'+esc(K.method)+'」。课体定了这件事的"性质"，凶课不必强求，吉课可以放手。');
+  reasons.push('再看<b>日干与三传的关系</b>：' + esc((read.summary && read.summary[0]) ? read.summary[0] : '') );
+  if (K.sanChuan && K.sanChuan.length === 3){
+    var chuan = [];
+    for (var i=0;i<3;i++) chuan.push(K.sanChuan[i].zhi + (K.sanChuan[i].isKong ? '(空)' : ''));
+    reasons.push('三传是事情的<b>起—中—末</b>：' + esc(chuan.join(' → ')) +
+      '。' + (K.sanChuan[1].isKong || K.sanChuan[2].isKong ?
+        '注意中传或末传带空亡——意味着中间会断一次、或者最后一环落实不了，这是最大的变数。' :
+        '三传不空，说明事情有实实在在的落点，不是空想。'));
+  }
+  /* 从判断依据里挑前两条，它们引用的是真实课面 */
+  if (read.evidence && read.evidence.length){
+    for (var j=0;j<read.evidence.length && j<2;j++)
+      reasons.push('<b>'+esc(read.evidence[j].title)+'</b>：' + esc(read.evidence[j].text));
+  }
+  reasons.push('最后看<b>把握度</b>：'+esc(read.confidence)+'。课面越干净（无空亡、无冲克交加），这个判断越可靠。');
+
+  var pros = [], cons = [];
+  if (read.advice && read.advice.dos) for (var a=0;a<read.advice.dos.length && a<3;a++) pros.push(read.advice.dos[a]);
+  if (read.advice && read.advice.donts) for (var b=0;b<read.advice.donts.length && b<3;b++) cons.push(read.advice.donts[b]);
+
+  var condition = '如果' + (read.advice && read.advice.timing ? ('在「'+esc(read.advice.timing)+'」这个时机上动手') : '按上面的时机动手') +
+    '，结果会好一档；如果逆着来（该缓的时候急、该找人时硬扛），就会差一档。课是死的，怎么走是活的。';
+
+  return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    probText:'（课面综合评分 '+read.score+'，把握度 '+esc(read.confidence)+'）',
+    reasons:reasons, pros:pros, cons:cons, condition:condition });
+}
+
 function lrReading(K, read, q){
   var h = '';
+  h += lrLikely(K, read, q);
   var cls = read.trend==='吉'||read.trend==='偏吉' ? 'g' : (read.trend==='平'?'i':(read.trend==='偏凶'||read.trend==='凶'?'b':'w'));
   h += '<div class="verdict"><div class="v1">'+esc(read.judgment)+'</div>';
   h += '<div><span class="badge '+cls+'">'+esc(read.trend)+'</span>'+
@@ -1399,11 +1561,40 @@ function renderXiaoLiuRen(){
 function xlrHtml(k, q, mode){
   var G = XiaoLiuRen.GONG, info = k.info;
   var h = '';
+  /* 最可能的结果 */
+  var PROB = { '大安':72, '速喜':76, '小吉':80, '留连':42, '赤口':34, '空亡':26 };
+  var prob = PROB[k.gong] || 50;
+  var tag = (info.luck === '吉' ? '吉' : (info.luck === '凶' || info.luck === '大凶' ? '凶' : '平'));
+  var VERD = {
+    '大安': '能成，但不会快：这事的走势是"原地稳着来"，按原来的安排走就会有结果，你不需要额外做什么，尤其别临时改主意。',
+    '留连': '现在拿不到结果，会拖：你问的这件事眼下信息不全、或者对方还没定，今天追也追不出来。给它两三天，先把该问的问清楚。',
+    '速喜': '能成，而且很快：这是六宫里最"快"的一个，今天到这三五天内就会有消息，前提是你要主动把话递出去。',
+    '赤口': '容易谈崩、容易起争执：事情本身不一定坏，但你一开口就容易顶起来。想办成，先把话在纸上写顺，见面少说多听。',
+    '小吉': '能成，而且有人帮：这事的转机在别人身上。找人、托人、谈合作都比你自己硬扛强，开口要资源成功率明显更高。',
+    '空亡': '大概率落空：投入之后看不到回报，或者对方根本不接。建议先停，别追加投入，把这事往后放一放再看。'
+  };
+  var verdict = VERD[k.gong] || '';
+  if (q) verdict += '（针对你问的「' + q + '」）';
+
+  var reasons = [];
+  reasons.push('数出来的落点是<b>'+esc(k.gong)+'</b>：'+esc(k.lunar.m)+'月落在「'+esc(k.monthGong)+'」，'+esc(k.lunar.d)+
+    '日落在「'+esc(k.dayGong)+'」，'+esc(k.shiZhi)+'时落在「'+esc(k.gong)+'」—— 最后这一宫就是答案。');
+  reasons.push('这一宫的属性是<b>'+esc(info.wuxing)+'（'+esc(info.fangwei)+'、临'+esc(info.tigan)+'、数'+esc(info.shuzi)+'）</b>：'+esc(info.xiang));
+  reasons.push('古诀讲：'+esc(info.shi));
+  reasons.push('吉凶层级：<b>'+esc(info.luck)+'</b>。小六壬六宫里，大安、速喜、小吉偏吉，留连、赤口、空亡偏凶 —— 这是断事的骨架。');
+
+  var pros = [], cons = [];
+  for (var a=0;a<info.yi.length && a<3;a++) pros.push(info.yi[a]);
+  for (var b=0;b<info.ji.length && b<3;b++) cons.push(info.ji[b]);
+
+  var condition = '小六壬问的是<b>眼前短事</b>：同一个问题不要反复起课，第一次的落点最准。' +
+    '如果这件事本身拖过了一两个月，或者中间有大的变化（换人、换条件），就该重新起一次。';
+
+  h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    probText:'（'+esc(k.gong)+'宫，'+esc(info.luck)+'）', reasons:reasons, pros:pros, cons:cons, condition:condition });
+
   h += '<div class="verdict">';
-  h += '<div class="v1">落宫：'+esc(k.gong)+'　'+esc(info.luck)+'</div>';
-  h += '<div class="v2">五行'+esc(info.wuxing)+'　方位'+esc(info.fangwei)+'　临'+esc(info.tigan)+'　数'+esc(info.shuzi)+'</div>';
-  if (q) h += '<div class="note">所问：'+esc(q)+'</div>';
-  h += '<div class="note">农历 '+(k.lunar.y?esc(k.lunar.y)+'年':'')+esc(k.lunar.m)+'月'+esc(k.lunar.d)+'日　'+
+  h += '<div class="v2">农历 '+(k.lunar.y?esc(k.lunar.y)+'年':'')+esc(k.lunar.m)+'月'+esc(k.lunar.d)+'日　'+
        esc(k.shiZhi)+'时'+(k.gz && k.gz.dayGZ ? '　'+esc(k.gz.dayGZ)+'日　'+esc(k.gz.hourGZ)+'时' : '')+'</div>';
   h += '</div>';
 
@@ -1519,6 +1710,44 @@ function mhGuaHtml(title, g, hitLine, hitCls){
 function mhHtml(r){
   var v = r.verdict;
   var h = '';
+
+  /* 最可能的结果：本卦体用定倾向，变卦看后劲 */
+  var BASE = { '用生体':76, '体克用':70, '比和':62, '体生用':44, '用克体':30 };
+  var prob = BASE[r.rel.key] || 50;
+  var bianAdj = (r.bianRel.key === '用生体' ? 8 : r.bianRel.key === '比和' ? 4 :
+                r.bianRel.key === '体克用' ? 2 : r.bianRel.key === '体生用' ? -6 : -9);
+  prob = Math.max(20, Math.min(88, prob + bianAdj));
+  var tag = prob >= 66 ? '吉' : (prob >= 54 ? '偏吉' : (prob >= 46 ? '平' : (prob >= 36 ? '偏凶' : '凶')));
+
+  var verdict;
+  if (prob >= 76) verdict = '这事能成，而且外力会帮你：你只要开口、只要把方案递出去，接得住就行。这段时间是这件事最好推的时候。';
+  else if (prob >= 66) verdict = '这事能成，但要你主动去拿：局面在你手里，是你压得住的那种，前提是舍得下力气、别半途松手。';
+  else if (prob >= 54) verdict = '这事平顺可成，没什么助力也没什么大碍：按原计划一步步走，别临时换方向，结果就在中间。';
+  else if (prob >= 40) verdict = '这事你要往外贴：费力、费钱、费心，而且短期看不到对等回报。要么先把条件谈清楚，要么先别投。';
+  else verdict = '这事眼下不成，或者对方占上风：硬碰要吃亏。先守住本金和位置，把这一轮熬过去比什么都重要。';
+
+  var reasons = [];
+  reasons.push('<b>看本卦</b>：'+esc(r.ben.name)+'（上'+esc(r.ben.up)+'下'+esc(r.ben.low)+'）—— '+
+    esc(MeiHua.HEX_MEAN[r.ben.name] || '') + '。这是事情现在的样子。');
+  reasons.push('<b>看体用生克（最重要的一条）</b>：动爻在第'+r.dong+'爻，属'+(r.dongInUpper?'上卦':'下卦')+
+    '，所以下卦/上卦里那一半是「用」，另一半是「体」。本卦为 <b>'+esc(r.rel.text)+'</b>，' +
+    esc(r.rel.luck) + '。' + esc(r.rel.note));
+  reasons.push('<b>看互卦（中间过程）</b>：'+esc(r.hu.name)+'—— ' + esc(MeiHua.HEX_MEAN[r.hu.name] || '') +
+    '。事情做到一半会走到这个局面，提前有个数。');
+  reasons.push('<b>看变卦（最终结果）</b>：'+esc(r.bian.name)+'（'+esc(r.bianRel.text)+'）—— ' +
+    esc(MeiHua.HEX_MEAN[r.bian.name] || '') + '。' + esc(r.bianRel.note));
+  reasons.push('<b>看动爻爻位</b>：'+esc(v.evidence[4] ? v.evidence[4].text : ('第'+r.dong+'爻动')));
+
+  var pros = [], cons = [];
+  for (var a=0;a<v.dos.length && a<3;a++) pros.push(v.dos[a]);
+  for (var b=0;b<v.donts.length && b<3;b++) cons.push(v.donts[b]);
+
+  h += likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    probText:'（体用「'+esc(r.rel.key)+'」+ 变卦「'+esc(r.bianRel.key)+'」合出来的）',
+    reasons:reasons, pros:pros, cons:cons,
+    condition:'梅花讲「不动不占」：如果你问这件事的时候心里其实已经有答案、只是想要个支持，那这个卦的参考价值会打折。' +
+      '另外应期按卦数看，' + esc(v.timing) });
+
   h += '<div class="verdict">';
   h += '<div class="v1">'+esc(v.headline)+'</div>';
   h += '<div><span class="badge '+ (r.rel.luck==='凶'?'b':(r.rel.luck==='吉'||r.rel.luck==='大吉'?'g':'i')) +'">'+esc(r.rel.luck)+'</span>'+
@@ -1650,6 +1879,9 @@ function qmReading(p, q){
   var yong = qmPickYongShen(p, q);
   var h = '';
 
+  /* 最可能的结果 */
+  h += qmLikely(p, yong, byG, q);
+
   h += '<div class="card"><h2>用神与断法</h2>';
   h += '<p style="font-size:13.5px;margin:0 0 8px">取用神：'+esc(yong.reason)+'</p>';
   if (yong.gong){
@@ -1723,6 +1955,56 @@ function qmPickYongShen(p, q){
   var useGan = (dayGan === '甲') ? p.xunYi : dayGan;
   var g = p.diPan.gong[useGan];
   return { gong: g, reason: '未指定具体事：以日干「' + dayGan + '」为用神（落' + (g ? p.meta.GONG_NAME[g] + '宫' : '中宫') + '）' };
+}
+
+/* 奇门：最可能的结果 */
+function qmLikely(p, yong, byG, q){
+  if (!yong.gong) return '';
+  var g = byG[yong.gong];
+  var MEN = p.meta.MEN_INFO[g.men] || {}, STAR = p.meta.STAR_INFO[g.star] || {}, SHEN = p.meta.SHEN_INFO[g.shen] || {};
+  var base = { '大吉':78, '吉':70, '中':54, '凶':34, '大凶':26 }[MEN.ji] || 50;
+  if (STAR.ji === '大吉') base += 6; else if (STAR.ji === '吉') base += 3;
+  else if (STAR.ji === '凶') base -= 6;
+  if (SHEN.ji === '大吉' || SHEN.ji === '吉') base += 4; else if (SHEN.ji === '凶') base -= 5;
+  /* 三吉门临用神再加一档 */
+  if (['开门','休门','生门'].indexOf(g.men) >= 0) base += 4;
+  var prob = Math.max(18, Math.min(88, base));
+  var tag = prob >= 68 ? '吉' : (prob >= 56 ? '偏吉' : (prob >= 46 ? '平' : (prob >= 36 ? '偏凶' : '凶')));
+
+  var good = (MEN.ji === '吉' || MEN.ji === '大吉');
+  var bad = (MEN.ji === '凶' || MEN.ji === '大凶');
+  var verdict;
+  if (prob >= 68) verdict = '现在能办，而且是好时机：用神宫临'+g.men+'，门吉星吉，事情本身站在你这边。想谈就现在谈，方向优先选'+g.dir+'方。';
+  else if (prob >= 56) verdict = '可以办，但要按规矩来：用神宫不算差，属于"稳着推进就能成"的局面。别图快、别绕流程，走正规路子反而顺。';
+  else if (prob >= 46) verdict = '吉凶参半，取决于你怎么做：用神宫临'+g.men+'，'+esc(MEN.key)+'。这一宫的意思是"这事本身不算坏，但容易被人言、情绪或细节拖走"，把该定的定死再动。';
+  else if (prob >= 36) verdict = '眼下不宜办：用神宫临'+g.men+'，'+esc(MEN.key)+'，带阻或带伤。真要办，也先绕开正面，从旁边找突破口。';
+  else verdict = '现在别办：用神宫临'+g.men+'，'+esc(MEN.key)+'，这是凶门。换个时间（等用神转到吉门）或者换个方向（避开'+g.dir+'方）再谈。';
+
+  var reasons = [];
+  reasons.push('我在你问的事里取了<b>'+esc(yong.reason)+'</b>—— 问什么事就用哪个符号看，这是奇门断事的第一步。');
+  reasons.push('这个用神落在 <b>'+esc(g.name)+'宫（'+esc(g.dir)+'，五行'+esc(g.wx)+'）</b>，宫里的组合是：九星'+esc(g.star||'—')+
+    '　八门'+esc(g.men||'—')+'　八神'+esc(g.shen||'—')+'　天盘'+esc(g.tianGan||'—')+'　地盘'+esc(g.diGan||'—')+'。');
+  reasons.push('<b>八门定吉凶（最主要）</b>：'+esc(g.men)+'属'+esc(MEN.ji)+'，主'+esc(MEN.key)+'。' + esc(MEN.yi||''));
+  reasons.push('<b>九星看气势</b>：'+esc(g.star||'')+'属'+esc(STAR.ji||'')+'，主'+esc(STAR.key||'')+'—— 这是事情本身的"底气"。');
+  reasons.push('<b>八神看背景</b>：'+esc(g.shen||'')+'属'+esc(SHEN.ji||'')+'，主'+esc(SHEN.key||'')+'—— 这是背后的力量来自哪一面。');
+  if (p.ju) reasons.push('<b>时令背景</b>：现在是'+esc(p.jieqi)+'、'+esc(p.ju.dun)+esc(p.ju.ju)+'局'+esc(p.ju.yuanName)+
+    '，值符在'+esc(p.meta.GONG_NAME[p.targetGong === 5 ? 2 : p.targetGong])+'宫 —— 各件事的主导力量在那里。');
+
+  var pros = [], cons = [];
+  if (['开门','休门','生门'].indexOf(g.men) >= 0) pros.push('用神临三吉门之一（'+g.men+'），事情本身有底');
+  if (STAR.ji === '大吉' || STAR.ji === '吉') pros.push('九星'+g.star+'为吉星，气势足');
+  if (SHEN.ji === '大吉' || SHEN.ji === '吉') pros.push('八神'+g.shen+'为吉神，背后有人或有利因素');
+  if (!pros.length) pros.push('至少方位是明确的：着力点在'+g.dir+'方，谈事见人往那边走');
+  if (bad) cons.push('用神临凶门（'+g.men+'）：'+esc(MEN.key));
+  if (STAR.ji === '凶') cons.push('九星'+g.star+'偏凶，事情底气不足');
+  if (SHEN.ji === '凶') cons.push('八神'+g.shen+'偏凶，背后有暗耗或口舌');
+  if (!cons.length) cons.push('用神宫没有明显凶象，风险主要来自时机和执行');
+
+  return likelyCard({ title:'最可能的结果', verdict:verdict, tag:tag, prob:prob,
+    probText:'（用神宫：'+g.name+'宫 '+g.men+' + '+g.star+' + '+g.shen+'）',
+    reasons:reasons, pros:pros, cons:cons,
+    condition:'奇门是"问事"的盘，同一个问题换一个时辰起局结果就会变。如果这件事拖了几天还没动，' +
+      '建议在打算真正出手的那个时辰重新起一局再看一次 —— 那一局才是你真正办事时的天时。' });
 }
 
 function qmAdvice(p, yong, byG){
