@@ -1,13 +1,14 @@
 /* 离线缓存：首次打开后即可断网使用。
    策略：本地有缓存就直接用（离线优先）；同时后台静默拉一次网络版，
    这样以后页面更新了，你下次联网打开就能自动拿到新版，不必手动清缓存。 */
-var CACHE = 'ziwei-liuren-v3';
+var CACHE = 'ziwei-liuren-v4';
 var FILES = [
   './', './index.html', './manifest.json',
   './js/calendar_data.js', './js/calendar.js',
   './js/ziwei.js', './js/liuren.js',
   './js/ziwei_read.js', './js/liuren_read.js',
-  './js/xiaoliuren.js', './js/meihua.js', './js/qimen.js',
+  './js/xiaoliuren.js', './js/meihua.js',
+  './js/yijing_data.js', './js/liuyao.js', './js/qimen.js',
   './icon-180.png', './icon-192.png', './icon-512.png'
 ];
 
