@@ -204,6 +204,26 @@ table.ketable tr:last-child td{border-bottom:0}
 .st-tag b{flex:0 0 auto;width:21px;height:21px;border-radius:11px;background:var(--gold);
   color:#1a1428;font-size:12px;display:flex;align-items:center;justify-content:center}
 .st-tag span{font-size:11px;color:var(--dim2);font-weight:400}
+/* 折叠区（默认关闭） */
+details.fold{margin:10px 0;border:1px solid #3a3260;border-radius:12px;background:rgba(124,92,200,.05);overflow:hidden}
+details.fold>summary{cursor:pointer;padding:9px 13px;font-size:13.5px;color:var(--gold);list-style:none;
+  display:flex;align-items:center;gap:7px;user-select:none}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:'▸';color:var(--dim2);font-size:11px;transition:transform .15s}
+details.fold[open]>summary::before{transform:rotate(90deg)}
+details.fold>summary:hover{background:rgba(124,92,200,.10)}
+details.fold .foldbody{padding:2px 13px 12px;font-size:13px;line-height:1.75;color:var(--txt)}
+details.fold .foldbody h3{font-size:13px;color:var(--gold2);margin:11px 0 5px;padding-bottom:3px;border-bottom:1px dashed #3a3260}
+details.fold .foldbody ul{margin:4px 0 6px;padding-left:17px}
+details.fold .foldbody li{margin-bottom:3px}
+details.fold .foldbody .gt{color:#c9b8f0;font-style:normal}
+details.fold .foldbody .src{font-size:11.5px;color:var(--dim2);margin-top:6px}
+.mxgrid{display:grid;grid-template-columns:1fr;gap:0}
+.mxrow{display:flex;gap:9px;padding:5px 0;border-bottom:1px dashed #2f2a4a;align-items:flex-start}
+.mxrow:last-child{border-bottom:none}
+.mxrow .k{flex:0 0 74px;color:var(--gold2);font-size:12.5px}
+.mxrow .v{flex:1;font-size:13px}
+
 /* 继续询问 */
 .askagain{margin:18px 0 6px;padding:13px;border:1px solid #3a3260;border-radius:14px;
   background:linear-gradient(180deg,rgba(124,92,200,.10),rgba(124,92,200,.02))}
@@ -708,6 +728,7 @@ nav button.on{color:var(--gold)}
 <script src="js/yijing_data.js"></script>
 <script src="js/liuyao.js"></script>
 <script src="js/qimen.js"></script>
+<script src="js/guji_text.js"></script>
 <script src="js/nihaixia_miao.js"></script>
 <script src="js/nihaixia.js"></script>
 <script>
@@ -1385,6 +1406,99 @@ function zwMingGe(c){
   return out;
 }
 
+/* ================================================================
+   面相 · 手相 · 气色 对照表 —— 依据《天纪》讲义（斗数论六亲偏弱，须配面相参断）
+   默认折叠，点标题展开
+   ================================================================ */
+var MX_PALACE = [
+  ["命宫","印堂（两眉之间）","印堂开阔明亮主气度大；窄暗主心窄、易钻牛角尖"],
+  ["财帛","鼻子中段","男鼻主财帛与事业：狮鼻（肉厚）、悬胆鼻（细长鼻头有肉）主富；鼻小颧大＝财务经理之相"],
+  ["官禄","中正（前额正中上方）","中正饱满主功名；塌陷主仕途多阻"],
+  ["夫妻","眼角奸门","鱼尾纹 2~3 条向上＝夫妻感情好、对配偶满意；纹向下＝生离；有杂纹暗纹发黑＝死别"],
+  ["子女","泪堂（眼下）","眼袋饱满黄润＝对子女满意；左眼袋有纹＝为儿子操心；右眼袋发黑＝女儿之事烦心"],
+  ["田宅","眉眼之间","眉眼之间宽厚主祖业与置产；此处见杂纹主田宅有官非"],
+  ["迁移","天仓（太阳穴）","天仓饱满主外出得利；天仓陷且色黑＝一世辛劳，亦主气血两虚"],
+  ["交友","下巴（地阁）","下巴宽大主手下多、人缘广；下巴尖削主孤"],
+  ["父母","日角主父、月角主母（左右额角）","日月角明亮＝父母双全；两角皆平＝父母缘薄；一高一低＝庶出或螟蛉"],
+  ["兄弟","眉毛（左主兄弟、右主姐妹）","眉毛乱＝兄弟不和；断眉＝兄弟夭折；浓眉＝独子"],
+  ["福德","（看气色与神态）","气色黄润主喜；枯焦＝事已发生；枯黄＝两周内发生；暗黑如蒙尘＝近期有劫杀或想不开"],
+  ["观人","眼神与眼形","眼神正、眼珠正＝好人；眼珠闪动＝心术不定；三角眼、四白眼＝心狠；眼睛细长、黑珠多白少＝大智"],
+];
+var MX_OTHER = [
+  ["权（化权）","颧骨","颧大有肉＝能掌权；颧大而皮骨相连＝孤权，一辈子孤单"],
+  ["科（化科）","天柱纹（手掌事业线）","天柱纹清晰＝科甲、才艺、专业专长；男左女右看"],
+  ["武职","犀牛骨（眉骨后方凸起）","眉骨突出主有权，军警武职多见此骨"],
+  ["无科无权","眉毛短小 + 眼睛大","眉毛短短一点、眼睛大大的＝师爷之相，适合参谋顾问，不宜独当一面"],
+  ["财","男手软如棉、女手见筋见骨","男人手软如棉多福；女人手干枯见骨＝旺夫之相"],
+  ["想不开","五官紧凑","五官挤在一起、脸大五官皱缩＝一辈子想不开；五官开阔分布舒展＝大富之相"],
+  ["富贵","额头开阔、眉毛居额眼正中","眉头高、眉毛在额与眼之间＝有担当有魄力，非富即贵"],
+  ["贵人","耳","耳不在大，正面不见耳＝贵；耳朵比眼睛高＝非富即贵"],
+  ["生时校正","发旋（从后脑看）","子午卯酉＝偏左或居中；寅申巳亥＝偏右；辰戌丑未＝双旋或更多"],
+];
+var MX_XIAOREN = [
+  "讲话语无伦次、颠三倒四，心生毒计",
+  "眼珠一直闪动，心术不好",
+  "四白眼（黑珠小、四面见白）主横死",
+  "三角眼",
+  "左边眉毛有一道直纹向上＝两面三刀，正面说好话、背后说坏话",
+  "观察男性时眉毛立起对着你＝刚做完亏心事"
+];
+
+function zwMianXiang(){
+  var h = '<details class="fold"><summary>面相 · 手相 · 气色 对照表（《天纪》参断用）</summary><div class="foldbody">';
+  h += '<div class="note">《天纪》原则：斗数论<b>六亲</b>（兄弟、父母、夫妻、子女不太精准），要<b>配合面相</b>同参；命盘看格局，面相看当下。</div>';
+  h += '<h3>十二宫对应面相部位</h3><div class="mxgrid">';
+  for (var i = 0; i < MX_PALACE.length; i++){
+    h += '<div class="mxrow"><div class="k">' + esc(MX_PALACE[i][0]) + '</div><div class="v"><b>' + esc(MX_PALACE[i][1]) + '</b><br>' + esc(MX_PALACE[i][2]) + '</div></div>';
+  }
+  h += '</div>';
+  h += '<h3>四化与其他特征</h3><div class="mxgrid">';
+  for (var j = 0; j < MX_OTHER.length; j++){
+    h += '<div class="mxrow"><div class="k">' + esc(MX_OTHER[j][0]) + '</div><div class="v"><b>' + esc(MX_OTHER[j][1]) + '</b><br>' + esc(MX_OTHER[j][2]) + '</div></div>';
+  }
+  h += '</div>';
+  h += '<h3>小人的相（观人术）</h3><ul>';
+  for (var k = 0; k < MX_XIAOREN.length; k++) h += "<li>" + esc(MX_XIAOREN[k]) + "</li>";
+  h += '</ul>';
+  h += '<div class="note">《天纪》观人术：<b>君子难进易出，庸才易进易出，小人易进难出</b>。朋友宫多耗星或化忌，合伙必败。</div>';
+  h += '<div class="src">依据：倪海厦《天纪》讲义（面相、气色、手相章节）。面相仅供参考，不能替代当面观察。</div>';
+  h += '</div></details>';
+  return h;
+}
+
+/* 古籍原文折叠区（默认关闭）
+   本宫主星原文取《紫微斗數全書》卷一「諸星問答論」；
+   总格原文取卷一「太微賦」「形性賦」。 */
+function zwGujiFold(mains, opts){
+  opts = opts || {};
+  if (typeof GUJI_STAR === "undefined") return "";
+  var h = "", cnt = 0;
+  for (var i = 0; i < mains.length; i++){
+    var st = mains[i];
+    var txt = GUJI_STAR[st];
+    if (!txt) continue;
+    if (!cnt) h += '<details class="fold"><summary>古籍原文（《紫微斗數全書·諸星問答論》）</summary><div class="foldbody">';
+    cnt++;
+    h += '<h3>' + esc(st) + '</h3><div class="gt">' + esc(txt) + '</div>';
+  }
+  if (cnt){
+    h += '<div class="src">原文取自明《紫微斗數全書》卷一「諸星問答論」（公共领域古籍）。古人行文简奥，与上面的白话断语对照看即可。</div>';
+    h += '</div></details>';
+  }
+  return h;
+}
+
+/* 总格古籍原文（太微賦 + 形性賦节录） */
+function zwGujiFu(){
+  if (typeof GUJI_FU === "undefined") return "";
+  var h = '<details class="fold"><summary>古籍原文（《紫微斗數全書·太微賦 / 形性賦》）</summary><div class="foldbody">';
+  if (GUJI_FU["太微賦"]) h += '<h3>太微賦</h3><div class="gt">' + esc(GUJI_FU["太微賦"]) + '</div>';
+  if (GUJI_FU["形性賦"]) h += '<h3>形性賦</h3><div class="gt">' + esc(GUJI_FU["形性賦"]) + '</div>';
+  h += '<div class="src">原文取自明《紫微斗數全書》卷一（公共领域古籍）。太微賦讲断法总则，形性賦讲各星主何相貌性情。</div>';
+  h += '</div></details>';
+  return h;
+}
+
 /* 紫微核心：三方四正总览（放在「命盘总述」之后） */
 function c2m(cls){ return cls === "good" ? "◎ " : (cls === "bad" ? "△ " : "○ "); }
 function zwSanfang(c, read, age){
@@ -1426,6 +1540,7 @@ function zwSanfang(c, read, age){
     }
   }
   h += '<div class="note">古法：「吉星要拱才算真吉，凶星要冲才算真凶」。单看一宫易误判 —— 本宫弱但对宫强、三合有吉星来拱，往往反而成事。</div>';
+  if (typeof zwMianXiang === "function") h += zwMianXiang();
   h += "</div>";
   return h;
 }
@@ -1616,6 +1731,11 @@ function zwReading(c, read, age){
     h += '<span class="sc" style="color:'+col+'">'+sc+'</span>';
     h += '</div><p>'+esc(pr.reading)+'</p>';
     if (pr.advice) h += '<div class="ad">建议：'+esc(pr.advice)+'</div>';
+    /* 该宫主星的古籍原文（默认折叠） */
+    if (typeof zwGujiFold === 'function'){
+      var cp = c.palaces[k];
+      if (cp && cp.mainStars && cp.mainStars.length) h += zwGujiFold(cp.mainStars);
+    }
     h += '</div>';
   }
   h += '</div>';
