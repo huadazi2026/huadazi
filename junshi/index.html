@@ -505,11 +505,15 @@
   </div>
 </div>
 
-<script src="version.js"></script>
+<!-- 版本号：必须同步拿到、而且每次绕过缓存。
+     踩过的坑：原来用 <script src="version.js">，浏览器会缓存它 ——
+     页面启动读到的是旧 build 号，而检查更新时带时间戳读到的是新号，
+     两边永远对不上，就无限重载了。 -->
+<script>document.write('<script src="version.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.8";
+const APP_VER = "v3.9";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -1529,12 +1533,23 @@ async function fetchBuild(force){
   if(!m) throw new Error("版本文件格式不对");
   return m[1];
 }
+// 循环保护：记住"我刚为哪个版本重载过"。
+// 如果重载完还是同一个版本，说明缓存没刷掉 —— 那就别再重载了，
+// 不然就是无限闪。宁可停在旧版，也不能让页面自己刷自己。
+const LS_RELOAD = "junshi_reloaded_for";
+let reloadGuard = "";
+try{ reloadGuard = localStorage.getItem(LS_RELOAD) || ""; }catch(e){}
 function reloadWith(build){
+  const key = String(build || Date.now());
+  if(key === reloadGuard) return false;          // 为这个版本已经重载过了
+  reloadGuard = key;                             // 内存里也要更新！
+  try{ localStorage.setItem(LS_RELOAD, key); }catch(e){}
   try{
     const u = new URL(location.href);
-    u.searchParams.set("b", build || String(Date.now()));
+    u.searchParams.set("b", key);
     location.replace(u.toString());
   }catch(e){ location.reload(); }
+  return true;
 }
 // 手动检查（会明确告诉你在检查）
 async function checkUpdate(){
@@ -1551,8 +1566,9 @@ async function checkUpdate(){
   }
   if(now !== APP_BUILD){
     if(t) t.remove();
-    toast("发现新版本，正在更新…", true);
-    setTimeout(()=>reloadWith(now), 500);
+    if(!reloadWith(now)){
+      toast("已经试过更新到这一版了，但浏览器还在用缓存。\n清一下 Safari 缓存，或者换个网址打开。", true);
+    }
   }else{
     uploadOk = false;
     if(t) t.remove();
@@ -1561,16 +1577,26 @@ async function checkUpdate(){
 }
 // 后台静默检查：只在回到前台时看一眼，不打扰
 let chkBusy = false;
+let lastAutoReload = 0;
+const AUTO_COOLDOWN = 60000;          // 一分钟内最多自动更新一次
 async function silentCheck(){
   if(chkBusy || document.visibilityState !== "visible") return;
   chkBusy = true;
   try{
     const now = await fetchBuild(true);
     if(now !== APP_BUILD){
-      toast("有新版本，正在更新…", true);
-      setTimeout(()=>reloadWith(now), 700);
+      // 冷却期没过，或者已经为这个版本重载过 —— 都不要再动
+      if(Date.now() - lastAutoReload < AUTO_COOLDOWN) return;
+      if(String(now) === reloadGuard) return;
+      lastAutoReload = Date.now();
+      if(reloadWith(now)) toast("发现新版本，正在更新…", true);
+      // 如果 reloadWith 返回 false（已经试过了），就当没这回事，不闪
     }else{
       APP_BUILD = now;                 // 同版本，顺手对齐
+      if(reloadGuard){                 // 已经刷到最新了，清掉标记
+        reloadGuard = "";
+        try{ localStorage.removeItem(LS_RELOAD); }catch(e){}
+      }
     }
   }catch(e){ /* 静默失败，不打扰 */ }
   finally{ chkBusy = false; }
