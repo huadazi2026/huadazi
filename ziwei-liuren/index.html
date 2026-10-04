@@ -205,34 +205,46 @@ table.ketable tr:last-child td{border-bottom:0}
   color:#1a1428;font-size:12px;display:flex;align-items:center;justify-content:center}
 .st-tag span{font-size:11px;color:var(--dim2);font-weight:400}
 .ic svg{display:block;width:1em;height:1em}
-/* ===== 天纪格式盘面 ===== */
-.tp-wrap{background:#1c1830;border:1px solid #342c52;border-radius:12px;padding:8px;overflow-x:auto}
-.tp-grid{display:grid;grid-template-columns:repeat(4,minmax(132px,1fr));
-  grid-template-rows:repeat(4,minmax(132px,auto));gap:1px;background:#342c52;
-  border:1px solid #342c52;border-radius:8px;overflow:hidden;min-width:560px}
-.tp-cell{background:#1c1830;padding:7px 8px;display:flex;flex-direction:column;justify-content:space-between;min-height:132px}
-.tp-void{background:#181428}
-.tp-hole{background:#221c3a}
-.tp-ming{background:#241d3d}
+/* ===== 天纪格式盘面（自适应宽度，配色沿用 App 主题）===== */
+.tp-wrap{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;overflow:hidden}
+.tp-grid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(4,minmax(96px,auto));gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:11px}
+.tp-cell{background:var(--card2);padding:5px 5px;display:flex;flex-direction:column;
+  justify-content:space-between;min-height:104px;position:relative;z-index:2;overflow:hidden}
+.tp-void{background:var(--card)}
+.tp-hole{background:var(--card2)}
+.tp-ming{background:rgba(217,178,106,.10);box-shadow:inset 0 0 0 1px rgba(217,178,106,.45)}
 .tp-stars{flex:1}
-.tp-sr{display:flex;gap:6px;line-height:1.5}
-.tp-a{flex:0 0 44%;white-space:nowrap}
-.tp-b{flex:1;white-space:nowrap;color:#cfc8e8;overflow:hidden;text-overflow:ellipsis}
-.tp-a b{color:#efe9ff;font-weight:600}
-.tp-a i,.tp-b i{font-style:normal;color:#f0a3a3;margin-left:2px;font-size:11.5px}
-.tp-h{font-style:normal;font-size:10.5px;padding:0 2px;border-radius:3px;margin-left:3px;color:#12101c}
-.tp-h1{background:#6fd39a}.tp-h2{background:#7fb4f0}.tp-h3{background:#e8c97a}.tp-h4{background:#e08a8a}
-.tp-mid{margin-top:5px;text-align:center}
-.tp-gz{font-size:13.5px;color:#e8c97a;letter-spacing:1px}
-.tp-sha{display:block;font-size:11px;color:#9a92b8;margin-top:2px}
-.tp-foot{display:flex;justify-content:space-between;align-items:baseline;
-  border-top:1px dashed #342c52;margin-top:4px;padding-top:3px;font-size:11.5px;color:#b8b0d4}
-.tp-pn{color:#e8c97a}
-.tp-center{grid-area:2/2/4/4;background:#221c3a;padding:12px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
-.tp-cl{font-size:13.5px;color:#efe9ff}
-.tp-cl2{font-size:12.5px;color:#b8b0d4}
-.tp-cl2 b{color:#e8c97a}
+.tp-sr{display:flex;gap:3px;line-height:1.42}
+.tp-a{flex:0 0 52%;white-space:nowrap;overflow:hidden}
+.tp-b{flex:1;white-space:nowrap;color:var(--txt);opacity:.8;overflow:hidden;text-overflow:ellipsis}
+.tp-a b{color:var(--txt);font-weight:600}
+.tp-a i,.tp-b i{font-style:normal;color:var(--bad);margin-left:1px;font-size:10px}
+.tp-h{font-style:normal;font-size:9px;padding:0 1px;border-radius:3px;margin-left:2px;color:#12101c}
+.tp-h1{background:var(--good)}.tp-h2{background:var(--info)}.tp-h3{background:var(--gold)}.tp-h4{background:var(--bad)}
+.tp-mid{margin-top:3px;text-align:center}
+.tp-gz{font-size:12px;color:var(--gold);letter-spacing:.5px}
+.tp-sha{display:block;font-size:9.5px;color:var(--dim);margin-top:1px}
+.tp-foot{display:flex;justify-content:space-between;align-items:baseline;gap:2px;
+  border-top:1px dashed var(--line);margin-top:3px;padding-top:2px;font-size:9.5px;color:var(--dim)}
+.tp-pn{color:var(--gold)}
+.tp-center{grid-area:2/2/4/4;background:var(--card);padding:8px 5px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;
+  position:relative;z-index:2}
+.tp-cl{font-size:11.5px;color:var(--txt)}
+.tp-cl2{font-size:10.5px;color:var(--dim)}
+.tp-cl2 b{color:var(--gold)}
+.tp-lines{position:absolute;left:7px;top:7px;width:calc(100% - 14px);height:calc(100% - 14px);z-index:3;pointer-events:none}
+.tp-lines line{stroke:var(--gold);stroke-width:.5;opacity:.55}
+/* 屏宽较窄时再缩一点字号，保证四列放得下 */
+@media(max-width:400px){
+  .tp-grid{font-size:10px}
+  .tp-cell{min-height:96px;padding:4px}
+  .tp-gz{font-size:11px}
+  .tp-a i,.tp-b i{font-size:9px}
+  .tp-cl{font-size:11px}.tp-cl2{font-size:10px}
+}
 /* 盘面样式切换 */
 .zwview{display:flex;gap:6px;align-items:center;margin:0 0 10px;font-size:12.5px;color:var(--dim2)}
 .zwview button{border:1px solid #3a3260;background:transparent;color:var(--dim);border-radius:8px;
@@ -879,9 +891,16 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v30 · 2026-10-05";
+var APP_BUILD = "v31 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v30", "这次的更新", [
+  ["v31", "这次的更新", [
+    "天纪盘的配色改成跟页面一致（原来盘面偏黑，跟卡片底色不一致）",
+    "修正：十二宫位置错乱 —— 原来网格靠自动排布，被中间信息栏的跨格打乱，导致第 2 行只排到 1 格、宫位整体下移；改成每格显式定位",
+    "修正：盘比屏幕宽、右边被截掉（申/酉/戌/寅/亥 看不到），改成自适应宽度",
+    "星的左右分列改成与倪海厦软件一致：左列＝大星（十四主星＋六吉六煞，带庙旺），右列＝小星（杂曜）",
+    "补上三方四正的连线（本宫↔对宫、三合两宫↔各自对宫）"
+  ]],
+  ["v30", "更早", [
     "底栏图标换了四个：紫微＝北斗七星、小六壬＝手掌、六爻＝两枚铜钱、奇门＝太极图",
     "四个图标都改成同一套线条风（原来小六壬是彩色 emoji 手掌，跟其他图标不统一）"
   ]],
