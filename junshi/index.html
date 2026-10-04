@@ -13,8 +13,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<title>军师</title>
-<style>
+<title>军师</title><style>
   :root{
     --bg:#0f1117; --panel:#171a23; --panel2:#1e222d; --line:#2b303d;
     --ink:#e6e8f0; --sub:#8f96a8; --dim:#5d6478;
@@ -400,6 +399,11 @@
       <button id="btnExport">导出当前</button>
       <button id="btnExportAll">导出全部</button>
     </div>
+    <div class="hint" style="margin-top:14px">
+      当前版本：<b id="statVer">…</b><br>
+      手机拿到的是旧版时，标题栏和这里都会显示旧版本号 —— 那就把页面下拉刷新一下，
+      或者等十分钟（GitHub 会给页面加 10 分钟缓存，这个改不了）。
+    </div>
     <div class="row">
       <button class="danger" id="btnClear">清空当前对话</button>
     </div>
@@ -414,6 +418,8 @@
 
 <script>
 "use strict";
+// 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
+const APP_VER = "v2.5";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -655,7 +661,7 @@ function renderAll(){
   const c = active();
   convs.forEach(autoTitle);           // 历史数据/旧版本升上来的对话补齐标题
   saveSoon();
-  $("ttl").textContent = (c && c.title) ? c.title : "军师";
+  $("ttl").textContent = (c && c.title) ? c.title : "军师 " + APP_VER;
   renderChat();
   renderHist();
 }
@@ -1539,6 +1545,7 @@ function confirmLeave(){
   return confirm("设置里有改动还没保存，就这么走？\n（不保存的话，人设和背景资料的改动会丢）");
 }
 function statLine(){
+  if($("statVer")) $("statVer").textContent = APP_VER;
   $("statPersona").textContent = "　当前 " + persona.length + " 字";
   $("statCtx").textContent = "　当前 " + ctxText.length + " 字";
   let used = 0;
