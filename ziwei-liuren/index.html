@@ -1137,16 +1137,132 @@ var H_CS = {
   "绝":"元气最低的一段，务必节劳、定期检查", "胎":"调养起步期", "养":"适合慢慢养回来"
 };
 
+/* ================================================================
+   三方四正：看任何一宫，都要连三合两宫 + 对宫一起看
+   本宫=事  对宫=它的对面/外力  三合两宫=帮它的两条线（相隔四宫）
+   依据：明《紫微斗數全書》「三方拱會」「合照」「沖」诸例
+   ================================================================ */
+var ZW_MAIN14 = ["紫微","天机","太阳","武曲","天同","廉贞","天府","太阴","贪狼","巨门","天相","天梁","七杀","破军"];
+var ZW_JI6   = ["左辅","右弼","文昌","文曲","天魁","天钺","禄存","天马"];
+var ZW_SHA6  = ["擎羊","陀罗","火星","铃星","地空","地劫"];
+var ZW_SIHUA = ["化禄","化权","化科","化忌"];
+
+/* 三方四正：返回四个宫的索引（本、三合×2、对） */
+function zwTriadIdx(i){ return [i, (i+4)%12, (i+8)%12, (i+6)%12]; }
+function zwPalaceNames(i){
+  var tri = zwTriadIdx(i);
+  return { ben: tri[0], he1: tri[1], he2: tri[2], dui: tri[3] };
+}
+/* 汇总三方四正的信息 */
+function zwTriad(c, idx){
+  var tri = zwTriadIdx(idx);
+  var out = { idx:idx, names:[], mains:[], ji:[], sha:[], hua:{}, huaList:[], empty:false, zhiName:"" };
+  var p0 = c.palaces[tri[0]];
+  out.zhiName = p0.zhiName;
+  out.palaceName = p0.name;
+  for (var k = 0; k < tri.length; k++){
+    var pp = c.palaces[tri[k]];
+    out.names.push(pp.zhiName + "(" + pp.name + ")");
+    var ms = pp.mainStars || [];
+    if (k === 0 && !ms.length) out.empty = true;
+    for (var a = 0; a < ms.length; a++) out.mains.push({ star:ms[a], from:pp.zhiName, ben:(k===0), dui:(k===3) });
+    for (var b = 0; b < (pp.stars || []).length; b++){
+      var st = pp.stars[b];
+      if (ZW_JI6.indexOf(st) >= 0) out.ji.push(st + "@" + pp.zhiName);
+      if (ZW_SHA6.indexOf(st) >= 0) out.sha.push(st + "@" + pp.zhiName);
+    }
+    for (var q = 0; q < (pp.hua || []).length; q++){
+      var hu = pp.hua[q];
+      if (hu && hu.hua){
+        out.huaList.push(hu.star + hu.hua + "@" + pp.zhiName);
+        if (hu.hua === "化忌") out.hua.ji = (out.hua.ji || 0) + 1;
+        if (hu.hua === "化禄") out.hua.lu = (out.hua.lu || 0) + 1;
+        if (hu.hua === "化权") out.hua.quan = (out.hua.quan || 0) + 1;
+        if (hu.hua === "化科") out.hua.ke = (out.hua.ke || 0) + 1;
+      }
+    }
+  }
+  return out;
+}
+
+/* 格局识别（只做证据明确的几条） */
+function zwGeju(c, t){
+  var names = t.mains.map(function(m){ return m.star; });
+  var set = {};
+  for (var i = 0; i < names.length; i++) set[names[i]] = 1;
+  var G = [];
+  var shaAll = {};
+  for (var s2 = 0; s2 < t.sha.length; s2++) shaAll[t.sha[s2].split("@")[0]] = 1;
+  var jiAll = {};
+  for (var j2 = 0; j2 < t.ji.length; j2++) jiAll[t.ji[j2].split("@")[0]] = 1;
+  if (shaAll["擎羊"] && shaAll["陀罗"]) G.push({ n:"羊陀同会三方", good:false, why:"擎羊陀罗同会三方，刑伤、拖延、旧疾反复的力道加倍" });
+  if (shaAll["火星"] && shaAll["铃星"]) G.push({ n:"火铃同会三方", good:false, why:"火铃同会，事情来得急、起伏大，容易冲动出错" });
+  if (shaAll["地空"] && shaAll["地劫"]) G.push({ n:"空劫同会三方", good:false, why:"地空地劫同会，成而復失、投入容易落空" });
+  if (t.hua.ji >= 2) G.push({ n:"双化忌", good:false, why:"三方四正里有两个化忌，这一环是整张盘最卡的地方" });
+  if (t.hua.lu && t.hua.quan && t.hua.ke) G.push({ n:"禄权科会", good:true, why:"禄、权、科三化齐会三方四正，这一环是命里的强项" });
+  if (set["紫微"] && (set["天府"])) G.push({ n:"紫府同会", good:true, why:"紫微天府同会三方，稳重、格局大、能扛事" });
+  if (set["左辅"] && set["右弼"]) G.push({ n:"辅弼拱", good:true, why:"左辅右弼同拱，有人帮、有后手" });
+  var jiCnt = 0, jiNames = [];
+  var JILIST = ["左辅","右弼","文昌","文曲","天魁","天钺","禄存","天马"];
+  for (var jj = 0; jj < JILIST.length; jj++){ if (jiAll[JILIST[jj]]){ jiCnt++; jiNames.push(JILIST[jj]); } }
+  if (jiCnt >= 3) G.push({ n:"吉星拱会", good:true, why:"三方四正会到 " + jiNames.join("、") + " 共 " + jiCnt + " 颗吉星，是实打实的助力" });
+  else if (jiCnt === 2) G.push({ n:"吉星二颗", good:true, why:"三方四正会到 " + jiNames.join("、") + "，有帮但不算厚" });
+  else if (jiCnt === 0) G.push({ n:"不见吉星", good:false, why:"三方四正一颗吉星都没有 —— 这一环只能靠自己硬做" });
+  if (t.empty) G.push({ n:"本宫无主星", good:null, why:"本宫无主星，借对宫看 —— 事情不定，随外力摇摆" });
+  return G;
+}
+
+/* 紫微核心：三方四正总览（放在「命盘总述」之后） */
+function zwSanfang(c, read, age){
+  var P = {};
+  for (var i = 0; i < c.palaces.length; i++) P[c.palaces[i].name] = c.palaces[i];
+  var h = '<div class="card"><h2>三方四正（看盘的主干）</h2>';
+  h += '<div class="note">紫微看任何一宫，都不是只看那一宫 —— 要连它<b>三合的两宫</b>（相隔四宫）和<b>对宫</b>（相隔六宫）一起看，合称「三方四正」。本宫是「事」，对宫是「它的对面」，三合两宫是「帮它的两条线」。</div>';
+  var order = ["命宫","官禄","财帛","夫妻","疾厄","福德"];
+  for (var k = 0; k < order.length; k++){
+    var nm = order[k];
+    var pp = P[nm];
+    if (!pp) continue;
+    var t = zwTriad(c, pp.zhi);
+    var mainTxt = t.mains.length ? t.mains.map(function(m){ return m.star + (m.ben ? "(本)" : (m.dui ? "(对)" : "")); }).join("、") : "无主星";
+    h += '<div class="palread"><div class="ph"><span class="n">' + esc(nm) + '</span><span class="z">' + esc(t.names.join("　")) + '</span></div>';
+    h += '<p style="font-size:13px;margin:4px 0">三方四正主星：<b>' + esc(mainTxt) + '</b></p>';
+    var extra = [];
+    if (t.huaList.length) extra.push("化曜：" + t.huaList.join("、"));
+    if (t.ji.length) extra.push("吉星：" + t.ji.join("、"));
+    if (t.sha.length) extra.push("煞星：" + t.sha.join("、"));
+    if (extra.length) h += '<div class="note">' + esc(extra.join("　｜　")) + '</div>';
+    var gs = zwGeju(c, t);
+    for (var g = 0; g < gs.length; g++){
+      var cls2 = gs[g].good === true ? "good" : (gs[g].good === false ? "bad" : "");
+      h += '<div class="ad">' + (cls2 === "good" ? "◎ " : (cls2 === "bad" ? "△ " : "○ ")) + '<b>' + esc(gs[g].n) + '</b>：' + esc(gs[g].why) + '</div>';
+    }
+    h += "</div>";
+  }
+  h += '<div class="note">古法：「吉星要拱才算真吉，凶星要冲才算真凶」。单看一宫易误判 —— 本宫弱但对宫强、三合有吉星来拱，往往反而成事。</div>';
+  h += "</div>";
+  return h;
+}
+
 function zwHealth(c, read, age){
   var P = {};
   for (var i = 0; i < c.palaces.length; i++) P[c.palaces[i].name] = c.palaces[i];
   var ji = P["疾厄"], fu = P["福德"], ming = P["命宫"];
   if (!ji) return "";
   var h = '<div class="card"><h2>体质与健康倾向</h2>';
-  h += '<div class="note">按《紫微斗數全書》「疾厄宫」一路看：命盘断的是<b>体质倾向</b>，不是诊断。哪里不舒服，请找医生。</div>';
+  h += '<div class="note">按《紫微斗數全書》看疾厄：<b>疾厄宫 + 三合（兄弟、田宅）+ 对宫（父母）</b>合起来看，不是只看疾厄一宫。命盘断的是<b>体质倾向</b>，不是诊断 —— 哪里不舒服请找医生。</div>';
 
   /* 一、疾厄宫主星 → 体质基调 */
-  var mains = ji.mainStars || [];
+  /* 三方四正：本宫(疾厄)定基调，三合/对宫的星作补充 */
+  var tri = zwTriad(c, ji.zhi);
+  var benStars = [], fuStars = [];
+  for (var mi = 0; mi < tri.mains.length; mi++){
+    var mm2 = tri.mains[mi];
+    if (mm2.ben) benStars.push(mm2.star);
+    else fuStars.push(mm2.star + (mm2.dui ? "(对宫)" : "(三合)"));
+  }
+  /* 基调只看本宫；本宫空则借对宫 */
+  var mains = benStars.length ? benStars : tri.mains.filter(function(x){ return x.dui; }).map(function(x){ return x.star; });
   var wxCount = {};
   var starTxt = [];
   for (var m = 0; m < mains.length; m++){
@@ -1162,28 +1278,28 @@ function zwHealth(c, read, age){
       var info = H_WX[w2];
       if (info) parts.push(w2 + "（" + info.zang + "）");
     }
-    h += '<p style="font-size:13.5px">疾厄宫主星：<b>' + esc(starTxt.join("、")) + '</b></p>';
-    h += '<p style="font-size:13.5px">体质重点在：<b>' + esc(parts.join("、")) + '</b>。这一路是先天比较吃力的地方，也是你最该长期保养的方向。</p>';
+    h += '<p style="font-size:13.5px">疾厄宫主星：<b>' + esc(starTxt.join("、")) + '</b>' +
+      (benStars.length ? '' : '<span style="color:var(--dim2)">（本宫无主星，借对宫）</span>') + '</p>';
+    h += '<p style="font-size:13.5px">体质基调在：<b>' + esc(parts.join("、")) + '</b>。这是先天比较吃力的地方，也是最该长期保养的方向。</p>';
+    if (fuStars.length) h += '<div class="note">三方四正另见：' + esc(fuStars.join("、")) + ' —— 这些是来帮它或来冲它的，看吉凶看它们。</div>';
     /* 单一五行偏重时的提示 */
     var keys = Object.keys(wxCount);
     if (keys.length === 1){
       var w3 = keys[0], i3 = H_WX[w3];
       h += '<div class="ad">主星同属' + w3 + '，体质偏「' + w3 + '」：' + esc(i3.zang) + '这一路要留意，情志上忌「' + esc(i3.qing) + '」，体表看' + esc(i3.biao) + '。</div>';
     } else if (keys.length >= 2){
-      h += '<div class="ad">主星分属' + esc(keys.join("、")) + '两路以上：体质不算偏枯，但容易「这边好了那边出问题」，重在平衡，不宜偏补。</div>';
+      h += '<div class="ad">本宫主星分属' + esc(keys.join("、")) + '两路：体质不算偏枯，但容易「这边好了那边出问题」，重在平衡，不宜偏补。</div>';
     }
   }
 
   /* 二、煞星 */
   var shas = [];
-  for (var k = 0; k < (ji.stars || []).length; k++){
-    var st = ji.stars[k];
-    if (H_SHA[st]) shas.push(st + "：" + H_SHA[st]);
+  for (var k = 0; k < tri.sha.length; k++){
+    var st = tri.sha[k].split("@")[0];
+    if (H_SHA[st]) shas.push(st + "（" + tri.sha[k].split("@")[1] + "宫）：" + H_SHA[st]);
   }
-  if ((ji.hua || []).length){
-    for (var q = 0; q < ji.hua.length; q++){
-      if (ji.hua[q].indexOf("忌") >= 0) shas.push("化忌：" + H_SHA["化忌"]);
-    }
+  for (var q = 0; q < tri.huaList.length; q++){
+    if (tri.huaList[q].indexOf("化忌") >= 0) shas.push("化忌（" + tri.huaList[q].split("@")[1] + "宫）：" + H_SHA["化忌"]);
   }
   if (shas.length){
     h += '<h3>要特别留意的</h3><ul class="tight">';
@@ -1258,10 +1374,13 @@ function zwReading(c, read, age){
   for (var i=0;i<read.summary.length;i++) h += '<li>'+esc(read.summary[i])+'</li>';
   h += '</ul></div>';
 
-  /* 体质与健康（按疾厄宫推） */
+  /* 三方四正总览（看盘主干） */
+  h += zwSanfang(c, read, age);
+
+  /* 体质与健康（按疾厄宫三方四正推） */
   h += zwHealth(c, read, age);
 
-  /* 十二宫逐宫解读 */
+  /* 十二宫逐宫解读（每宫带三方四正一句） */
   h += '<div class="card"><h2>十二宫详解</h2>';
   for (var k=0;k<read.palaces.length;k++){
     var pr = read.palaces[k];
