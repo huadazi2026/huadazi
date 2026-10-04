@@ -41,6 +41,7 @@
     margin:0; background:var(--bg); color:var(--ink);
     font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
     display:flex; flex-direction:column;
+    /* 不给 height:100% —— 那会跟着 --app-h 一起缩，键盘弹起时反而露白 */
     height:100vh;                 /* 老浏览器兜底 */
     height:100dvh;                /* 支持 dvh 的用这个 */
     height:var(--app-h, 100dvh);  /* JS 用 visualViewport 量出来的真实高度（最准） */
@@ -508,7 +509,7 @@
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v3.6";
+const APP_VER = "v3.7";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -1366,72 +1367,101 @@ function confirmLeave(){
   return confirm("设置里有改动还没保存，就这么走？\n（不保存的话，人设和背景资料的改动会丢）");
 }
 /* ---------- 手机上收键盘 + 修底部留白 ---------- */
-// 为什么不能只靠 100dvh：iOS 键盘收起那一刻，dvh 会慢半拍才更新，
-// 中间那段时间底部就空出一条白带。visualViewport.height 是实时的，用它最稳。
+//
+// 上一版的做法：点空白后等 320ms 再修正高度、再滚到底。
+// 结果就是"点一下要愣一下"，而且等待期间留白明明白白摆在那儿 —— 反而更难看。
+//
+// 这一版改成事件驱动，一帧都不等：
+//   * 键盘弹起/收起时，visualViewport 会连续触发 resize，每帧都跟着改
+//   * 用 requestAnimationFrame 合并，同一帧里只算一次
+//   * 只读不写、不在 pointerdown 里做重活，避免打断点击响应
+//   * 滚回底部只在"你本来就在底部附近"时才做，不跟你抢滚动位置
+//
 (function(){
   const vv = window.visualViewport;
-  let lastH = 0;
-  function setH(h){
-    if(!h || Math.abs(h - lastH) < 1) return;
-    lastH = h;
-    document.documentElement.style.setProperty("--app-h", h + "px");
+  let shown = 0;       // 当前生效的高度
+  let want  = 0;       // 待应用的高度
+  let raf   = 0;
+
+  const cssVar = (h)=> document.documentElement.style.setProperty("--app-h", h + "px");
+
+  function apply(){
+    raf = 0;
+    if(want && want !== shown){ shown = want; cssVar(want); }
+    // iOS 有时会把整页往上顶，顶出一片空白 —— 拉回来
+    const y = vv ? (vv.offsetTop || 0) : window.scrollY;
+    if(y > 0) window.scrollTo(0, 0);
   }
-  function fix(){
+  // 合并到下一帧，避免键盘动画期间狂算布局
+  function schedule(){ if(!raf) raf = requestAnimationFrame(apply); }
+
+  // 键盘弹出时 vv.height 会明显小于 innerHeight。
+  // 只在两者接近（键盘没开）时才动高度 —— 键盘开着时页面高度不该被压矮。
+  function measure(){
     const layout = window.innerHeight;
     let h = vv ? vv.height : layout;
-    // 键盘弹出时 vv.height 会明显小于 innerHeight，这时不该把页面压矮
     if(h > layout) h = layout;
-    setH(h);
-    // iOS 有时候会把整页往上顶，顶出一片空白 —— 拉回来
-    if(vv && vv.offsetTop) window.scrollTo(0, 0);
-    if(!vv && window.scrollY) window.scrollTo(0, 0);
+    if(Math.abs(h - layout) > 24) return;   // 差得多 = 键盘开着，不动
+    want = h;
+    schedule();
   }
+
   if(vv){
-    vv.addEventListener("resize", fix);
-    vv.addEventListener("scroll", fix);
+    vv.addEventListener("resize", measure, {passive:true});
+    vv.addEventListener("scroll", schedule, {passive:true});
   }
-  window.addEventListener("resize", fix);
-  window.addEventListener("orientationchange", ()=>setTimeout(fix, 250));
-  // 输入框获得/失去焦点时也要重量一次（这是键盘开关最直接的信号）
-  document.addEventListener("focusin",  ()=>setTimeout(fix, 60));
-  document.addEventListener("focusout", ()=>setTimeout(fix, 60));
-  fix();
-  window.__vpFix = fix;
+  window.addEventListener("resize", measure, {passive:true});
+  window.addEventListener("orientationchange", ()=>setTimeout(measure, 200), {passive:true});
+  document.addEventListener("focusin",  measure, {passive:true});
+  // focusout 稍等一下：让 iOS 先把键盘动画走完
+  document.addEventListener("focusout", ()=>{ setTimeout(measure, 60); }, {passive:true});
+
+  measure();
+  window.__vpFix = measure;
 })();
 
 // 点空白处把键盘收起来。
-// 原来只有点"发送"才收，点别处不收 —— 想收键盘只能去按键盘自己的收起键。
+// pointerdown 里只干一件事：blur。别的都往后放，保证点击手感不拖。
 (function(){
-  // 这些地方点了不收键盘：要么是能打字的，要么是点了要干活的，
-  // 要么是内容本身（你可能想选中文字）。只有真正点"空白"才收。
+  // 这些地方点了不收键盘：能打字的、点了要干活的、以及内容本身（你可能想选字）
   const KEEP = "input, textarea, select, button, a, pre, code, mark, .bubble, " +
                ".acts, .hitem, .pchip, #pending, #quick, #emojiPanel, #lightbox, " +
                ".sheet, .imgs, #cmpTools, #drawer, #settings";
-  let dragging = false;
+  const chat = ()=> document.getElementById("chat");
+  // 记录"点下去之前"是不是贴着底部。松开时用它判断该不该跟着滚，
+  // 而不是无脑滚到底 —— 那样会跟你抢滚动位置，看着就卡。
+  let wasAtBottom = true;
+  let pending = false;
+
   document.addEventListener("pointerdown", e=>{
-    dragging = false;
+    pending = false;
     const t = e.target;
     if(!t || typeof t.closest !== "function") return;
     if(t.closest(KEEP)) return;
-    const known = t.closest("#chat, header, footer, #overlay, #drawer, #settings");
-    if(!known) return;                       // 只在主界面收，别的区域不动
-    dragging = true;
+    if(!t.closest("#chat, header, footer, #overlay, #drawer, #settings")) return;
+    const c = chat();
+    if(c) wasAtBottom = (c.scrollHeight - c.scrollTop - c.clientHeight) < 60;
+    pending = true;
     const a = document.activeElement;
+    // 只做这一件事，其余一律不做 —— 这是"丝滑"的关键
     if(a && a !== document.body && typeof a.blur === "function") a.blur();
-    if(document.body && document.body.focus) document.body.focus();
-  }, true);
-  // 点完空白顺手回到底部：收起键盘那一刻 dvh 还没更新，
-  // 光靠 CSS 会停在一个已经不存在的位置上，看着就像底部空了一块。
+  }, {capture:true, passive:true});
+
   document.addEventListener("pointerup", ()=>{
-    if(!dragging) return;
-    dragging = false;
-    if(typeof window.__vpFix === "function") window.__vpFix();
+    if(!pending) return;
+    pending = false;
+    // 等 iOS 把键盘动画走完（大约就是它自己那个时长），然后只做一次校正
     setTimeout(()=>{
-      if(typeof window.__vpFix === "function") window.__vpFix();
-      const c = document.getElementById("chat");
-      if(c) c.scrollTop = c.scrollHeight;
-    }, 320);
-  }, true);
+      measureNow();
+      if(wasAtBottom){
+        // 用即时滚动，别用平滑 —— 平滑在高度变化时会一顿一顿的
+        const c = chat();
+        if(c) c.scrollTop = c.scrollHeight;
+      }
+    }, 260);
+  }, {capture:true, passive:true});
+
+  function measureNow(){ if(typeof window.__vpFix === "function") window.__vpFix(); }
 })();
 
 /* ---------- 主题 ---------- */
