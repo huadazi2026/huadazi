@@ -372,7 +372,7 @@
     <div class="grp">
       <h2>🎤 朗读与语音</h2>
       <label>朗读嗓音（系统里的中文嗓音）—— 想要 <b>Siri 的声音</b>请看下面的 📢</label>
-      <select id="cfgVoice"></select>
+      <select id="cfgVoice" size="1"></select>
       <label>语速 <span id="statRate" class="stat"></span></label>
       <input type="range" id="cfgRate" min="0.6" max="1.8" step="0.05">
       <label>音调（调高一点更年轻、更“御姐”） <span id="statPitch" class="stat"></span></label>
@@ -911,9 +911,18 @@ let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null, ttsBtn = null,
 function ttsSupported(){ return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function"; }
 function zhVoices(){
   const vs = window.speechSynthesis.getVoices() || [];
-  // 只说中文的挑出来；localService 的离线也能用，排前面
-  return vs.filter(v=>/^zh/i.test(v.lang))
-           .sort((a,b)=> (b.localService?1:0) - (a.localService?1:0));
+  const seen = {};
+  const out = [];
+  vs.filter(v=>/^zh/i.test(v.lang)).forEach(v=>{
+    // iOS 会把同一个嗓音按不同语言变体报好几遍（都显示成“婷婷”），
+    // 按名字只留第一个，不然下拉框里全是重复项
+    const key = v.name;
+    if(seen[key]) return;
+    seen[key] = 1;
+    out.push(v);
+  });
+  // 离线（localService）的排前面：在线嗓音断网就哑了
+  return out.sort((a,b)=> (b.localService?1:0) - (a.localService?1:0));
 }
 function pickVoice(){
   const list = zhVoices();
@@ -966,20 +975,37 @@ function showVoiceDiag(allCount, zhCount, selected){
   const el = $("voiceDiag");
   if(!el) return;
   if(!ttsSupported()){ el.textContent = "这个浏览器不支持朗读。"; return; }
+  const list = zhVoices();
+  // 拿不到任何嗓音 —— 这才是 iOS 那个异步问题（有嗓音但没中文是另一回事）
   if(!allCount){
     el.innerHTML = "<b style='color:var(--danger)'>现在还没拿到嗓音列表。</b>这是 iPhone Safari 的常见情况——"
       + "它要等你<b>先用过一次朗读</b>才会把嗓音报出来。<br>"
-      + "点上面的「🔊 试听这个嗓音」或随便读一条，然后再点「🔍 重新扫描嗓音」。";
+      + "点上面的「▶ 试听这个嗓音」或随便读一条，然后再点「🔍 重新扫描嗓音」。";
     return;
   }
-  el.innerHTML = "这台设备一共报了 <b>" + allCount + "</b> 个嗓音，其中中文 <b>" + zhCount + "</b> 个。"
-    + "当前选中：<b>" + (selected || "没选") + "</b>"
-    + (zhCount <= 1
-        ? "<br><b style='color:var(--danger)'>只有 " + zhCount + " 个中文嗓音可用，所以没得挑。</b><br>"
-          + "<b>iPhone 装更多声音的办法：</b>设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 点右上角「下载」把想要的声音下下来"
-          + "（晓晓/晓伊这类需要下载，下完会多出可选项）。"
-          + "<b>装完回到这里点「🔍 重新扫描嗓音」</b>，或者把页面下拉刷新一次。"
-        : "");
+  // 去重后只剩老式离线嗓音时，把话说清楚：iPhone 上网页拿不到晓晓那种自然音
+  const natural = list.some(v=>/Natural|Online|晓晓|晓伊|云希|云扬|Xiaoxiao|Xiaoyi|Yunxi/i.test(v.name));
+  const redHint = (fn)=>{
+    el.innerHTML = list.length + " 个中文嗓音（去重后）：<b>" + list.map(v=>v.name).join("</b>、<b>") + "</b>。"
+      + "当前选中：<b>" + (selected || "没选") + "</b>"
+      + "<br><b style='color:var(--danger)'>" + fn + "</b>";
+  };
+  if(!list.length){
+    el.innerHTML = "这台设备报了 <b>" + allCount + "</b> 个嗓音，但<b>没有中文的</b>。"
+      + "去装一个：设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 右上角「下载」。";
+  }else if(list.length === 1){
+    redHint("只有一个，没得挑。想换就先去装：设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 右上角「下载」，装完回来点「🔍 重新扫描嗓音」。");
+  }else if(!natural){
+    redHint("这几个都是 iOS 自带的<b>老式离线嗓音</b>，听着都比较机械。"
+      + "iPhone 上网页<b>拿不到晓晓/晓伊那种自然音</b>（那些只在系统的「朗读屏幕」里用，就是上面的 📢 Siri 读）。"
+      + "可试的办法：① 换一个 + 把<b>音调</b>往上拖一点、<b>语速</b>调慢些；"
+      + "② 或者直接用 <b>📢 Siri 读</b>—— 那个是 Siri 的声音，比这两个都自然。"
+      + "③ 想要更多嗓音：设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 右上角「下载」。");
+  }else{
+    el.innerHTML = "这台设备一共报了 <b>" + allCount + "</b> 个嗓音，中文（去重后）<b>" + list.length + "</b> 个。"
+      + "当前选中：<b>" + (selected || "没选") + "</b>。"
+      + "<br>名字里带 <b>(Natural)</b> 的最自然，优先试那几个。";
+  }
 }
 // iOS 上 getVoices() 常要等第一次朗读之后才有值，这里主动催一下
 function warmUpVoices(){
