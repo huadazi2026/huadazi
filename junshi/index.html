@@ -166,11 +166,26 @@
   #drawer h2{margin-bottom:12px}
   #settings .grp{margin-bottom:20px}
   #settings label{display:block; font-size:12.5px; color:var(--sub); margin:10px 0 5px}
-  #settings input,#settings textarea,#drawer input{
+  #settings input,#settings textarea,#drawer input,#settings select{
     width:100%; background:var(--panel2); border:1px solid var(--line);
     color:var(--ink); border-radius:9px; padding:9px 11px; font-size:16px;
     font-family:inherit;
   }
+  #settings select{ -webkit-appearance:none; appearance:none; }
+  #settings input[type=range]{
+    padding:0; height:34px; background:transparent; border:none;
+    -webkit-appearance:none; appearance:none;
+  }
+  #settings input[type=range]::-webkit-slider-runnable-track{
+    height:5px; border-radius:3px; background:var(--line);
+  }
+  #settings input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:22px; height:22px;
+    border-radius:50%; background:var(--accent); margin-top:-8.5px; border:none;
+  }
+  #settings input[type=range]::-moz-range-track{height:5px; border-radius:3px; background:var(--line)}
+  #settings input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; background:var(--accent); border:none}
+  .stat{color:var(--accent); font-weight:600}
   #settings textarea{resize:vertical; line-height:1.6}
   #settings input:focus,#settings textarea:focus,#drawer input:focus{outline:none; border-color:var(--accent)}
   .hint{font-size:11.5px; color:var(--dim); margin-top:5px; line-height:1.55}
@@ -357,9 +372,22 @@
     </div>
     <div class="grp">
       <h2>🎤 朗读与语音</h2>
-      <div class="hint">军师每条回复下面有「🔊 朗读」，点一下从头读；<b>点回复里的任意一个字，就从那个字往下读</b>，再点一下停。<br>
-      语音输入看输入框旁边的 🎤：安卓 Chrome / 电脑上能用。<b>iPhone 上系统不给网页用语音识别</b>，用键盘自带的 🎤 听写（设置 → 通用 → 键盘 → 启用听写），效果更好。<br>
-      朗读用手机自带语音，不联网、不额外花钱。</div>
+      <label>朗读嗓音（系统里的中文嗓音）</label>
+      <select id="cfgVoice"></select>
+      <label>语速 <span id="statRate" class="stat"></span></label>
+      <input type="range" id="cfgRate" min="0.6" max="1.8" step="0.05">
+      <label>音调（调高一点更年轻、更“御姐”） <span id="statPitch" class="stat"></span></label>
+      <input type="range" id="cfgPitch" min="0.6" max="1.9" step="0.05">
+      <div class="row"><button id="btnVoiceTry">▶ 试听这个嗓音</button></div>
+      <div class="hint">
+        <b>军师每条回复下面有「▶ 朗读」</b>：点一下从头读，按钮变成「⏹ 停止」；
+        <b>点回复里的任意一个字，就从那个字往下读</b>；读的时候<b>点别处一下就停</b>，高亮和外框都会清掉。<br>
+        嗓音是<b>手机系统自带</b>的，网页没法凭空造出某个人的声音（林志玲那种是商业授权音源，浏览器里拿不到）。
+        但每台设备/浏览器自带的中文嗓音不一样，这里换一个 + 把音调调高、语速调慢，就能明显更顺耳更人性化。<br>
+        觉得选择太少就去装语音包：安卓「设置 → 系统 → 语言和输入 → 文字转语音 → 安装语音数据」；iPhone「设置 → 辅助功能 → 朗读内容 → 声音 → 中文」。<br>
+        语音输入用输入框旁边的 🎤（安卓 Chrome / 电脑上能用）。<b>iPhone 上系统不给网页语音识别</b>，
+        点 🎤 会自动帮你调出键盘，用键盘自带的 🎤 听写。
+      </div>
     </div>
     <div class="row">
       <button class="primary" id="btnSave">保存</button>
@@ -666,14 +694,18 @@ function renderChat(){
       b.dataset.raw = m.content;
       b.innerHTML = mdLite(m.content);
 
-      // 点气泡里的任意一个字，就从那个字开始往下读
+      // 点气泡里的任意一个字，就从那个字开始往下读。
+      // 读的时候点别处 = 停止并清掉高亮和外框（不能只切不清理，那样高亮会留在原地）。
       if(m.role === "assistant" && ttsSupported()){
         b.title = "点某个字，从那里开始读";
         b.addEventListener("click", ev=>{
-          if(ttsBubble === b){ stopRead(); return; }
           if(ev.target.closest && ev.target.closest("pre, code")) return;
+          if(ttsBubble === b && !ttsStop){ stopRead(); return; }
           const off = charOffsetFromPoint(b, ev.clientX, ev.clientY);
-          startRead(b, String(m.content || ""), off == null ? 0 : off);
+          const row = b.closest(".msg");
+          const rb = row && [...row.querySelectorAll(".acts button")].find(x=>/朗读/.test(x.textContent));
+          if(ttsBubble) stopRead();               // 先清掉上一条的高亮
+          startRead(b, String(m.content || ""), off == null ? 0 : off, rb);
         });
       }
       col.appendChild(b);
@@ -689,7 +721,7 @@ function renderChat(){
       acts.appendChild(mkAct("删除", ()=>delMsg(i)));
     }else{
       acts.appendChild(mkAct("复制", ()=>copyText(m.content)));
-      if(ttsSupported()) acts.appendChild(mkAct("🔊 朗读", function(){ readToggle(i, this); }));
+      if(ttsSupported()) acts.appendChild(mkAct("▶ 朗读", function(){ readToggle(i, this); }));
       acts.appendChild(mkAct("重新回答", ()=>retryOne(i)));
       acts.appendChild(mkAct("引用追问", ()=>{
         $("input").value = "关于你上面说的「" + m.content.replace(/\s+/g," ").slice(0,18) + "…」，我再问一句：";
@@ -860,12 +892,98 @@ function openLightbox(src){
 function closeLightbox(){ $("lightbox").classList.remove("show"); }
 
 /* ---------- 朗读（可从句中任意一个字开始） ---------- */
-let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null;
+let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null, ttsBtn = null;
 
 function ttsSupported(){ return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function"; }
-function pickVoice(){
+function zhVoices(){
   const vs = window.speechSynthesis.getVoices() || [];
-  return vs.find(v=>/^zh[-_]CN/i.test(v.lang)) || vs.find(v=>/^zh/i.test(v.lang)) || null;
+  // 只说中文的挑出来；localService 的离线也能用，排前面
+  return vs.filter(v=>/^zh/i.test(v.lang))
+           .sort((a,b)=> (b.localService?1:0) - (a.localService?1:0));
+}
+function pickVoice(){
+  const list = zhVoices();
+  // 用户选过就按名字找（现在的语音列表是异步来的，不缓存对象）
+  let saved = "";
+  try{ saved = localStorage.getItem("junshi_voice_v1") || ""; }catch(e){}
+  if(saved){
+    const hit = list.find(v=>v.name === saved);
+    if(hit) return hit;
+  }
+  return list.find(v=>/^zh[-_]CN/i.test(v.lang)) || list[0] ||
+         (window.speechSynthesis.getVoices() || [])[0] || null;
+}
+function ttsRate(){
+  try{ return parseFloat(localStorage.getItem("junshi_tts_rate_v1")) || 1; }catch(e){ return 1; }
+}
+function ttsPitch(){
+  try{ return parseFloat(localStorage.getItem("junshi_tts_pitch_v1")) || 1; }catch(e){ return 1; }
+}
+function saveTts(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
+// 把系统里所有中文嗓音列出来给用户挑 —— 这是“换成林志玲/御姐音”唯一可行的做法
+function fillVoiceSel(){
+  const sel = $("cfgVoice");
+  if(!sel) return;
+  const list = zhVoices();
+  const cur = pickVoice();
+  sel.innerHTML = "";
+  if(!list.length){
+    const o = document.createElement("option");
+    o.value = ""; o.textContent = "（这台设备没装中文嗓音）";
+    sel.appendChild(o);
+    return;
+  }
+  list.forEach(v=>{
+    const o = document.createElement("option");
+    o.value = v.name;
+    const bits = [];
+    if(v.localService) bits.push("离线");
+    if(/xiaoxiao|xiaoyi|huihui|yaoyao|女|Female|Xiaomo|Meijia/i.test(v.name)) bits.push("偏女声");
+    o.textContent = v.name + (bits.length ? "（" + bits.join("·") + "）" : "");
+    sel.appendChild(o);
+  });
+  if(cur) sel.value = cur.name;
+}
+function applyTtsSettings(){
+  const sel = $("cfgVoice");
+  if(sel && sel.value) saveTts("junshi_voice_v1", sel.value);
+  else { try{ localStorage.removeItem("junshi_voice_v1"); }catch(e){} }
+  saveTts("junshi_tts_rate_v1",  $("cfgRate").value);
+  saveTts("junshi_tts_pitch_v1", $("cfgPitch").value);
+  $("statRate").textContent  = "（" + Number($("cfgRate").value).toFixed(2) + " 倍）";
+  $("statPitch").textContent = "（" + Number($("cfgPitch").value).toFixed(2) + "）";
+  if(ttsSupported()){                                   // 正在读的话立刻换嗓音
+    if(ttsBubble && !ttsStop){
+      const t = ttsChunks.slice(ttsCi).map(c=>c.text).join("");
+      const b = ttsBubble;
+      stopRead();
+      if(b) startRead(b, t, 0, null);
+    }
+  }
+}
+function initTtsControls(){
+  if(!$("cfgRate")) return;
+  $("cfgRate").value  = ttsRate();
+  $("cfgPitch").value = ttsPitch();
+  $("statRate").textContent  = "（" + ttsRate().toFixed(2) + " 倍）";
+  $("statPitch").textContent = "（" + ttsPitch().toFixed(2) + "）";
+  fillVoiceSel();
+  // 语音列表是异步来的，来了再填一次
+  if(ttsSupported() && "onvoiceschanged" in window.speechSynthesis){
+    window.speechSynthesis.onvoiceschanged = ()=>{ fillVoiceSel(); };
+  }
+  $("btnVoiceTry").addEventListener("click", ()=>{
+    if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
+    applyTtsSettings();
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+    const u = new SpeechSynthesisUtterance("你好，我是军师。这句话是用来试嗓音的，你听着顺耳吗？");
+    const v = pickVoice();
+    if(v){ try{ u.voice = v; }catch(e){} }
+    u.lang = (v && v.lang) || "zh-CN";
+    u.rate = ttsRate(); u.pitch = ttsPitch();
+    window.speechSynthesis.speak(u);
+    toast("正在试读 —— 觉得不对就换一个嗓音、再拖一下音调和语速。" + (zhVoices().length > 1 ? "" : "（这台设备只有 " + zhVoices().length + " 个中文嗓音，装一个语音包会多出更多选择）"), true);
+  });
 }
 // 先按标点切成句子，再把句子合并成不超过 max 字的朗读块。
 // 这样“从某个字开始读”会自然地从那句话读起，而不是漏掉半句。
@@ -934,55 +1052,54 @@ function markRange(el, start, len){
     catch(err){ mk.appendChild(r.extractContents()); r.insertNode(mk); }
   }catch(e){}
 }
-function wpm(){
-  try{ return parseFloat(localStorage.getItem("junshi_tts_rate_v1")) || 1; }catch(e){ return 1; }
-}
 function speakOne(){
   if(ttsStop || ttsCi >= ttsChunks.length){
-    if(!ttsStop && ttsBubble){
-      const b = ttsBubble;
-      clearReadMark();
-      b.classList.remove("reading");
-      const btn = b.parentNode && b.parentNode.querySelector(".acts button.readon");
-      if(btn){ btn.classList.remove("readon"); btn.textContent = "🔊 朗读"; }
-    }
-    ttsBubble = null;
+    if(!ttsStop) resetReadUI();          // 读完了，自己复位
     return;
   }
   const c = ttsChunks[ttsCi];
   markRange(ttsBubble, c.at, c.text.length);
   const u = new SpeechSynthesisUtterance(c.text);
   const v = pickVoice();
-  if(v) u.voice = v;
+  // 嗓音对象可能是失效的（系统语音包被卸载、列表变了），赋值会抛异常。
+  // 不能让它把整条朗读链打断 —— 退化成默认嗓音继续读完。
+  if(v){ try{ u.voice = v; }catch(e){} }
   u.lang = (v && v.lang) || "zh-CN";
-  u.rate = wpm();
-  u.pitch = 1;
+  u.rate = ttsRate();
+  u.pitch = ttsPitch();
   u.onend = ()=>{ ttsCi++; speakOne(); };
   u.onerror = ()=>{ ttsCi++; speakOne(); };
   window.speechSynthesis.speak(u);
 }
+// 所有复位都走这里：高亮 + 外框 + 按钮图标，一个都不落
+function resetReadUI(){
+  clearReadMark();
+  if(ttsBubble) ttsBubble.classList.remove("reading");
+  if(ttsBtn){ ttsBtn.classList.remove("readon"); ttsBtn.textContent = "▶ 朗读"; ttsBtn.title = "朗读"; }
+  ttsBubble = null; ttsBtn = null; ttsChunks = [];
+}
+// 停止并复位。任何入口（按钮、点空白、切对话、发消息）都调它，行为一致。
 function stopRead(){
   ttsStop = true;
   try{ window.speechSynthesis.cancel(); }catch(e){}
-  if(ttsBubble){
-    clearReadMark();
-    ttsBubble.classList.remove("reading");
-    const btn = ttsBubble.parentNode && ttsBubble.parentNode.querySelector(".acts button.readon");
-    if(btn){ btn.classList.remove("readon"); btn.textContent = "🔊 朗读"; }
-  }
-  ttsBubble = null; ttsChunks = [];
+  resetReadUI();
 }
-function startRead(el, text, from){
+function setReadBtn(btn, on){
+  if(!btn) return;
+  btn.classList.toggle("readon", on);
+  btn.textContent = on ? "⏹ 停止" : "▶ 朗读";
+  btn.title = on ? "停止朗读" : "朗读（也可点正文里某个字，从那里读）";
+}
+function startRead(el, text, from, btn){
   if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
   stopRead();
   ttsStop = false;
   ttsBubble = el;
+  ttsBtn = btn || null;
   ttsChunks = splitForRead(text, Math.max(0, from || 0));
   ttsCi = 0;
   el.classList.add("reading");
-  const btn = el.parentNode && el.parentNode.querySelector(".acts button.readon") ||
-              el.parentNode && [...el.parentNode.querySelectorAll(".acts button")].find(b=>/朗读/.test(b.textContent));
-  if(btn){ btn.classList.add("readon"); btn.textContent = "⏹ 停止"; }
+  setReadBtn(ttsBtn, true);
   const go = ()=>{ if(!ttsStop) speakOne(); };
   const vs = window.speechSynthesis.getVoices() || [];
   if(!vs.length && "onvoiceschanged" in window.speechSynthesis){
@@ -1027,8 +1144,8 @@ function readToggle(i, btn){
   if(!m || m.role !== "assistant") return;
   const row = btn.closest(".msg");
   const bubble = row && row.querySelector(".bubble");
-  if(ttsBubble === bubble){ stopRead(); return; }
-  startRead(bubble, String(m.content || ""), 0);
+  if(ttsBubble === bubble && !ttsStop){ stopRead(); return; }   // 再点一下 = 停止
+  startRead(bubble, String(m.content || ""), 0, btn);
 }
 
 /* ---------- 语音转文字（微信那种：点🎤->整行变“按住 说话”） ---------- */
@@ -1564,6 +1681,16 @@ $("btnExportAll").addEventListener("click", exportAll);
 // iPhone 上没有网页语音识别，语音按钮改成“调键盘听写”的入口
 $("btnVoice").title = recSupported() ? "语音输入（按住说话）" : "调起键盘听写";
 buildEmojiPanel();
+initTtsControls();
+// 语速/音调拖动即时生效，不用点保存
+(function(){
+  const r = $("cfgRate"), p = $("cfgPitch"), v = $("cfgVoice");
+  if(r) r.addEventListener("input", applyTtsSettings);
+  if(p) p.addEventListener("input", applyTtsSettings);
+  if(v) v.addEventListener("change", applyTtsSettings);
+  // 切到后台/离开页面就把朗读停掉，别在后台一直读
+  document.addEventListener("visibilitychange", ()=>{ if(document.hidden) stopRead(); });
+})();
 
 load();
 $("input").focus();
