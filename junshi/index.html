@@ -90,7 +90,10 @@
   #lightbox img{max-width:100%; max-height:100%; border-radius:8px}
   /* 朗读 */
   .bubble.reading{cursor:pointer; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
-  #chat mark.readnow{background:var(--accent); color:#241a06; border-radius:3px; padding:0 1px}
+  #chat mark.readnow{
+    background:var(--accent); color:#1a1206; font-weight:600;
+    border-radius:3px; padding:0 1px;
+  }
   .acts button.readon{border-color:var(--accent); color:var(--accent)}
   /* 表情面板 */
   #emojiPanel{
@@ -101,12 +104,13 @@
     box-shadow:0 -8px 24px rgba(0,0,0,.45);
   }
   #emojiPanel.show{display:block}
-  #emojiPanel .ehd{display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--sub); font-size:12.5px}
-  #emojiPanel .ehd b{color:var(--accent); font-size:13px}
-  #emojiPanel .ehd .sp{flex:1}
+  #emojiPanel .ehd{display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--sub); font-size:12.5px; flex-wrap:wrap}
+  #emojiPanel .ehd b{color:var(--accent); font-size:13px; white-space:nowrap; flex:none}
+  #emojiPanel .ehd .tip{flex:1; min-width:120px}
   #emojiPanel .ehd button{
     background:var(--panel2); border:1px solid var(--line); color:var(--sub);
     border-radius:8px; padding:4px 10px; font-size:12.5px; cursor:pointer;
+    flex:none; margin-left:auto; white-space:nowrap;
   }
   #emojiGrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(62px, 1fr)); gap:6px}
   #emojiGrid button{
@@ -245,7 +249,7 @@
 <div id="errbox"></div>
 <div id="pending"></div>
 <footer>
-  <textarea id="input" rows="1" placeholder="说点什么… / 也可以贴图"></textarea>
+  <textarea id="input" rows="1" placeholder="说点什么…"></textarea>
   <button id="btnEmoji" type="button" title="表情">🙂</button>
   <button id="btnImg" type="button" title="加图片">🖼</button>
   <button id="btnMic" type="button" title="语音转文字" style="display:none">🎤</button>
@@ -254,8 +258,8 @@
 <input type="file" id="filePick" accept="image/*" multiple style="display:none">
 <div id="emojiPanel">
   <div class="ehd">
-    <b>QQ 表情</b><span>点一下插到光标处 · 也可以直接打 <code>/微笑</code></span>
-    <span class="sp"></span>
+    <b>QQ 表情</b>
+    <span class="tip">点一下插到光标处 · 也可以直接打 <code>/微笑</code></span>
     <button id="emojiClose" type="button">关闭</button>
   </div>
   <div id="emojiGrid"></div>
@@ -854,6 +858,9 @@ function clearReadMark(){
 // 用 DOM Range 框住正在读的那一段 —— 不用重建源码，速度和真实感都够
 function markRange(el, start, len){
   clearReadMark();
+  // 整块太长时（比如全文不到 160 字、合并成一块）不刷高亮，
+  // 否则满屏黄底反而看不清。这种情况靠边框和「停止」按钮表示正在读。
+  if(!(len > 0 && len <= 240)) return;
   try{
     const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
     let acc = 0, sN = null, sO = 0, eN = null, eO = 0, n;
