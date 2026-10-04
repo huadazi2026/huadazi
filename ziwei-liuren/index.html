@@ -2035,6 +2035,19 @@ function zwVerdict(c, read, age){
          esc(read.risks[0]||'—')+'</div>'+
          (read.risks[1] ? '<div class="vy">其次：'+esc(read.risks[1])+'</div>' : '')+'</div>';
   }
+  /* 5.5 小流年（小限） */
+  if (typeof c.xiaoXianAt === 'function'){
+    var xxPalaceIdx = c.xiaoXianAt(age);
+    var xxP = c.palaces[xxPalaceIdx];
+    var xxMain = (xxP.mainStars && xxP.mainStars.length) ? xxP.mainStars.join('、') : '无主星（借对宫）';
+    h += '<div class="vitem"><div class="vk">今年小流年</div><div class="vt">'+
+         '虚岁 '+age+' 的小限走到 <b>'+esc(xxP.zhiName)+'宫（'+esc(xxP.name)+'）</b>，'+
+         '主星 '+esc(xxMain)+'。</div>'+
+         '<div class="vy">《天纪》：十年大运看三方四正为主，小流年只要看本宫和对宫 —— '+
+         '小限落在哪一宫，那一宫的事就是今年的大事。'+
+         '例：小限入夫妻宫，当年的大事与夫妻相关；入财帛宫，注意力与大事都在钱上。'+
+         '<br>起法：1 岁小限起于「'+esc(c.xiaoXianStart||'')+'」宫（按生年支的三合组定），男顺女逆，每 12 岁回到同一宫。</div></div>';
+  }
   /* 6 现在这一步 */
   if (lim){
     h += '<div class="vitem"><div class="vk">现在走哪步</div><div class="vt">'+

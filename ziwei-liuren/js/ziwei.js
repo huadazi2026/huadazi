@@ -375,6 +375,18 @@
       });
     }
 
+
+    /* 小限（小流年）：《天纪》/倪海厦软件 起小限表.ini
+       1 岁起宫按生年支的三合组定：子辰申→戌　丑巳酉→未　寅午戌→辰　卯未亥→丑
+       方向：男顺女逆；每 12 岁回到同一宫 */
+    var XX_START = { "子":"戌","辰":"戌","申":"戌", "丑":"未","巳":"未","酉":"未",
+                     "寅":"辰","午":"辰","戌":"辰", "卯":"丑","未":"丑","亥":"丑" };
+    var xxStart = XX_START[ZHI[yearZhiIdx]] || "辰";
+    var xxStartIdx = ZHI.indexOf(xxStart);
+    var xxSign = (gender === "男") ? 1 : -1;
+    var xiaoXian = function (age) {
+      return (xxStartIdx + xxSign * (age - 1) % 12 + 12 * 10) % 12;
+    };
     return {
       info: info, ju: ju, juName: JU_NAME[ju], nayin: nayinName,
       mingPos: ming, shenPos: shen,
@@ -385,6 +397,7 @@
       forward: forward, gender: gender,
       mingZhu: mingZhu, shenZhu: shenZhu,
       hourZhi: hourZhi, hourZhiName: ZHI[hourZhi],
+      xiaoXianAt: xiaoXian, xiaoXianStart: xxStart,
       stars: stars, huaMap: huaMap, yearGanIdx: yearGanIdx, yearZhiIdx: yearZhiIdx,
       lunarYearGanIdx: lunarYearGanIdx, lunarYearZhiIdx: lunarYearZhiIdx,
       zwMonth: zwM, lunarMonth: lunar.m, lunarDay: lunar.d
