@@ -3,7 +3,7 @@
      · HTML（./ 与 index.html）→ 网络优先：联网时永远拿最新，断网才回退缓存
      · 其余静态资源（js/图标）→ 缓存优先 + 后台静默更新
    另外每 6 小时自动查一次新版本，装好立刻接管，避免"代码更新了但页面还是旧的"。 */
-var CACHE = 'ziwei-liuren-v25';
+var CACHE = 'ziwei-liuren-v26';
 var FILES = [
   './', './index.html', './manifest.json',
   './js/calendar_data.js', './js/calendar.js',
