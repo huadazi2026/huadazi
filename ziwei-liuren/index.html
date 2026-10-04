@@ -204,6 +204,40 @@ table.ketable tr:last-child td{border-bottom:0}
 .st-tag b{flex:0 0 auto;width:21px;height:21px;border-radius:11px;background:var(--gold);
   color:#1a1428;font-size:12px;display:flex;align-items:center;justify-content:center}
 .st-tag span{font-size:11px;color:var(--dim2);font-weight:400}
+/* ===== 天纪格式盘面 ===== */
+.tp-wrap{background:#1c1830;border:1px solid #342c52;border-radius:12px;padding:8px;overflow-x:auto}
+.tp-grid{display:grid;grid-template-columns:repeat(4,minmax(132px,1fr));
+  grid-template-rows:repeat(4,minmax(132px,auto));gap:1px;background:#342c52;
+  border:1px solid #342c52;border-radius:8px;overflow:hidden;min-width:560px}
+.tp-cell{background:#1c1830;padding:7px 8px;display:flex;flex-direction:column;justify-content:space-between;min-height:132px}
+.tp-void{background:#181428}
+.tp-hole{background:#221c3a}
+.tp-ming{background:#241d3d}
+.tp-stars{flex:1}
+.tp-sr{display:flex;gap:6px;line-height:1.5}
+.tp-a{flex:0 0 44%;white-space:nowrap}
+.tp-b{flex:1;white-space:nowrap;color:#cfc8e8;overflow:hidden;text-overflow:ellipsis}
+.tp-a b{color:#efe9ff;font-weight:600}
+.tp-a i,.tp-b i{font-style:normal;color:#f0a3a3;margin-left:2px;font-size:11.5px}
+.tp-h{font-style:normal;font-size:10.5px;padding:0 2px;border-radius:3px;margin-left:3px;color:#12101c}
+.tp-h1{background:#6fd39a}.tp-h2{background:#7fb4f0}.tp-h3{background:#e8c97a}.tp-h4{background:#e08a8a}
+.tp-mid{margin-top:5px;text-align:center}
+.tp-gz{font-size:13.5px;color:#e8c97a;letter-spacing:1px}
+.tp-sha{display:block;font-size:11px;color:#9a92b8;margin-top:2px}
+.tp-foot{display:flex;justify-content:space-between;align-items:baseline;
+  border-top:1px dashed #342c52;margin-top:4px;padding-top:3px;font-size:11.5px;color:#b8b0d4}
+.tp-pn{color:#e8c97a}
+.tp-center{grid-area:2/2/4/4;background:#221c3a;padding:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+.tp-cl{font-size:13.5px;color:#efe9ff}
+.tp-cl2{font-size:12.5px;color:#b8b0d4}
+.tp-cl2 b{color:#e8c97a}
+/* 盘面样式切换 */
+.zwview{display:flex;gap:6px;align-items:center;margin:0 0 10px;font-size:12.5px;color:var(--dim2)}
+.zwview button{border:1px solid #3a3260;background:transparent;color:var(--dim);border-radius:8px;
+  padding:4px 10px;font-size:12.5px;cursor:pointer}
+.zwview button.on{background:var(--gold);color:#1a1428;border-color:var(--gold);font-weight:600}
+
 /* 折叠区（默认关闭） */
 details.fold{margin:10px 0;border:1px solid #3a3260;border-radius:12px;background:rgba(124,92,200,.05);overflow:hidden}
 details.fold>summary{cursor:pointer;padding:9px 13px;font-size:13.5px;color:var(--gold);list-style:none;
@@ -370,8 +404,10 @@ nav button.on{color:var(--gold)}
       <div class="step-h"><span class="no">2</span><span class="tt">排盘 · 定生辰</span><span class="hint">只记得大概时段就选时辰</span></div>
       <div class="row">
         <div class="field" style="flex:1.4">
-          <label>出生日期（公历）</label>
-          <input type="date" id="zw-date" min="1900-01-31" max="2100-12-31">
+          <label>出生日期用哪种历</label>
+          <div class="seg" id="zw-datemode">
+            <button data-v="solar" class="on">公历</button><button data-v="lunar">农历</button>
+          </div>
         </div>
         <div class="field" style="flex:1.1">
           <label>出生时间的填法</label>
@@ -382,6 +418,31 @@ nav button.on{color:var(--gold)}
           </select>
         </div>
       </div>
+      <div class="row" id="zw-row-solar">
+        <div class="field">
+          <label>出生日期（公历）</label>
+          <input type="date" id="zw-date" min="1900-01-31" max="2100-12-31">
+        </div>
+        <div class="field" style="flex:1.7">
+          <label>&nbsp;</label>
+          <div class="note" style="margin:0;padding-top:9px">只知道农历生日就切到「农历」——会自动把闰月列出来</div>
+        </div>
+      </div>
+      <div class="row hidden" id="zw-row-lunar">
+        <div class="field" style="flex:.8">
+          <label>农历年</label>
+          <select id="zw-ly"></select>
+        </div>
+        <div class="field" style="flex:1.2">
+          <label>农历月</label>
+          <select id="zw-lm"></select>
+        </div>
+        <div class="field" style="flex:.8">
+          <label>农历日</label>
+          <select id="zw-ld"></select>
+        </div>
+      </div>
+      <div class="note hidden" id="zw-lunar-tip"></div>
       <div class="row" id="zw-row-shichen">
         <div class="field">
           <label>出生时辰（不知道具体几点就选这个）</label>
@@ -436,12 +497,13 @@ nav button.on{color:var(--gold)}
         <div class="field">
           <label>排盘口径（一键切换）</label>
           <select id="zw-school">
-            <option value="nhx">倪海厦《天纪》：农历月 + 闰月作下月</option>
+            <option value="nhx">倪海厦《天纪》排盘程序：农历月 + 闰月作本月</option>
             <option value="common">通用派：农历月 + 十五分界</option>
             <option value="term">节气月派：节气月 + 十五分界</option>
           </select>
         </div>
       </div>
+      <div class="row">
         <div class="field">
           <label>出生地（真太阳时）</label>
           <select id="zw-city"></select>
@@ -728,10 +790,33 @@ nav button.on{color:var(--gold)}
 <script src="js/yijing_data.js"></script>
 <script src="js/liuyao.js"></script>
 <script src="js/qimen.js"></script>
+<script src="js/nhx_tables.js"></script>
+<script src="js/nhx_plate.js"></script>
 <script src="js/guji_text.js"></script>
 <script src="js/nihaixia_miao.js"></script>
 <script src="js/nihaixia.js"></script>
 <script>
+/* 滚动辅助：把某个元素滑到屏幕中间（手机上一摇完就自动上滑，不用手动拖） */
+function lyScrollTo(el, smooth){
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: smooth === false ? "auto" : "smooth", block: "center" });
+  } catch (e) {
+    try { el.scrollIntoView(); } catch (e2) {}
+  }
+}
+/* 顶部对齐滚动：用于滑到「解卦结果」，标题落在视窗顶部附近而不是被滚过头 */
+function lyScrollTop(el, pad){
+  if (!el) return;
+  var top = 0;
+  try { top = el.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop || 0); }
+  catch (e) { return lyScrollTo(el); }
+  var y = Math.max(0, top - (pad == null ? 12 : pad));
+  try { window.scrollTo({ top: y, behavior: "smooth" }); }
+  catch (e2) { window.scrollTo(0, y); }
+}
+var LC = (typeof LunarCore !== "undefined") ? LunarCore : null;
+
 (function(){
 'use strict';
 var $ = function(id){ return document.getElementById(id); };
@@ -912,9 +997,16 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v26 · 2026-10-05";
+var APP_BUILD = "v27 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v26", "这次的更新", [
+  ["v27", "这次的更新", [
+    "修复：紫微「排命盘」按钮失效（上版发布时丢了点击绑定，已补回）",
+    "新增：出生日期可切「公历／农历」。切到农历后选年份，若那一年有闰月，月份下拉里会多出「闰X月」",
+    "农历模式下会显示该年闰月提示，并按所选月份的天数给出农历日（29/30 天）",
+    "六爻：摇完一爻自动把摇卦区滑回屏幕中间，不用再手动上滑；六爻出齐后自动滑到解卦结果",
+    "修正出生地那一行缺失的布局容器"
+  ]],
+  ["v26", "更早", [
     "新增「排盘口径」一键切换：倪海厦《天纪》口径（农历月 + 闰月作下月）／通用派／节气月派",
     "新增「晚子时按前一天」开关（23:00–24:00 生，农历日退一天；《天纪》口径，默认开）",
     "新增「三方四正（看盘的主干）」：命宫／官禄／财帛／夫妻／疾厄／福德 逐宫列出本宫+三合+对宫会到什么",
@@ -1027,7 +1119,7 @@ function parseDateTime(dateStr, timeStr){
 /* 排盘口径 ↔ 两个明细下拉 联动 */
 function syncSchool(){
   var sc = $("zw-school"); if (!sc) return;
-  var M = { nhx: ["lunar","next"], common: ["lunar","split"], term: ["term","split"] };
+  var M = { nhx: ["lunar","prev"], common: ["lunar","split"], term: ["term","split"] };
   var v = M[sc.value] || M.nhx;
   var mm = $("zw-monthmode"), lp = $("zw-leap");
   if (mm) mm.value = v[0];
@@ -1044,7 +1136,116 @@ function syncSchool(){
     setTimeout(syncSchool, 0);
   }
 })();
+/* ---------- 紫微：点「排命盘」开始推算 ---------- */
+$('zw-go').onclick = function(){
+  var btn = this;
+  btn.innerHTML = '<span class="spin"></span>推算中…';
+  setTimeout(function(){
+    try { renderZiwei(); btn.innerHTML = '排 命 盘'; }
+    catch (e) {
+      btn.innerHTML = '排 命 盘';
+      showErr('zw-err', '排盘失败：' + e.message);
+    }
+  }, 20);
+};
+/* ===== 出生日期：公历 / 农历 ===== */
+var ZW_DATEMODE = "solar";
+var ZW_LUNAR = null;            /* 记住用户选的农历 {y,m,d,isLeap} */
+function zwPad(n){ return (n<10?"0":"")+n; }
+
+/* 农历年下拉：1900–2100 */
+function zwLunarFillYears(){
+  var el = $("zw-ly"); if (!el || el.options.length) return;
+  var h = "";
+  for (var y = 1900; y <= 2100; y++) h += '<option value="' + y + '">' + y + ' 年</option>';
+  el.innerHTML = h;
+  el.value = "1990";
+}
+
+/* 农历月下拉：有闰月就插进去，标成「闰X月」 */
+function zwLunarFillMonths(keep){
+  var el = $("zw-lm"); if (!el) return;
+  var y = parseInt($("zw-ly").value, 10) || 1990;
+  var ms = LC.lunarMonthsOfYear(y);
+  var h = "";
+  for (var i = 0; i < ms.length; i++){
+    h += '<option value="' + ms[i].m + ',' + (ms[i].isLeap ? 1 : 0) + '">' + ms[i].label + '</option>';
+  }
+  var old = el.value;
+  el.innerHTML = h;
+  if (keep && old) { try { el.value = keep; } catch(e){} }
+  if (!el.value) el.selectedIndex = 0;
+  var leap = LC.leapMonthOfYear(y);
+  var tip = $("zw-lunar-tip");
+  if (tip) {
+    tip.className = "note";
+    tip.innerHTML = leap
+      ? '农历 ' + y + ' 年有<b>闰' + ["","正","二","三","四","五","六","七","八","九","十","冬","腊"][leap] + '月</b>，月份下拉里已列出来。闰月生人按哪个月论命，看下面「排盘口径」。'
+      : '农历 ' + y + ' 年没有闰月。';
+  }
+  zwLunarFillDays();
+}
+
+/* 农历日下拉：按当月天数（29 或 30） */
+function zwLunarFillDays(keep){
+  var el = $("zw-ld"); if (!el) return;
+  var y = parseInt($("zw-ly").value, 10) || 1990;
+  var parts = ($("zw-lm").value || "1,0").split(",");
+  var m = parseInt(parts[0], 10) || 1, isLeap = parts[1] === "1";
+  var days = LC.monthDaysOfYear(y, m, isLeap);
+  var CN = ["","初一","初二","初三","初四","初五","初六","初七","初八","初九","初十",
+            "十一","十二","十三","十四","十五","十六","十七","十八","十九","二十",
+            "廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
+  var old = el.value, h = "";
+  for (var d = 1; d <= days; d++) h += '<option value="' + d + '">' + (CN[d] || d) + '（' + d + '）</option>';
+  el.innerHTML = h;
+  if (keep && old && parseInt(old,10) <= days) el.value = old;
+}
+
+/* 切换历法 */
+function zwSetDateMode(v){
+  ZW_DATEMODE = v;
+  var bs = document.querySelectorAll("#zw-datemode button");
+  for (var i = 0; i < bs.length; i++) bs[i].className = (bs[i].getAttribute("data-v") === v ? "on" : "");
+  $("zw-row-solar").className = "row" + (v === "solar" ? "" : " hidden");
+  $("zw-row-lunar").className = "row" + (v === "lunar" ? "" : " hidden");
+  var tip = $("zw-lunar-tip"); if (tip && v !== "lunar") tip.className = "note hidden";
+}
+
+/* 把农历转成公历；返回 {y,m,d} 或 null */
+function zwLunarToSolar(){
+  var y = parseInt($("zw-ly").value, 10), parts = ($("zw-lm").value || "").split(",");
+  var m = parseInt(parts[0], 10), isLeap = parts[1] === "1";
+  var d = parseInt($("zw-ld").value, 10);
+  if (!y || !m || !d) return null;
+  ZW_LUNAR = { y:y, m:m, d:d, isLeap:isLeap };
+  return LC.lunarToSolar(y, m, d, isLeap);
+}
+
+/* 初始化（DOM 就绪后一次） */
+function zwInitDateMode(){
+  var seg = $("zw-datemode"); if (!seg) return;
+  var bs = seg.querySelectorAll("button");
+  for (var i = 0; i < bs.length; i++){
+    bs[i].onclick = (function(v){ return function(){ zwSetDateMode(v); }; })(bs[i].getAttribute("data-v"));
+  }
+  zwLunarFillYears();
+  zwLunarFillMonths();
+  $("zw-ly").onchange = function(){ zwLunarFillMonths(); };
+  $("zw-lm").onchange = function(){ zwLunarFillDays(); };
+  $("zw-ld").onchange = function(){ zwLunarToSolar(); };
+  zwSetDateMode("solar");
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", zwInitDateMode);
+else setTimeout(zwInitDateMode, 0);
+
 function renderZiwei(){
+  /* 农历模式：先把农历生日换成公历 */
+  if (ZW_DATEMODE === "lunar"){
+    var sol = zwLunarToSolar();
+    if (!sol) throw new Error("农历日期不完整或该年没有这个月（比如选了「闰X月」但那年不闰）");
+    $("zw-date").value = sol.y + "-" + zwPad(sol.m) + "-" + zwPad(sol.d);
+  }
   var dt = parseDateTime($('zw-date').value, $('zw-time').value);
   var city = $('zw-city').value;
   var lng = LunarCore.CITY_LNG[city];
@@ -1056,7 +1257,7 @@ function renderZiwei(){
   var charts = [];
   /* 排盘口径预设：一键决定「月」与「闰月」两个口径 */
   var SCHOOL = {
-    nhx:    { monthMode:'lunar', leapMode:'next'  },   /* 倪海厦《天纪》 */
+    nhx:    { monthMode:'lunar', leapMode:'prev'  },   /* 倪海厦《天纪》排盘程序实测：闰月作本月 */
     common: { monthMode:'lunar', leapMode:'split' },   /* 通用派 */
     term:   { monthMode:'term',  leapMode:'split' }    /* 节气月派 */
   };
@@ -1096,6 +1297,7 @@ function renderZiwei(){
   }
   h += '<div id="'+key+'-body">' + zwOneHtml(charts[0]) + '</div>';
   $('zw-out').innerHTML = h;
+  zwSetupView();
 
   if (charts.length > 1){
     var bar = $(key);
@@ -1108,17 +1310,38 @@ function renderZiwei(){
       for (var i=0;i<tabs.length;i++) tabs[i].className = 'tab' + (i===idx ? ' on' : '');
       zwActive = idx;
       $(key+'-body').innerHTML = zwOneHtml(zwCharts[idx]);
+      zwSetupView();
     });
+  }
+}
+
+var ZW_VIEW = (function(){ try { return localStorage.getItem("zw-view") || "tj"; } catch(e){ return "tj"; } })();
+function zwGenderLabel(c){ return (c.info && c.info.input && c.info.input.gender === "女") ? "女" : "男"; }
+function zwSetView(v){ ZW_VIEW = v; try { localStorage.setItem("zw-view", v); } catch(e){}  var bs = document.querySelectorAll("#zw-out .zwview button"); for (var i=0;i<bs.length;i++) bs[i].className = (bs[i].getAttribute("data-v") === v ? "on" : ""); if (typeof renderZiwei === "function") renderZiwei(); }
+
+/* 绑定盘面样式切换按钮 */
+function zwSetupView(){
+  var bs = document.querySelectorAll("#zw-out .zwview button");
+  for (var i = 0; i < bs.length; i++){
+    bs[i].onclick = (function(v){ return function(){ zwSetView(v); }; })(bs[i].getAttribute("data-v"));
   }
 }
 
 function zwOneHtml(item){
   var c = item.c, read = item.read;
   var h = '';
-  /* 第 2 步：排盘 */
+  /* 第 2 步：排盘（两种盘面样式可切） */
   h += stepper(2) + stepTag(2, '排盘 · 十二宫命盘', '第 2 / 4 步');
-  h += zwHeader(c);
-  h += zwGrid(c, read);
+  h += '<div class="zwview">盘面样式：' +
+       '<button class="' + (ZW_VIEW === 'tj' ? 'on' : '') + '" data-v="tj">天纪格式</button>' +
+       '<button class="' + (ZW_VIEW === 'grid' ? 'on' : '') + '" data-v="grid">传统宫格</button></div>';
+  if (ZW_VIEW === 'tj' && typeof TianJiPlate !== 'undefined') {
+    h += zwHeader(c);
+    h += TianJiPlate.plate(c, { roc: (c.info.input.y - 1911), genderLabel: zwGenderLabel(c), question: c._question || '' });
+  } else {
+    h += zwHeader(c);
+    h += zwGrid(c, read);
+  }
   /* 第 3 步：解盘（zwReading 末尾是第 4 步结果） */
   h += stepper(3) + stepTag(3, '解盘 · 逐宫详解', '第 3 / 4 步');
   h += zwReading(c, read, read._age);
@@ -3374,6 +3597,7 @@ $('ly-go').onclick = function(){
   var mode = $('ly-mode').value;
   lyTosses = [];
   $('ly-stage').className = '';
+  lyScrollTo($('ly-stage-txt') || $('ly-shaker'));
   $('ly-shaker').className = 'shaker';
   $('ly-stage-txt').textContent = '第 1/6 爻 —— ' + (mode === 'shake' ? '用力摇一下手机' : '点下面的按钮');
   $('ly-lines').innerHTML = '';
@@ -3422,12 +3646,16 @@ function doOneToss(){
   var t = LiuYao.toss();
   lyTosses.push({ yao: t.yao, old: t.old, name: t.name, backs: t.backs });
   renderTossStage();
+  /* 摇完一次自动把摇卦区滑回屏幕中间（手机上手不用动） */
+  lyScrollTo($("ly-stage-txt") || $("ly-shaker"));
   if (lyTosses.length === 6){
     window.removeEventListener('devicemotion', onMotion, true);
     lyShaking = false;
     $('ly-go').textContent = '重新摇卦';
     try { renderLiuYao(); } catch(e){ showErr3('ly-err', '装卦失败：' + e.message); }
     $('ly-stage').className = 'hidden';
+    /* 六爻已出齐：滑到解卦结果，直接看卦 */
+    setTimeout(function(){ lyScrollTop($('ly-out'), 8); }, 80);
   }
 }
 function renderTossStage(){

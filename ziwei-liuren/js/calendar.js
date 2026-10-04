@@ -163,6 +163,31 @@
   }
 
   /* 农历 → 公历 */
+  /* 按农历年查闰月：返回 0 表示无闰月，否则返回闰几月（1-12） */
+  function leapMonthOfYear(ly) {
+    ensure();
+    if (ly < DATA.Y0 || ly > DATA.Y1) return 0;
+    return leapMonthOf(DATA.lunarInfo[ly - DATA.Y0]);
+  }
+  /* 按农历年 + 月号查该月天数；isLeap=true 时查闰月天数 */
+  function monthDaysOfYear(ly, lm, isLeap) {
+    ensure();
+    if (ly < DATA.Y0 || ly > DATA.Y1) return 29;
+    var info = DATA.lunarInfo[ly - DATA.Y0];
+    if (isLeap) return (leapMonthOf(info) === lm) ? leapDaysOf(info) : 29;
+    return monthDaysOf(info, lm);
+  }
+  /* 农历年可用月份列表（含闰月）：[{m, isLeap, days, label}] */
+  function lunarMonthsOfYear(ly) {
+    var leap = leapMonthOfYear(ly), out = [];
+    var CN = ["正","二","三","四","五","六","七","八","九","十","冬","腊"];
+    for (var m = 1; m <= 12; m++) {
+      out.push({ m: m, isLeap: false, days: monthDaysOfYear(ly, m, false), label: CN[m-1] + "月" });
+      if (leap === m) out.push({ m: m, isLeap: true, days: monthDaysOfYear(ly, m, true), label: "闰" + CN[m-1] + "月" });
+    }
+    return out;
+  }
+
   function lunarToSolar(ly, lm, ld, isLeap) {
     ensure();
     if (ly < DATA.Y0 || ly > DATA.Y1) return null;
@@ -275,7 +300,8 @@
     trueSolarTime: trueSolarTime, equationOfTime: equationOfTime, localOffsetMin: localOffsetMin,
     monthGanStart: monthGanStart, monthGZ: monthGZ, xunKong: xunKong, zwMonth: zwMonth,
     gzName: function (i) { return GAN[i % 10] + ZHI[i % 12]; },
-    isLeapYear: isLeapYear, daysInMonth: daysInMonth, pad: pad
+    isLeapYear: isLeapYear, daysInMonth: daysInMonth, pad: pad,
+    leapMonthOfYear: leapMonthOfYear, monthDaysOfYear: monthDaysOfYear, lunarMonthsOfYear: lunarMonthsOfYear
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
