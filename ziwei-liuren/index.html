@@ -1255,14 +1255,25 @@ function zwHealth(c, read, age){
   /* 一、疾厄宫主星 → 体质基调 */
   /* 三方四正：本宫(疾厄)定基调，三合/对宫的星作补充 */
   var tri = zwTriad(c, ji.zhi);
-  var benStars = [], fuStars = [];
+  var benStars = [], heStars = [], duiStars = [];
   for (var mi = 0; mi < tri.mains.length; mi++){
     var mm2 = tri.mains[mi];
     if (mm2.ben) benStars.push(mm2.star);
-    else fuStars.push(mm2.star + (mm2.dui ? "(对宫)" : "(三合)"));
+    else if (mm2.dui) duiStars.push(mm2.star);
+    else heStars.push(mm2.star);
   }
   /* 基调只看本宫；本宫空则借对宫 */
-  var mains = benStars.length ? benStars : tri.mains.filter(function(x){ return x.dui; }).map(function(x){ return x.star; });
+  var borrowed = !benStars.length;
+  var mains = borrowed ? duiStars.slice() : benStars;
+  /* 三方四正另见：三合的全部 + 对宫的（借来的标注清楚） */
+  var fuStars = [];
+  for (var h2 = 0; h2 < heStars.length; h2++) fuStars.push(heStars[h2] + "(三合)");
+  for (var d2 = 0; d2 < duiStars.length; d2++) fuStars.push(duiStars[d2] + (borrowed ? "(对宫)" : "(对宫)"));
+  /* 若借了对宫，把借来的那几颗从"另见"里去掉，避免重复 */
+  if (borrowed){
+    fuStars = [];
+    for (var h3 = 0; h3 < heStars.length; h3++) fuStars.push(heStars[h3] + "(三合)");
+  }
   var wxCount = {};
   var starTxt = [];
   for (var m = 0; m < mains.length; m++){
