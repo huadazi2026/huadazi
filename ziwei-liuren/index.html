@@ -1271,28 +1271,7 @@ function resultBox(o){
   if (o.tag) h += ' <span class="badge">'+esc(o.tag)+'</span>';
   if (o.probText) h += ' <span style="font-size:11.5px;color:var(--dim2)">'+o.probText+'</span>';
   h += '</div>';
-  if (o.verdict) h += '<div style="font-size:13.5px;color:var(--txt);margin-top:10px;line-height:1.65">'+esc(o.verdict)+'</div>';
   h += '</div>';
-  if (o.reasons && o.reasons.length){
-    h += '<div class="card"><h2>为什么是这个结果</h2><ul class="whylist">';
-    for (var i=0;i<o.reasons.length;i++) h += '<li>'+o.reasons[i]+'</li>';
-    h += '</ul></div>';
-  }
-  if (o.pros || o.cons || o.condition){
-    h += '<details class="collapse"><summary>\u8fd8\u80fd\u5f80\u54ea\u8fb9\u8d70\uff0f\u4ec0\u4e48\u60c5\u51b5\u4e0b\u7ed3\u8bba\u4f1a\u7ffb</summary><div class="cin">';
-    if (o.pros && o.pros.length){
-      h += '<div class="vt">\u5f80\u597d\u7684\u65b9\u5411\u62c9</div><ul class="tight">';
-      for (var a=0;a<o.pros.length;a++) h += '<li>'+esc(o.pros[a])+'</li>';
-      h += '</ul>';
-    }
-    if (o.cons && o.cons.length){
-      h += '<div class="vt">\u5f80\u574f\u7684\u65b9\u5411\u62c9</div><ul class="tight">';
-      for (var b=0;b<o.cons.length;b++) h += '<li>'+esc(o.cons[b])+'</li>';
-      h += '</ul>';
-    }
-    if (o.condition) h += '<div class="vt">\u4ec0\u4e48\u60c5\u51b5\u4e0b\u7ed3\u8bba\u4f1a\u7ffb</div><div class="note">'+o.condition+'</div>';
-    h += '</div></details>';
-  }
   return h;
 }
 
@@ -1774,8 +1753,7 @@ function lrLikely(K, read, q){
 
   return { answer: (q ? answerOf(q, prob, topicAnswer(askTopic(q), prob)).txt : null),
     question: q, verdict: verdict, tag: tag, prob: prob,
-    probText: '（课面综合评分 '+read.score+'，把握度 '+esc(read.confidence)+'）',
-    reasons: reasons, pros: pros, cons: cons, condition: condition };
+    probText: '（课面综合评分 '+read.score+'，把握度 '+esc(read.confidence)+'）', condition: condition };
 }
 
 function lrReading(K, read, q){
@@ -2141,8 +2119,7 @@ function xlrHtml(k, q, mode){
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += resultBox({ answer: (q ? answerOf(q, prob, topicAns).txt : null), question: q,
     verdict: verdict, tag: tag, prob: prob,
-    probText: '（' + esc(k.gong) + '宫 · ' + (topicAns ? ('问' + TOPIC_NAME[topic]) : '未指明事类') + ' · ' + esc(info.luck) + '）',
-    reasons: reasons, pros: pros, cons: cons, condition: condition });
+    probText: '（' + esc(k.gong) + '宫 · ' + (topicAns ? ('问' + TOPIC_NAME[topic]) : '未指明事类') + ' · ' + esc(info.luck) + '）', condition: condition });
 
   showAsk('xiaoliuren', k);
   return h;
@@ -2407,7 +2384,6 @@ function mhHtml(r){
   h += resultBox({ answer: (r.question ? answerOf(r.question, prob, topicAnswer(askTopic(r.question), prob)).txt : null),
     question: r.question, verdict: verdict, tag: tag, prob: prob,
     probText: '（体用「' + esc(r.rel.key) + '」+ 变卦「' + esc(r.bianRel.key) + '」合出来的）',
-    reasons: reasons, pros: pros, cons: cons,
     condition: '梅花讲「不动不占」：如果你问这件事的时候心里其实已经有答案、只是想要个支持，那这个卦的参考价值会打折。' +
       '另外应期按卦数看，' + esc(v.timing) });
 
@@ -2647,7 +2623,6 @@ function qmLikely(p, yong, byG, q){
   return { answer: (q ? answerOf(q, prob, topicAnswer(askTopic(q), prob)).txt : null),
     question: q, verdict: verdict, tag: tag, prob: prob,
     probText: '（用神宫：'+g.name+'宫 '+g.men+' + '+g.star+' + '+g.shen+'）',
-    reasons: reasons, pros: pros, cons: cons,
     condition: '奇门是"问事"的盘，同一个问题换一个时辰起局结果就会变。如果这件事拖了几天还没动，' +
       '建议在打算真正出手的那个时辰重新起一局再看一次 —— 那一局才是你真正办事时的天时。' };
 }
@@ -2990,7 +2965,6 @@ function lyHtml(r){
   h += resultBox({ answer: (r.question ? answerOf(r.question, prob, topicAnswer(topic, prob)).txt : null),
     question: r.question, verdict: verdict, tag: tag, prob: prob,
     probText: '（本卦' + esc(ben.name) + ' · 用神' + esc(useQin) + ' · 动爻' + (r.dong.length ? r.dong.join('、') : '无') + '）',
-    reasons: reasons, pros: pros, cons: cons,
     condition: '六爻讲「一事一卦、一事一占」：同一个问题反复摇，卦就不准了。如果这件事拖过了旬（十天）或者中间条件变了，就重新起一卦。' });
 
   /* —— 导出 —— */
@@ -3113,7 +3087,6 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   h += resultBox({ answer: (r.question ? answerOf(r.question, prob, topicAnswer(topic, prob)).txt : null),
     question: r.question, verdict: verdict, tag: tag, prob: prob,
     probText: '（本卦' + esc(ben.name) + ' · 用神' + esc(useQin) + ' · 动爻' + (r.dong.length ? r.dong.join('、') : '无') + '）',
-    reasons: reasons, pros: pros, cons: cons,
     condition: '六爻讲「一事一卦、一事一占」：同一个问题反复摇，卦就不准了。如果这件事拖过了旬（十天）或者中间条件变了（换人、改价、改时间），' +
       '就重新起一卦 —— 那时旬空也换了，结论会跟着变。' });
 
