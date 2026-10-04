@@ -1002,12 +1002,6 @@ function renderZiwei(){
 function zwOneHtml(item){
   var c = item.c, read = item.read;
   var h = '';
-  /* 第 1 步：出生信息 / 怎么用命盘 */
-  h += stepper(1);
-  h += '<div class="card">' + stepHead('1', '你问的事 · 出生信息', '第 1 / 4 步');
-  h += lead('命盘回答的是<b>「我这个人整体是什么格局、现在这十年顺不顺」</b>。' +
-    '如果你心里有一件具体的事（这份工作要不要接、这个人合不合适），那种问题用<b>六爻 / 奇门</b>问更准。');
-  h += '</div>';
   /* 第 2 步：排盘 */
   h += stepper(2) + stepTag(2, '排盘 · 十二宫命盘', '第 2 / 4 步');
   h += zwHeader(c);
@@ -1759,8 +1753,6 @@ function lrLikely(K, read, q){
 function lrReading(K, read, q){
   var h = '';
   var L = lrLikely(K, read, q);          /* 先算出结论数据，最后再渲染 */
-  /* 第 1 步：问事 */
-  h += askCard(q, '大六壬');
   /* 第 2 步：起课（天地盘 / 四课 / 三传） */
   h += stepper(2) + stepTag(2, '起课 · 天地盘 / 四课 / 三传', '第 2 / 4 步');
   var cls = read.trend==='吉'||read.trend==='偏吉' ? 'g' : (read.trend==='平'?'i':(read.trend==='偏凶'||read.trend==='凶'?'b':'w'));
@@ -2041,8 +2033,6 @@ function xlrTopicDo(gong, topic){
 function xlrHtml(k, q, mode){
   var G = XiaoLiuRen.GONG, info = k.info;
   var h = '';
-  /* 第 1 步：问事 */
-  h += askCard(q, '小六壬');
     var topic = askTopic(q);
   var topicAns = xlrTopicAnswer(k.gong, topic);
   /* 最可能的结果 */
@@ -2314,8 +2304,6 @@ function mhGuaHtml(title, g, hitLine, hitCls){
 function mhHtml(r){
   var v = r.verdict;
   var h = '';
-  /* 第 1 步：问事 */
-  h += askCard(r.question, '梅花易数');
   
   /* 最可能的结果：本卦体用定倾向，变卦看后劲 */
   var BASE = { '用生体':76, '体克用':70, '比和':62, '体生用':44, '用克体':30 };
@@ -2430,8 +2418,6 @@ function renderQiMen(){
 function qmHtml(p, q){
   var M = p.meta, GONG = M.GONG_NAME;
   var h = '';
-  /* 第 1 步：问事 */
-  h += askCard(q, '奇门遁甲');
   h += '<div class="charthead"><div class="big">'+esc(p.gz.year)+'年 '+esc(p.gz.day)+'日 '+esc(p.gz.hour)+
        '时 · '+esc(p.ju.dun)+esc(p.ju.ju)+'局'+esc(p.ju.yuanName)+'</div><div class="kv">';
   h += '<span>节气 <b>'+esc(p.jieqi)+'</b></span>';
@@ -2792,7 +2778,6 @@ function lyGuaHtml(title, up, low, dong, cls){
 
 function lyHtml(r){
   var h = '';
-  h += askCard(r.question, '六爻');
   var ben = r.ben;
   var dongSet = r.dong;
 
