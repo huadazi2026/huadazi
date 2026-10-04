@@ -34,6 +34,8 @@
     --active-bg:#221d12;          /* 历史里选中的那条 */
     --overlay:rgba(0,0,0,.6);
     --lightbox:rgba(0,0,0,.94);
+
+    --shift-down:1mm;             /* 整体下移量，改这个数就行 */
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{height:100%}
@@ -46,6 +48,11 @@
     height:100dvh;                /* 支持 dvh 的用这个 */
     height:var(--app-h, 100dvh);  /* JS 用 visualViewport 量出来的真实高度（最准） */
     font-size:15px; line-height:1.65;
+    /* 整体往下挪一点。box-sizing:border-box 保证加了 padding 也不会顶出屏幕。
+       想调多少就改这个数：1mm 大约是 3.8px（iPhone 163ppi）。
+       设成 0 就是完全不动。 */
+    box-sizing:border-box;
+    padding-top:var(--shift-down, 0px);
   }
   header{
     display:flex; align-items:center; gap:8px; padding:12px 14px;
