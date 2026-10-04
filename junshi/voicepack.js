@@ -36,13 +36,22 @@
     }
 
     // ---------- 加载 ----------
-    // 只发两个请求：huayan.meta.json（元信息+字符表）+ huayan.pack（全部音频）
+    // 分三样拿：huayan.meta.json（元信息+字符表）+ huayan.parts.json（分块清单）+ 若干 chunkNNN.bin
+    // 为什么要分块：7.8 MB 一次性下载在手机网络上很容易失败，而失败就得从头再来。
+    // 分块之后每块单独重试，而且能整包缓存到 IndexedDB，第二次打开就不用下了。
     async load(onProgress){
       if(this.manifest) return this;
-      const mRes = await fetch(this.base + "huayan.meta.json", {cache: "force-cache"});
-      if(!mRes.ok) throw new Error("语音包元信息拿不到（HTTP " + mRes.status + "）");
-      const meta = await mRes.json();
+      const say = (o)=>{ if(onProgress) onProgress(o); };
 
+      // 1) 元信息
+      let meta;
+      try{
+        const mRes = await fetch(this.base + "huayan.meta.json", {cache: "force-cache"});
+        if(!mRes.ok) throw new Error("HTTP " + mRes.status);
+        meta = await mRes.json();
+      }catch(e){
+        throw new Error("元信息拿不到：" + ((e && e.message) || e));
+      }
       const map = Object.create(null);
       String(meta.chars || "").split("|").forEach(part => {
         const i = part.indexOf(":");
@@ -51,15 +60,126 @@
         for(const ch of part.slice(i + 1)) map[ch] = syl;
       });
       this.charMap = map;
+      this.info = { name: meta.name, sr: meta.sr, count: meta.count };
+      say({stage: "meta", count: meta.count});
 
-      if(onProgress) onProgress({stage: "meta", count: meta.count});
+      // 2) 先看本地缓存有没有整包
+      let buf = await this._readCache();
+      if(buf){
+        say({stage: "cached", note: this.cacheNote});
+      }else{
+        // 3) 分块清单
+        let parts;
+        try{
+          const pRes = await fetch(this.base + "huayan.parts.json", {cache: "force-cache"});
+          if(!pRes.ok) throw new Error("HTTP " + pRes.status);
+          parts = await pRes.json();
+        }catch(e){
+          throw new Error("分块清单拿不到：" + ((e && e.message) || e));
+        }
+        if(!parts || !parts.names || !parts.names.length) throw new Error("分块清单是空的");
 
-      const pRes = await fetch(this.base + "huayan.pack", {cache: "force-cache"});
-      if(!pRes.ok) throw new Error("语音包拿不到（HTTP " + pRes.status + "）");
-      const buf = await pRes.arrayBuffer();
+        // 4) 逐块下载（每块最多重试 4 次，指数退避）
+        const got = [];
+        let loaded = 0;
+        for(let i = 0; i < parts.names.length; i++){
+          const name = parts.names[i];
+          let piece = null, lastErr = "";
+          for(let attempt = 1; attempt <= 4; attempt++){
+            try{
+              const r = await fetch(this.base + name, {cache: "force-cache"});
+              if(!r.ok) throw new Error("HTTP " + r.status);
+              piece = await r.arrayBuffer();
+              if(!piece.byteLength) throw new Error("空响应");
+              break;
+            }catch(e){
+              lastErr = (e && e.message) || String(e);
+              if(attempt < 4) await new Promise(z => setTimeout(z, 400 * attempt));
+            }
+          }
+          if(!piece){
+            throw new Error("第 " + (i + 1) + "/" + parts.names.length + " 块下载失败（" + lastErr + "）");
+          }
+          got.push(new Uint8Array(piece));
+          loaded += piece.byteLength;
+          say({stage: "chunk", i: i + 1, total: parts.names.length,
+               loaded: loaded, bytes: parts.total || loaded});
+        }
+
+        // 5) 拼起来
+        const all = new Uint8Array(loaded);
+        let off = 0;
+        for(const g of got){ all.set(g, off); off += g.byteLength; }
+        buf = all.buffer;
+        this._writeCache(buf).then(ok => say({stage: "saved", ok: ok, note: this.cacheNote}));
+      }
+
       this._parsePack(buf);
-      if(onProgress) onProgress({stage: "ready", count: this.manifest.count});
+      say({stage: "ready", count: this.manifest.count});
       return this;
+    }
+
+    // ---- 整包缓存（IndexedDB）。Safari 会清理，所以要能容错 ----
+    // 注意：object store 必须显式给 keyPath，否则 put({...}) 会因为
+    // "out-of-line keys and no key generator" 静默失败。
+    _idb(){
+      if(this._db !== undefined) return Promise.resolve(this._db);
+      return new Promise(res => {
+        const bail = (v)=>{ if(this._db === undefined){ this._db = v; res(v); } };
+        try{
+          if(!global.indexedDB){ return bail(null); }
+          const rq = global.indexedDB.open("junshi_voice", 2);
+          rq.onupgradeneeded = ()=>{
+            const db = rq.result;
+            if(db.objectStoreNames.contains("packs")) db.deleteObjectStore("packs");
+            db.createObjectStore("packs", { keyPath: "id" });
+          };
+          rq.onsuccess = ()=>{ this._db = rq.result; res(this._db); };
+          rq.onerror = ()=>bail(null);
+          rq.onblocked = ()=>bail(null);
+          setTimeout(()=>bail(null), 3000);
+        }catch(e){ bail(null); }
+      });
+    }
+    async _readCache(){
+      try{
+        const db = await this._idb();
+        if(!db){ this.cacheNote = "\u6d4f\u89c8\u5668\u4e0d\u53ef\u7528\u672c\u5730\u5b58\u50a8"; return null; }
+        return await new Promise(res => {
+          const g = db.transaction("packs", "readonly").objectStore("packs").get("huayan");
+          g.onsuccess = ()=>{ const r = g.result;
+            if(r && r.data && r.data.byteLength) res(r.data);
+            else { this.cacheNote = "\u672c\u5730\u6ca1\u6709\u7f13\u5b58"; res(null); } };
+          g.onerror = ()=>{ this.cacheNote = "\u8bfb\u7f13\u5b58\u5931\u8d25"; res(null); };
+        });
+      }catch(e){ this.cacheNote = "\u8bfb\u7f13\u5b58\u5f02\u5e38\uff1a" + ((e&&e.message)||e); return null; }
+    }
+    async _writeCache(buf){
+      try{
+        const db = await this._idb();
+        if(!db){ this.cacheNote = "\u6d4f\u89c8\u5668\u4e0d\u53ef\u7528\u672c\u5730\u5b58\u50a8"; return false; }
+        const ok = await new Promise(res => {
+          const tx = db.transaction("packs", "readwrite");
+          tx.objectStore("packs").put({ id: "huayan", data: buf, at: Date.now() });
+          tx.oncomplete = ()=>res(true);
+          tx.onerror = ()=>{ this.cacheNote = "\u5199\u7f13\u5b58\u5931\u8d25"; res(false); };
+          tx.onabort = ()=>{ this.cacheNote = "\u5199\u7f13\u5b58\u88ab\u4e2d\u6b62"; res(false); };
+        });
+        if(ok) this.cacheNote = "\u5df2\u7f13\u5b58\u5230\u672c\u673a";
+        return ok;
+      }catch(e){ this.cacheNote = "\u5199\u7f13\u5b58\u5f02\u5e38\uff1a" + ((e&&e.message)||e); return false; }
+    }
+    async clearCache(){
+      try{
+        const db = await this._idb();
+        if(!db) return false;
+        return await new Promise(res => {
+          const tx = db.transaction("packs", "readwrite");
+          tx.objectStore("packs").delete("huayan");
+          tx.oncomplete = ()=>res(true);
+          tx.onerror = ()=>res(false);
+        });
+      }catch(e){ return false; }
     }
 
     _parsePack(buf){

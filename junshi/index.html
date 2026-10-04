@@ -376,6 +376,7 @@
         <option value="pack">🧠 华言 · 神经语音（内嵌模型，推荐）</option>
         <option value="system">📱 系统嗓音（婷婷 / 美嘉 这类）</option>
       </select>
+      <div class="row"><button id="btnVpReload">重新下载语音包</button><button id="btnVpClear">清掉本地语音缓存</button></div>
       <div class="hint" id="vpDiag"></div>
       <label>系统嗓音（选了「系统嗓音」才有用）—— 想要 <b>Siri 的声音</b>请看下面的 📢</label>
       <select id="cfgVoice" size="1"></select>
@@ -427,7 +428,7 @@
 <script>
 "use strict";
 // 版本号显示在标题栏和设置里 —— 手机缓存住了旧版时一眼就能看出来
-const APP_VER = "v2.5";
+const APP_VER = "v3.1";
 const LS_CFG="junshi_cfg_v1", LS_MSG="junshi_msg_v1", LS_CTX="junshi_ctx_v1",
       LS_PERSONA="junshi_persona_v1", LS_CONV="junshi_conv_v1", LS_ACT="junshi_act_v1";
 
@@ -1088,6 +1089,21 @@ function initTtsControls(){
     toast("正在试读 —— 觉得不对就换一个嗓音、再拖一下音调和语速。" + (zhVoices().length > 1 ? "" : "（这台设备只有 " + zhVoices().length + " 个中文嗓音，装一个语音包会多出更多选择）"), true);
     setTimeout(fillVoiceSel, 600);   // iOS 读完第一次才会报出完整嗓音列表
   });
+  $("btnVpReload").addEventListener("click", ()=>{
+    vpReady = false; vpErr = ""; vpProg = ""; vpCacheNote = ""; if(vp) vp = null;
+    showVpDiag();
+    vpInit().then(ok => {
+      if(ok) toast("语音包已就绪，现在可以点「▶ 朗读」了。", true);
+      else showErr("还是不行：" + (vpErr || "没有返回原因"));
+    });
+  });
+  $("btnVpClear").addEventListener("click", ()=>{
+    if(!confirm("清掉本机缓存的语音包？下次要重新下载。")) return;
+    (vp ? vp.clearCache() : Promise.resolve(false)).then(()=>{
+      vpReady = false; if(vp) vp = null; showVpDiag();
+      toast("已清掉本地语音缓存。", true);
+    });
+  });
   $("btnVoiceScan").addEventListener("click", ()=>{
     const before = zhVoices().length;
     fillVoiceSel();
@@ -1163,7 +1179,7 @@ function markRange(el, start, len){
 }
 /* ---------- 神经语音包（不依赖系统 TTS） ---------- */
 const VP_BASE = "voice/";          // 里面有 huayan.meta.json + huayan.pack
-let vp = null, vpReady = false, vpLoading = false, vpErr = "";
+let vp = null, vpReady = false, vpLoading = false, vpErr = "", vpProg = "", vpCacheNote = "";
 let vpMarks = [], vpTick = null;          // 当前朗读的音节范围，用来打高亮
 
 function useVoicePack(){ return cfg.voice === "pack"; }
@@ -1172,15 +1188,29 @@ async function vpInit(){
   if(vpReady || vpLoading) return vpReady;
   if(typeof window.VoicePack !== "function"){ vpErr = "播放器脚本没加载"; return false; }
   vpLoading = true;
+  vpErr = "";
+  vpProg = "";
   try{
     vp = new window.VoicePack(VP_BASE);
-    await vp.load();
+    await vp.load(function(o){
+      if(o.stage === "meta") vpProg = "正在准备…";
+      else if(o.stage === "cached") vpProg = "从本地缓存读取…";
+      else if(o.stage === "chunk"){
+        var pct = Math.round((o.loaded / (o.bytes || o.loaded)) * 100);
+        vpProg = "正在下载语音包 " + (o.loaded/1048576).toFixed(1) + " / "
+               + ((o.bytes||o.loaded)/1048576).toFixed(1) + " MB（" + pct + "%）";
+      }
+      else if(o.stage === "saved"){ vpCacheNote = o.note || ""; }
+      if($("vpDiag")) showVpDiag();
+    });
     vpReady = true; vpErr = "";
   }catch(e){
-    vpErr = (e && e.message) || String(e);
+    vpErr = (e && e.message) ? e.message : (e ? String(e) : "未知错误");
+    if(!vpErr || vpErr === "[object Object]") vpErr = "加载中断（可能是网络断了或存储被拒）";
     vpReady = false;
   }finally{
     vpLoading = false;
+    vpProg = "";
     showVpDiag();
   }
   return vpReady;
@@ -1297,7 +1327,13 @@ function startRead(el, text, from, btn){
     el.classList.add("reading"); setReadBtn(ttsBtn, true);
     showErr("正在加载神经语音包（第一次会慢几秒，之后就快了）…");
     vpInit().then(ok => {
-      if(!ok){ resetReadUI(); showErr("神经语音包加载失败：" + vpErr + "。可以在设置里改回系统嗓音。"); return; }
+      if(!ok){
+        resetReadUI();
+        showErr("神经语音包加载失败 —— " + (vpErr || "没有返回原因")
+          + "\n点「设置 → 朗读与语音 → 重新下载语音包」可以再试；"
+          + "也可以先切到「系统嗓音」。");
+        return;
+      }
       startReadPack(el, text, from, btn);
     });
     return;
@@ -1764,16 +1800,17 @@ function showVpDiag(){
     return;
   }
   if(vpReady){
-    el.innerHTML = "✅ 神经语音包已就绪：<b>" + (vp.manifest.count) + "</b> 个音节，采样率 "
-      + vp.manifest.sr + " Hz。这是内嵌的神经模型声音，<b>不依赖苹果、断网也能读</b>。"
-      + "<br>第一次用会按需下载音节片段（整包约 7.7 MB），之后浏览器会缓存。";
+    el.innerHTML = "✅ 神经语音包已就绪：<b>" + (vp.manifest.count) + "</b> 个音节。"
+      + "这是内嵌的神经模型声音，<b>不依赖苹果、断网也能读</b>。"
+      + "<br>" + (vpCacheNote || "已缓存到本机") + "，下次打开不用再下。";
   }else if(vpLoading){
-    el.innerHTML = "正在加载神经语音包…";
+    el.innerHTML = "正在加载神经语音包…" + (vpProg ? "<br>" + vpProg : "");
   }else if(vpErr){
     el.innerHTML = "<b style='color:var(--danger)'>语音包加载失败：</b>" + vpErr
-      + "<br>可以先切换到「系统嗓音」用着。";
+      + "<br>点上面的「重新下载语音包」再试一次，或者先切到「系统嗓音」。";
   }else{
-    el.innerHTML = "还没加载。第一次点「▶ 朗读」时会自动加载（清单+字符表不到 120 KB）。";
+    el.innerHTML = "还没加载。第一次点「▶ 朗读」时会自动下载"
+      + "（约 7.8 MB，分 16 块，每块失败会自动重试）。";
   }
 }
 function statLine(){
