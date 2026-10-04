@@ -377,7 +377,8 @@
       <input type="range" id="cfgRate" min="0.6" max="1.8" step="0.05">
       <label>音调（调高一点更年轻、更“御姐”） <span id="statPitch" class="stat"></span></label>
       <input type="range" id="cfgPitch" min="0.6" max="1.9" step="0.05">
-      <div class="row"><button id="btnVoiceTry">▶ 试听这个嗓音</button></div>
+      <div class="row"><button id="btnVoiceTry">▶ 试听这个嗓音</button><button id="btnVoiceScan">🔍 重新扫描嗓音</button></div>
+      <div class="hint" id="voiceDiag"></div>
       <div class="hint">
         <b>军师每条回复下面有两个读法：</b><br>
         <b>▶ 朗读</b> —— 用浏览器里能拿到的嗓音（就是上面选的这个）。点一下从头读，按钮变「⏹ 停止」；
@@ -905,7 +906,7 @@ function openLightbox(src){
 function closeLightbox(){ $("lightbox").classList.remove("show"); }
 
 /* ---------- 朗读（可从句中任意一个字开始） ---------- */
-let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null, ttsBtn = null;
+let ttsChunks = [], ttsCi = 0, ttsStop = false, ttsBubble = null, ttsBtn = null, warmTried = false;
 
 function ttsSupported(){ return typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function"; }
 function zhVoices(){
@@ -937,25 +938,61 @@ function saveTts(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
 function fillVoiceSel(){
   const sel = $("cfgVoice");
   if(!sel) return;
+  const all = (ttsSupported() && window.speechSynthesis.getVoices()) || [];
   const list = zhVoices();
   const cur = pickVoice();
+  const prev = sel.value;
   sel.innerHTML = "";
   if(!list.length){
     const o = document.createElement("option");
-    o.value = ""; o.textContent = "（这台设备没装中文嗓音）";
+    o.value = ""; o.textContent = (all.length ? "（这 " + all.length + " 个嗓音里没有中文的）" : "（还没拿到嗓音列表）");
     sel.appendChild(o);
+  }else{
+    list.forEach(v=>{
+      const o = document.createElement("option");
+      o.value = v.name;
+      const bits = [];
+      if(v.localService) bits.push("离线");
+      if(/xiaoxiao|xiaoyi|huihui|yaoyao|女|Female|Xiaomo|Meijia|Tingting/i.test(v.name)) bits.push("偏女声");
+      o.textContent = v.name + (bits.length ? "（" + bits.join("·") + "）" : "");
+      sel.appendChild(o);
+    });
+    sel.value = (prev && list.some(v=>v.name===prev)) ? prev : (cur ? cur.name : list[0].name);
+  }
+  showVoiceDiag(all.length, list.length, sel.value);
+}
+// iPhone 上第一次进设置常常是空的（getVoices 异步），把实情摊开给用户看
+function showVoiceDiag(allCount, zhCount, selected){
+  const el = $("voiceDiag");
+  if(!el) return;
+  if(!ttsSupported()){ el.textContent = "这个浏览器不支持朗读。"; return; }
+  if(!allCount){
+    el.innerHTML = "<b style='color:var(--danger)'>现在还没拿到嗓音列表。</b>这是 iPhone Safari 的常见情况——"
+      + "它要等你<b>先用过一次朗读</b>才会把嗓音报出来。<br>"
+      + "点上面的「🔊 试听这个嗓音」或随便读一条，然后再点「🔍 重新扫描嗓音」。";
     return;
   }
-  list.forEach(v=>{
-    const o = document.createElement("option");
-    o.value = v.name;
-    const bits = [];
-    if(v.localService) bits.push("离线");
-    if(/xiaoxiao|xiaoyi|huihui|yaoyao|女|Female|Xiaomo|Meijia/i.test(v.name)) bits.push("偏女声");
-    o.textContent = v.name + (bits.length ? "（" + bits.join("·") + "）" : "");
-    sel.appendChild(o);
-  });
-  if(cur) sel.value = cur.name;
+  el.innerHTML = "这台设备一共报了 <b>" + allCount + "</b> 个嗓音，其中中文 <b>" + zhCount + "</b> 个。"
+    + "当前选中：<b>" + (selected || "没选") + "</b>"
+    + (zhCount <= 1
+        ? "<br><b style='color:var(--danger)'>只有 " + zhCount + " 个中文嗓音可用，所以没得挑。</b><br>"
+          + "<b>iPhone 装更多声音的办法：</b>设置 → 辅助功能 → 朗读内容 → 声音 → 中文 → 点右上角「下载」把想要的声音下下来"
+          + "（晓晓/晓伊这类需要下载，下完会多出可选项）。"
+          + "<b>装完回到这里点「🔍 重新扫描嗓音」</b>，或者把页面下拉刷新一次。"
+        : "");
+}
+// iOS 上 getVoices() 常要等第一次朗读之后才有值，这里主动催一下
+function warmUpVoices(){
+  if(!ttsSupported() || warmTried) return;
+  warmTried = true;
+  try{
+    if((window.speechSynthesis.getVoices() || []).length) return;
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0; u.rate = 2;
+    window.speechSynthesis.speak(u);
+    setTimeout(()=>{ try{ window.speechSynthesis.cancel(); }catch(e){} fillVoiceSel(); }, 350);
+    setTimeout(fillVoiceSel, 1200);
+  }catch(e){}
 }
 function applyTtsSettings(){
   const sel = $("cfgVoice");
@@ -965,6 +1002,7 @@ function applyTtsSettings(){
   saveTts("junshi_tts_pitch_v1", $("cfgPitch").value);
   $("statRate").textContent  = "（" + Number($("cfgRate").value).toFixed(2) + " 倍）";
   $("statPitch").textContent = "（" + Number($("cfgPitch").value).toFixed(2) + "）";
+  fillVoiceSel();                                       // 顺手刷新诊断，让它显示刚选的那个
   if(ttsSupported()){                                   // 正在读的话立刻换嗓音
     if(ttsBubble && !ttsStop){
       const t = ttsChunks.slice(ttsCi).map(c=>c.text).join("");
@@ -988,6 +1026,7 @@ function initTtsControls(){
   $("btnVoiceTry").addEventListener("click", ()=>{
     if(!ttsSupported()){ showErr("这个浏览器不支持朗读。"); return; }
     applyTtsSettings();
+    warmTried = true;
     try{ window.speechSynthesis.cancel(); }catch(e){}
     const u = new SpeechSynthesisUtterance("你好，我是军师。这句话是用来试嗓音的，你听着顺耳吗？");
     const v = pickVoice();
@@ -996,6 +1035,12 @@ function initTtsControls(){
     u.rate = ttsRate(); u.pitch = ttsPitch();
     window.speechSynthesis.speak(u);
     toast("正在试读 —— 觉得不对就换一个嗓音、再拖一下音调和语速。" + (zhVoices().length > 1 ? "" : "（这台设备只有 " + zhVoices().length + " 个中文嗓音，装一个语音包会多出更多选择）"), true);
+    setTimeout(fillVoiceSel, 600);   // iOS 读完第一次才会报出完整嗓音列表
+  });
+  $("btnVoiceScan").addEventListener("click", ()=>{
+    const before = zhVoices().length;
+    fillVoiceSel();
+    toast("重新扫描完成：中文嗓音 " + zhVoices().length + " 个" + (before === zhVoices().length ? "（没变化）" : ""), true);
   });
 }
 // 先按标点切成句子，再把句子合并成不超过 max 字的朗读块。
@@ -1080,6 +1125,8 @@ function speakOne(){
   u.lang = (v && v.lang) || "zh-CN";
   u.rate = ttsRate();
   u.pitch = ttsPitch();
+  // iOS 上第一次朗读之后嗓音列表才会补齐，读的时候顺手记一下实情
+  setTimeout(()=>{ if($("voiceDiag") && $("settings").style.display !== "none") fillVoiceSel(); }, 500);
   u.onend = ()=>{ ttsCi++; speakOne(); };
   u.onerror = ()=>{ ttsCi++; speakOne(); };
   window.speechSynthesis.speak(u);
@@ -1685,6 +1732,8 @@ $("btnSet").addEventListener("click", ()=>{
   $("cfgQface").checked = cfg.qface !== false;
   $("cfgPersona").value = persona; $("cfgContext").value = ctxText;
   statLine(); markDirty(false);
+  fillVoiceSel();            // iPhone 上嗓音列表可能这会儿才拿到，每次开面板都刷一遍
+  warmUpVoices();            // 空列表就主动催一次
   $("drawer").style.display = "none";
   $("settings").style.display = "block";
   $("overlay").classList.add("show");
