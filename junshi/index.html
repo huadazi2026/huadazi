@@ -35,11 +35,9 @@
     --overlay:rgba(0,0,0,.6);
     --lightbox:rgba(0,0,0,.94);
 
-    /* 整体下移量。现在是 0 = 不动。
-       试过 1mm（3.78px）：在 3 倍屏上是 11.3 个物理像素，
-       不是整数，顶栏与状态栏之间会多出一条缝。
-       真要下移就用整数像素（4px / 8px）。 */
-    --shift-down:0px;
+    /* 顶栏上移量。用整数像素，别用毫米（3 倍屏上会落在半像素）。
+       现在 3px。设 0px 就是贴顶不动。 */
+    --shift-up:3px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html,body{height:100%}
@@ -56,12 +54,15 @@
        想调多少就改这个数：1mm 大约是 3.8px（iPhone 163ppi）。
        设成 0 就是完全不动。 */
     box-sizing:border-box;
-    padding-top:var(--shift-down, 0px);
   }
   header{
     display:flex; align-items:center; gap:8px; padding:12px 14px;
     background:var(--panel); border-bottom:1px solid var(--line); flex:none;
     padding-top:calc(12px + env(safe-area-inset-top));
+    /* 整条栏往上移（背景 + 里面的字和按钮一起走）。
+       用负 margin，不补 padding —— 补了就只有背景往上长，内容不动。
+       上面那 3px 会露出页面底色，真要补就用 header 的背景色填。 */
+    margin-top:calc(-1 * var(--shift-up, 0px));
   }
   header h1{
     font-size:16px; margin:0; font-weight:600; letter-spacing:.5px;
