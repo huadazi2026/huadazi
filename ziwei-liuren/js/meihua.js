@@ -279,6 +279,15 @@
     return out;
   }
 
+  /* 直接以三个先天卦数（1-8）与动爻号建卦 —— 供物数占／声音占／字占用 */
+  function buildByNums(upNum, lowNum, dong, opts, used, desc) {
+    function triByNum(n) {
+      for (var k in TRIGRAM) if (parseInt(k, 10) === n) return TRIGRAM[k];
+      return TRIGRAM[1];
+    }
+    return build(triByNum(upNum), triByNum(lowNum), dong, opts, used, desc);
+  }
+
   function build(upper, lower, dong, opts, used, desc) {
     /* 动爻在上卦（4-6 爻）则上卦为用、下卦为体；动爻在下卦（1-3 爻）则下卦为用、上卦为体 */
     var dongInUpper = dong >= 4;
@@ -407,7 +416,7 @@
     return t[d - 1];
   }
 
-  var API = { qi: qi, waiYing: waiYing, WAI_YING: WAI_YING, ZHEN_KE: ZHEN_KE, trigramWx: trigramWx, TRIGRAM: TRIGRAM, HEX: HEX, HEX_MEAN: HEX_MEAN, relation: relation,
+  var API = { qi: qi, buildByNums: buildByNums, mod: mod, waiYing: waiYing, WAI_YING: WAI_YING, ZHEN_KE: ZHEN_KE, trigramWx: trigramWx, TRIGRAM: TRIGRAM, HEX: HEX, HEX_MEAN: HEX_MEAN, relation: relation,
               hexName: hexName, huGua: huGua, bianGua: bianGua, ZHI: ZHI };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.MeiHua = API;
