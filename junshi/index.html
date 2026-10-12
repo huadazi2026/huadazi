@@ -173,20 +173,14 @@
   }
   .acts button:active{background:var(--panel2); color:var(--sub)}
   .sys{text-align:center; color:var(--dim); font-size:12.5px; padding:6px 0}
-  .quick{display:flex; gap:7px; flex-wrap:wrap; padding:0 14px 8px; flex:none}
-  .quick button{
-    background:var(--panel2); border:1px solid var(--line); color:var(--sub);
-    border-radius:20px; padding:6px 13px; font-size:12.5px; cursor:pointer;
-  }
-  .quick button:active{background:var(--line)}
   footer{
     flex:none; background:var(--panel); border-top:1px solid var(--line);
     padding:10px 12px calc(10px + env(safe-area-inset-bottom));
     /* 输入区单独往下挪。
        必须用 transform，不能用 margin。
-       试过两种 margin，都会把上面那排快捷提问一起挤下去：
-         负 margin-bottom → quick.top 723→743
-         负 margin-top    → quick.top 642→662（内容还变高了）
+       试过两种 margin，都会把上面的东西一起挤下去：
+         负 margin-bottom → 上面的随着下移
+         负 margin-top    → 上面不但下移，聊天区还变高了
        transform 不参与布局，只动看见的位置，所以上面纹丝不动。 */
     transform:translateY(var(--composer-drop, 0px));
     display:flex; gap:9px; align-items:flex-end;
@@ -424,14 +418,6 @@
 </header>
 
 <div id="chat"></div>
-<div class="quick" id="quick">
-  <button data-q="我现在的处境，帮我理一遍，说重点。">理一遍处境</button>
-  <button data-q="我这件事，你觉得我该怎么做？给具体的。">我该怎么做</button>
-  <button data-q="我是不是在骗自己？直接说。">我是不是在骗自己</button>
-  <button data-q="我该怎么回这条消息？">帮我回话</button>
-  <button data-q="我这钱该怎么规划？">钱怎么规划</button>
-  <button data-q="看看这张图，说说你怎么看。">看图</button>
-</div>
 <div id="errbox"></div>
 <div id="pending"></div>
 <footer>
@@ -1535,7 +1521,7 @@ function confirmLeave(){
 (function(){
   // 这些地方点了不收键盘：能打字的、点了要干活的、以及内容本身（你可能想选字）
   const KEEP = "input, textarea, select, button, a, pre, code, mark, .bubble, " +
-               ".acts, .hitem, .pchip, #pending, #quick, #emojiPanel, #lightbox, " +
+               ".acts, .hitem, .pchip, #pending, #emojiPanel, #lightbox, " +
                ".sheet, .imgs, #cmpTools, #drawer, #settings";
   const chat = ()=> document.getElementById("chat");
   // 记录"点下去之前"是不是贴着底部。松开时用它判断该不该跟着滚，
@@ -1850,9 +1836,6 @@ $("plSet").addEventListener("click", ()=>{ togglePlus(false); $("btnSet").click(
 document.addEventListener("keydown", e=>{ if(e.key === "Escape"){ closeLightbox(); togglePlus(false); toggleEmoji(false); } });
 window.addEventListener("beforeunload", e=>{
   if(pendingImgs.length){ e.preventDefault(); e.returnValue = ""; }
-});
-$("quick").addEventListener("click", e=>{
-  if(e.target.tagName==="BUTTON" && !busy) send(e.target.dataset.q);
 });
 $("btnNew").addEventListener("click", startNew);
 $("btnHist").addEventListener("click", ()=>{
