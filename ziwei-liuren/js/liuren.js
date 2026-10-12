@@ -294,6 +294,10 @@
   function tianJiang(dayGan, hourZhiIdx, pan, opts) {
     opts = opts || {};
     var g = GUI_REN[dayGan];
+    /* 昼夜分界：用通行约定「卯至申为昼、酉至寅为夜」（多数六壬程序采此）。
+       注：《六壬大全》卷十二〈毕法赋〉「太阳照武宜擒贼」条主张按当日实际日出日入判昼夜，
+       谓「尤宜逐季推寻日出日入之时，极准。如止以卯为日出、酉为日入……」——
+       此为更精之法，需天文算法，本程序未实现。若遇昼夜贵人起法有争议的盘，请留意此差异。 */
     var isDay = hourZhiIdx >= 3 && hourZhiIdx <= 8;      // 卯~申为昼
     var guiZhi = isDay ? g.day : g.night;
     var o = pan.dp[guiZhi];                              // 天盘贵人所压地盘宫

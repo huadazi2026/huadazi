@@ -132,25 +132,37 @@
     if (!best) return LC.TERMS[0];
     return best.name;
   }
-  /* 符头：距当日最近的「往前」甲日或己日（仅作展示） */
+  /* 符头：当地的「甲日或己日」（甲己二干为一元之首，谓之符头）
+     注意：甲、己日都是符头，共 12 个，地支各不相同 —— 不能假设「甲子日必为上元」 */
   function fuTouOf(dayGZIdx) {
-    var g = dayGZIdx % 10;
-    var d1 = mod(g, 10);
-    if (d1 > 5) d1 = mod(g - 5, 10);
-    var fu = mod(dayGZIdx - d1, 60);
-    return { idx: fu, days: mod(dayGZIdx - fu, 60), name: LC.gzName(fu) };
+    var g = dayGZIdx % 10;                 /* 0=甲 1=乙 2=丙 3=丁 4=戊 5=己 … */
+    var back = (g >= 5) ? (g - 5) : g;     /* 甲日退 0 步即自身；己日退 5 步到甲 */
+    if (g === 5) back = 0;                 /* 己日自身就是符头 */
+    var fu = mod(dayGZIdx - back, 60);
+    return { idx: fu, days: mod(dayGZIdx - fu, 60), name: LC.gzName(fu),
+             zhi: ZHI[mod(fu, 12)] };
   }
-  /* 定局：节气定「阳遁/阴遁 + 三元局数表」，日在六十甲子中的位次定「上/中/下元」
-     —— 每 5 日一元的连续排法（序 0-4 上元、5-9 中元、10-14 下元，循环） */
+  /* 定局
+     依《奇门遁甲统宗》卷二「定三元法」：
+       「一元五日，以甲己二干为一元之首，谓之符头。
+         符头所临之支值子午卯酉则为上元；值寅申巳亥则为中元；值辰戌丑未则为下元。」
+     —— 上中下元由「符头所临之地支」定，不是由「日在六十甲子中的位次」定。
+     校验：甲子日符头为甲子（支子）→ 上元 ✓；
+           己巳日符头为己巳（支巳）→ 中元（旧法误作上元）。 */
+  function yuanOfFuTou(zhi) {
+    if ('子午卯酉'.indexOf(zhi) >= 0) return 0;   /* 四仲 → 上元 */
+    if ('寅申巳亥'.indexOf(zhi) >= 0) return 1;   /* 四孟 → 中元 */
+    return 2;                                     /* 四季（辰戌丑未）→ 下元 */
+  }
   function juOf(dayGZIdx, jieqiName) {
     var trio = JU_TABLE[jieqiName];
     if (!trio) return null;
     var ft = fuTouOf(dayGZIdx);
-    var yuan = Math.floor(dayGZIdx / 5) % 3;
+    var yuan = yuanOfFuTou(ft.zhi);
     var isYang = YANG_JIEQI.indexOf(jieqiName) >= 0;
     return { ju: trio[yuan], yuan: yuan, yuanName: ['上元','中元','下元'][yuan],
              isYang: isYang, dun: isYang ? '阳遁' : '阴遁',
-             fuTou: ft.name, daysFromFuTou: ft.days, jieqi: jieqiName };
+             fuTou: ft.name, fuTouZhi: ft.zhi, daysFromFuTou: ft.days, jieqi: jieqiName };
   }
 
   /* ---------- 地盘三奇六仪 ---------- */
