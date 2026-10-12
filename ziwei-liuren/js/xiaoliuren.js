@@ -100,7 +100,8 @@
       lunar = LC.solarToLunar(ty, tm, td);
       if (!lunar) throw new Error('日期超出农历数据范围（1900-01-31 ~ 2100-12-31）');
       shiIdx = LC.hourZhiOf(thh);
-      gzText = { yearGZ: LC.gzName(LC.yearGZ(ty)), dayGZ: LC.gzName(LC.dayGZ(ty, tm, td)),
+      /* 年干支按「立春」换年（与紫微／六壬／八字同一口径）；不能直接传公历年 */
+      gzText = { yearGZ: LC.gzName(LC.yearGZ(LC.monthLing(ty, tm, td, thh, tmm).ganZhiYear)), dayGZ: LC.gzName(LC.dayGZ(ty, tm, td)),
                  hourGZ: GAN.charAt(LC.hourGZ(LC.dayGZ(ty, tm, td), shiIdx)) + ZHI.charAt(shiIdx) };
       if (tst) gzText.trueSolar = tst;
       gzText.clock = { hh: thh, mm: tmm };

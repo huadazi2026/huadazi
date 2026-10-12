@@ -23,7 +23,7 @@
 html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%;overflow-x:hidden;max-width:100%}
-body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+body{padding-bottom:calc(var(--navh,64px) + 8px + env(safe-area-inset-bottom))}
 a{color:var(--gold);text-decoration:none}
 
 /* 顶部 */
@@ -281,10 +281,11 @@ table.ketable tr:last-child td{border-bottom:0}
 .bz-wxb{flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
 .bz-wxb i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:4px}
 .bz-wxv{width:30px;text-align:right;color:var(--dim2)}
-/* 底栏七门（窄屏可横滑）*/
-nav{overflow-x:auto;scrollbar-width:none}
-nav::-webkit-scrollbar{display:none}
-nav button{flex:0 0 auto;min-width:52px}
+/* 底栏八个入口：默认平分宽度；屏太窄时允许换行，间距收窄 */
+nav{flex-wrap:wrap;row-gap:2px}
+nav button{min-width:0;padding-left:2px;padding-right:2px}
+nav button .ic{font-size:17px}
+@media(max-width:360px){nav button{font-size:10.5px}nav button .ic{font-size:15px}}
 /* 盘面样式切换 */
 .zwview{display:flex;gap:6px;align-items:center;margin:0 0 10px;font-size:12.5px;color:var(--dim2)}
 .zwview button{border:1px solid #3a3260;background:transparent;color:var(--dim);border-radius:8px;
@@ -995,6 +996,7 @@ function showPane(name){
   if (n) n.className = 'on';
   if (t) t.className = 'tab on';
   window.scrollTo(0,0);
+  if (typeof fitNavHeight === 'function') fitNavHeight();
 }
 (function(){
   for (var i=0;i<PANE_TABS.length;i++){
@@ -1007,9 +1009,15 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v35 · 2026-10-05";
+var APP_BUILD = "v36 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v35", "这次的更新", [
+  ["v36", "这次的更新", [
+    "修正：页面底部多出一块空白 —— 底栏留白原来写死 96px（比底栏实际高 40px），现改成按底栏实测高度自动回填，屏大屏小都不会多也不会遮内容",
+    "修正：底栏八个图标没有铺满宽度（右侧空一块）—— 恢复原来的平分宽度，窄屏自动换行",
+    "修正：<b>小六壬、奇门的年干支</b>在<b>立春前</b>会多算一年。原来直接把公历年份当干支年用，现在统一按立春换年（与紫微／大六壬／八字一致）",
+    "历法做了一次全量核对（与权威历法库对拍）：公历转农历 3997 项、农历转公历 4824 项、日干支 3997 项、年干支 3997 项、24 节气 4762 项 —— 全部一致"
+  ]],
+  ["v35", "更早", [
     "修正：八字的「继续询问」栏多出一个 undefined（showAsk 只写容器、没有返回值，不能当字符串拼）",
     "修正：问事分类里的单字「生」误伤 —— 「做<b>生</b>意」被判成身体问题；已收紧为「生育／生养／生病」等，并补上做生意、经商、方向、行业、姻缘、置业等关键词"
   ]],
@@ -1751,6 +1759,18 @@ function bzReadDate(){
   if (!y || !m || !d) throw new Error("公历年月日没选全");
   return { y:y, m:m, d:d, note:"" };
 }
+/* 按底栏实测高度回填 body 底部留白（避免底栏遮内容、也不留多余空白） */
+function fitNavHeight(){
+  var nav = document.querySelector('nav');
+  if (!nav) return;
+  var h = Math.round(nav.getBoundingClientRect().height);
+  if (h > 0) document.documentElement.style.setProperty('--navh', h + 'px');
+}
+window.addEventListener('resize', fitNavHeight);
+window.addEventListener('orientationchange', fitNavHeight);
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(fitNavHeight, 0); });
+else setTimeout(fitNavHeight, 0);
+
 function bzInit(){
   if (!$("bz-sy")) return;
   var seg = $("bz-datemode");

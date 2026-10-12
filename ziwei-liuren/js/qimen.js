@@ -187,7 +187,8 @@
     var hourGanIdx = LC.hourGZ(dayGZIdx, shiIdx);
     var hourGZText = GAN.charAt(hourGanIdx) + ZHI.charAt(shiIdx);
     var hourGZIdx = xunIndexOf(GAN.charAt(hourGanIdx), ZHI.charAt(shiIdx));
-    var yearGZIdx = LC.yearGZ(ty);
+    /* 年干支按「立春」换年（与紫微／六壬／八字同一口径）；不能直接传公历年 */
+    var yearGZIdx = LC.yearGZ(LC.monthLing(ty, tm, td, thh, tmm).ganZhiYear);
 
     /* 节气：取当日所属节气 */
     var ml = LC.monthLing(ty, tm, td, thh, tmm);       /* 月令（节）*/
