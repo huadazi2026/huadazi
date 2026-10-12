@@ -489,11 +489,7 @@ nav button.on{color:var(--gold)}
       </div>
       <div class="note hidden" id="zw-timetip"></div>
       <div class="row">
-        <div class="field" style="flex:1.2">
-          <label>出生地（常用城市）</label>
-          <select id="zw-city"></select>
-        </div>
-        <div class="field" style="flex:1.1">
+        <div class="field" style="flex:1">
           <label>经纬度</label>
           <input type="text" id="zw-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
@@ -551,11 +547,7 @@ nav button.on{color:var(--gold)}
       </div>
       <div class="note hidden" id="bz-timetip"></div>
       <div class="row">
-        <div class="field" style="flex:1.2">
-          <label>出生地（常用城市）</label>
-          <select id="bz-city"></select>
-        </div>
-        <div class="field" style="flex:1.1">
+        <div class="field" style="flex:1">
           <label>经纬度</label>
           <input type="text" id="bz-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
@@ -598,9 +590,20 @@ nav button.on{color:var(--gold)}
       </div>
       <div class="row">
         <div class="field">
-          <label>真太阳时（经度）</label>
-          <select id="lr-city"></select>
+          <label>经纬度</label>
+          <input type="text" id="lr-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="lr-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="lr-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="lr-geo-tip"></div>
         <div class="field" style="flex:.8">
           <label>起课方式</label>
           <select id="lr-mode">
@@ -663,6 +666,23 @@ nav button.on{color:var(--gold)}
           <input type="number" id="xlr-ld" min="1" max="30" inputmode="numeric" value="1">
         </div>
       </div>
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>经纬度</label>
+          <input type="text" id="xlr-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="xlr-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="xlr-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="xlr-geo-tip"></div>
       <div class="switch">
         <input type="checkbox" id="xlr-truesolar">
         <label for="xlr-truesolar" style="margin:0">启用真太阳时校正（按经度）</label>
@@ -747,9 +767,20 @@ nav button.on{color:var(--gold)}
           </select>
         </div>
         <div class="field">
-          <label>真太阳时（经度）</label>
-          <select id="qm-city"></select>
+          <label>经纬度</label>
+          <input type="text" id="qm-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="qm-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="qm-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="qm-geo-tip"></div>
       </div>
       <div class="row">
         <div class="field" style="flex:1.4">
@@ -791,9 +822,20 @@ nav button.on{color:var(--gold)}
           </select>
         </div>
         <div class="field">
-          <label>真太阳时（经度）</label>
-          <select id="ly-city"></select>
+          <label>经纬度</label>
+          <input type="text" id="ly-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
         </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="ly-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="ly-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="ly-geo-tip"></div>
       </div>
       <div class="note" id="ly-hint">心里默念你要问的事，然后<b>用力摇手机</b>六次（每摇一次出一爻，从初爻到上爻）。</div>
       <button class="btn" id="ly-go">开始摇卦</button>
@@ -876,6 +918,12 @@ var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c
 if (window.CALENDAR_DATA) LunarCore.load(window.CALENDAR_DATA);
 
 /* ---------- 城市下拉 ---------- */
+/* 解析手填经纬度："121.5, 31.2" / "121.5 31.2" / "东经121.5 北纬31.2" */
+function rdLngLat(id){
+  var el = $(id); if (!el) return null;
+  return zwParseLngLat(el.value);
+}
+
 function fillCity(sel, withNone){
   var html = withNone ? '<option value="">不校正（用钟表时间）</option>' : '';
   var keys = Object.keys(LunarCore.CITY_LNG).sort();
@@ -885,9 +933,6 @@ function fillCity(sel, withNone){
   sel.innerHTML = html;
   sel.value = '北京';
 }
-fillCity($('zw-city'), false);
-fillCity($('lr-city'), true);
-$('lr-city').value = '';
 
 /* ---------- 出生时辰下拉（十二时辰） ---------- */
 /* 子时 23:00–01:00（跨零点）；其余：丑 01–03、寅 03–05 …… 亥 21–23 */
@@ -1009,9 +1054,15 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v37 · 2026-10-05";
+var APP_BUILD = "v38 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v37", "这次的更新", [
+  ["v38", "这次的更新", [
+    "出生信息只留两栏：<b>经纬度</b> 与 <b>直接写城市／县名</b>。「出生地（常用城市）」下拉已全部删掉（紫微／八字／大六壬／奇门／六爻）",
+    "大六壬、奇门、六爻原来只有城市下拉，现在改成跟紫微一样的经纬度输入框，并补上「直接写城市／县名（自动查经纬度）」一栏",
+    "小六壬原来只有「启用真太阳时」勾选框却没有经度可填，现已补上经纬度与地名两栏，且真太阳时真正生效",
+    "真太阳时校正会写在结果里（钟表几点 → 真太阳时几点、差多少分、用的是东经多少度），便于核对。经度偏得多的地区差得很大：例如 12:30 出生、东经 87.6°（乌鲁木齐）校正 −130 分，时辰由午时变巳时，落宫也跟着换"
+  ]],
+  ["v37", "更早", [
     "顶部不再发虚：页头原来带毛玻璃模糊（backdrop-filter），已改成不透明底色，字看着清楚了",
     "表单页不再空一大块：页面主体改成撑满屏幕高度，内容短的时候卡片就一直延伸到底栏，中间不再留一片空屏",
     "底栏底部不再有缝：页面底部留白原来比底栏实际高度多 8px，现在正好等于底栏高度；底栏也改成不透明底 + 上边界阴影，跟页面底色之间不再有色差",
@@ -1314,15 +1365,6 @@ function zwReadDate(){
 }
 
 /* ---------- 出生地：城市下拉，或直接填经纬度 ---------- */
-function zwFillCities(){
-  var el = $("zw-city"); if (!el || el.options.length) return;
-  var names = [];
-  try { for (var k in LunarCore.CITY_LNG) names.push(k); } catch(e){}
-  var h = '<option value="">（不校正真太阳时）</option>';
-  for (var i = 0; i < names.length; i++)
-    h += '<option value="' + names[i] + '">' + names[i] + '（东经 ' + LunarCore.CITY_LNG[names[i]] + '°）</option>';
-  el.innerHTML = h;
-}
 /* 解析手填的经纬度："121.5, 31.2" / "121.5 31.2" / "东经121.5 北纬31.2" */
 function zwParseLngLat(txt){
   if (!txt) return null;
@@ -1337,6 +1379,59 @@ function zwParseLngLat(txt){
   }
   return { lng: lng, lat: lat };
 }
+/* ---------- 通用地名查询：任意一门都能用 ----------
+   cfg = { placeId, tipId, set:function(hit){}, seq:function(v){}, cur:function() }  ---------- */
+var GEO = {};
+function geoGeneric(placeId, tipId, key){
+  var el = $(placeId); if (!el) return;
+  var q = (el.value || "").trim();
+  var tip = $(tipId);
+  function say(html){ if (tip){ tip.className = "note"; tip.innerHTML = html; } }
+  if (!q){ GEO[key] = null; say("请先填城市或县名。"); return; }
+  var direct = zwParseLngLat(q);
+  if (direct){ GEO[key] = { name:q, lng:direct.lng, lat:direct.lat };
+    say("已按经纬度用：东经 " + direct.lng + "°（北纬 " + direct.lat + "°）"); return; }
+  var hit = zwLocalSearch(q);
+  if (hit){ GEO[key + "_seq"] = (GEO[key + "_seq"] || 0) + 1;
+    GEO[key] = { name:(hit.path ? hit.path : hit.name), lng:hit.lng, lat:hit.lat };
+    say("已定位：<b>" + (hit.path ? hit.path : hit.name) + "</b>　东经 " + hit.lng.toFixed(2) + "°，北纬 " + hit.lat.toFixed(2) + "°");
+    return; }
+  var mySeq = (GEO[key + "_seq"] = (GEO[key + "_seq"] || 0) + 1);
+  say("本地地名库没查到「" + q + "」，正在联网查…");
+  fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q))
+    .then(function(r){ return r.json(); }).then(function(jj){
+      if (mySeq !== GEO[key + "_seq"]) return;
+      var fs2 = (jj && jj.features) || [];
+      if (!fs2.length) throw new Error("没查到");
+      var order = ["city", "county", "district", "state", "locality", "house"];
+      fs2.sort(function(a, b){
+        var ia = order.indexOf((a.properties || {}).type), ib = order.indexOf((b.properties || {}).type);
+        if (ia < 0) ia = 99; if (ib < 0) ib = 99; return ia - ib; });
+      var f = fs2[0], prop = f.properties || {}, c = f.geometry.coordinates;
+      var nm = [prop.name, prop.city, prop.county, prop.state].filter(function(x){ return !!x; }).join("·");
+      GEO[key] = { name:q, lng:c[0], lat:c[1] };
+      say("已联网定位：<b>" + nm + "</b>　东经 " + c[0].toFixed(2) + "°，北纬 " + c[1].toFixed(2) + "°");
+    }).catch(function(){
+      if (mySeq !== GEO[key + "_seq"]) return;
+      GEO[key] = null;
+      say("没查到「" + q + "」。可以换个写法，或直接填经纬度。");
+    });
+}
+/* 该用哪个经度：手填经纬度优先，其次自填地名 */
+function geoUseLng(lnglatId, key){
+  var manual = $(lnglatId) ? zwParseLngLat($(lnglatId).value) : null;
+  if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
+  var g = GEO[key];
+  if (g && typeof g.lng === "number") return { lng: g.lng, src: g.name + "（东经" + g.lng.toFixed(2) + "°）" };
+  return { lng: null, src: "" };
+}
+/* 给某门挂上「查经纬度」按钮与回车事件 */
+function geoBind(placeId, tipId, key, btnId){
+  var b = $(btnId); if (b) b.onclick = function(){ geoGeneric(placeId, tipId, key); };
+  var el = $(placeId);
+  if (el) el.onkeydown = function(e){ if (e.key === "Enter"){ e.preventDefault(); geoGeneric(placeId, tipId, key); } };
+}
+
 /* ---------- 自填城市／县 → 经纬度（在线查；查不到就提示手填经纬度） ---------- */
 var ZW_PLACE = null;   /* {name, lng, lat} */
 var ZW_GEO_SEQ = 0;    /* 请求序号：防止旧请求的回调覆盖新结果 */
@@ -1440,9 +1535,6 @@ function zwUseLng(){
   if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
   if (ZW_PLACE && typeof ZW_PLACE.lng === "number")
     return { lng: ZW_PLACE.lng, src: ZW_PLACE.name + "（东经" + ZW_PLACE.lng.toFixed(2) + "°）" };
-  var city = $("zw-city") ? $("zw-city").value : "";
-  if (city && LunarCore.CITY_LNG && typeof LunarCore.CITY_LNG[city] === "number")
-    return { lng: LunarCore.CITY_LNG[city], src: city + "（东经" + LunarCore.CITY_LNG[city] + "°）" };
   return { lng: null, src: "" };
 }
 
@@ -1468,9 +1560,8 @@ function zwInitDateMode(){
   })();
   zwFillSolarYears(); zwFillSolarMonths();
   zwFillLunarYears(); zwFillLunarMonths();
-  zwFillCities();
-  if ($("zw-geo")) $("zw-geo").onclick = zwGeocode;
-  if ($("zw-place")) $("zw-place").onkeydown = function(e){ if (e.key === "Enter"){ e.preventDefault(); zwGeocode(); } };
+
+
   $("zw-sy").onchange = function(){ zwFillSolarDays(); };
   $("zw-sm").onchange = function(){ zwFillSolarDays(); };
   $("zw-ly").onchange = function(){ zwFillLunarMonths(); };
@@ -1697,20 +1788,10 @@ function bzFillLunarDays(keep){
   el.innerHTML = h;
   if (keep && old && parseInt(old, 10) <= days) el.value = old;
 }
-function bzFillCities(){
-  var el = $("bz-city"); if (!el || el.options.length) return;
-  var names = []; try { for (var k in LunarCore.CITY_LNG) names.push(k); } catch(e){}
-  var h = '<option value="">（不校正真太阳时）</option>';
-  for (var i = 0; i < names.length; i++) h += '<option value="' + names[i] + '">' + names[i] + '（东经 ' + LunarCore.CITY_LNG[names[i]] + '°）</option>';
-  el.innerHTML = h;
-}
 function bzUseLng(){
   var manual = $("bz-lnglat") ? zwParseLngLat($("bz-lnglat").value) : null;
   if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
   if (bzPlace && typeof bzPlace.lng === "number") return { lng: bzPlace.lng, src: bzPlace.name + "（东经" + bzPlace.lng.toFixed(2) + "°）" };
-  var city = $("bz-city") ? $("bz-city").value : "";
-  if (city && LunarCore.CITY_LNG && typeof LunarCore.CITY_LNG[city] === "number")
-    return { lng: LunarCore.CITY_LNG[city], src: city + "（东经" + LunarCore.CITY_LNG[city] + "°）" };
   return { lng: null, src: "" };
 }
 function bzGeocode(){
@@ -1765,6 +1846,18 @@ function bzReadDate(){
   if (!y || !m || !d) throw new Error("公历年月日没选全");
   return { y:y, m:m, d:d, note:"" };
 }
+/* 五门的地名查询按钮与回车事件 */
+function geoBindAll(){
+  geoBind('zw-place', 'zw-geo-tip', 'zw', 'zw-geo');
+  geoBind('bz-place', 'bz-geo-tip', 'bz', 'bz-geo');
+  geoBind('lr-place', 'lr-geo-tip', 'lr', 'lr-geo');
+  geoBind('xlr-place', 'xlr-geo-tip', 'xlr', 'xlr-geo');
+  geoBind('qm-place', 'qm-geo-tip', 'qm', 'qm-geo');
+  geoBind('ly-place', 'ly-geo-tip', 'ly', 'ly-geo');
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', geoBindAll);
+else setTimeout(geoBindAll, 0);
+
 /* 按底栏实测高度回填 body 底部留白（避免底栏遮内容、也不留多余空白） */
 function fitNavHeight(){
   var nav = document.querySelector('nav');
@@ -1789,7 +1882,6 @@ function bzInit(){
       for (var k = 0; k < x.length; k++) x[k].className = (x[k].getAttribute("data-v") === v ? "on" : ""); }; })(gb[j].getAttribute("data-v")); }
   bzFillSolarYears(); bzFillSolarMonths();
   bzFillLunarYears(); bzFillLunarMonths();
-  bzFillCities();
   /* 时辰下拉 */
   (function(){ var el = $("bz-shichen"); if (!el || el.options.length) return; var h = "";
     for (var i = 0; i < 12; i++) h += '<option value="' + i + '">' + ZHI.charAt(i) + '时（' + shichenRange(i) + '）</option>';
@@ -1798,8 +1890,8 @@ function bzInit(){
   $("bz-sm").onchange = function(){ bzFillSolarDays(); };
   $("bz-ly").onchange = function(){ bzFillLunarMonths(); };
   $("bz-lm").onchange = function(){ bzFillLunarDays(); };
-  if ($("bz-geo")) $("bz-geo").onclick = bzGeocode;
-  if ($("bz-place")) $("bz-place").onkeydown = function(e){ if (e.key === "Enter"){ e.preventDefault(); bzGeocode(); } };
+
+
   bzSetDateMode("solar");
 }
 
@@ -3123,8 +3215,8 @@ $('lr-refresh').onclick = function(){
 
 function renderLiuren(){
   var dt = parseDateTime($('lr-date').value, $('lr-time').value);
-  var city = $('lr-city').value;
-  var lng = LunarCore.CITY_LNG[city];
+  var ll = geoUseLng('lr-lnglat', 'lr');
+  var lng = ll ? ll.lng : null;
   var useTS = $('lr-truesolar').checked && typeof lng === 'number';
   var q = $('lr-q').value.trim();
   var K = LiuRen.ke({
@@ -3287,8 +3379,6 @@ function lrReading(K, read, q){
 /* ================================================================
    小六壬
    ================================================================ */
-fillCity($('qm-city'), true);
-$('qm-city').value = '';
 (function(){
   var html = '';
   for (var i=0;i<12;i++) html += '<option value="'+i+'">'+ZHI.charAt(i)+'时（'+shichenRange(i)+'）</option>';
@@ -3331,15 +3421,21 @@ function renderXiaoLiuRen(){
   if (mode === 'lunar'){
     opt.lunar = { m: parseInt($('xlr-lm').value,10)||1, d: parseInt($('xlr-ld').value,10)||1 };
     opt.shiZhi = parseInt($('xlr-shizhi').value,10)||0;
+    var llL = geoUseLng('xlr-lnglat', 'xlr');
+    if ($('xlr-truesolar') && $('xlr-truesolar').checked && llL.lng != null){ opt.trueSolar = true; opt.longitude = llL.lng; }
   } else if (mode === 'manual'){
     var dt = parseDateTime($('xlr-date').value, $('xlr-time').value);
+    var llM = geoUseLng('xlr-lnglat', 'xlr');
+    var tsM = ($('xlr-truesolar') && $('xlr-truesolar').checked && llM.lng != null);
     opt = { year:dt.y, month:dt.m, day:dt.d, hour:dt.hh, minute:dt.mm,
-            trueSolar:false };
+            trueSolar: tsM, longitude: tsM ? llM.lng : null };
   } else {
     var now = new Date();
+    var llN = geoUseLng('xlr-lnglat', 'xlr');
+    var tsN = ($('xlr-truesolar') && $('xlr-truesolar').checked && llN.lng != null);
     opt = { year: now.getFullYear(), month: now.getMonth()+1, day: now.getDate(),
             hour: now.getHours(), minute: now.getMinutes(),
-            trueSolar: false };
+            trueSolar: tsN, longitude: tsN ? llN.lng : null };
   }
   var k = XiaoLiuRen.qi(opt);
   $('xlr-out').innerHTML = xlrHtml(k, $('xlr-q').value.trim(), mode);
@@ -3530,6 +3626,16 @@ function xlrHtml(k, q, mode){
   var G = XiaoLiuRen.GONG, info = k.info;
   var h = '';
     var topic = askTopic(q);
+  /* 真太阳时校正说明 */
+  var tsLine = '';
+  if (k.trueSolar && k.trueSolar.deltaMin != null){
+    var ck = (k.gz && k.gz.clock) ? k.gz.clock : null;
+    tsLine = '<div class="kv" style="margin-top:6px"><span>已做<b>真太阳时</b>校正' +
+      (ck ? '：钟表 ' + esc(zwPad2(ck.hh)) + ':' + esc(zwPad2(ck.mm)) : '') +
+      ' → <b>' + esc(zwPad2(k.trueSolar.hour)) + ':' + esc(zwPad2(k.trueSolar.minute)) + '</b>' +
+      '（' + (k.trueSolar.deltaMin >= 0 ? '+' : '') + k.trueSolar.deltaMin + ' 分，东经 ' +
+      esc(String(k.trueSolar.lng)) + '°）</span></div>';
+  }
   var topicAns = xlrTopicAnswer(k.gong, topic);
   /* 最可能的结果 */
   var PROB = { '大安':72, '速喜':76, '小吉':80, '留连':42, '赤口':34, '空亡':26 };
@@ -3554,6 +3660,10 @@ function xlrHtml(k, q, mode){
     '。（同一宫问不同的事，断语不一样 —— 这是小六壬的规矩。）');
   reasons.push('这一宫的属性是<b>'+esc(info.wuxing)+'（'+esc(info.fangwei)+'、临'+esc(info.tigan)+'、数'+esc(info.shuzi)+'）</b>：'+esc(info.xiang));
   reasons.push('古诀讲：'+esc(info.shi));
+  if (k.trueSolar && k.trueSolar.deltaMin != null && Math.abs(k.trueSolar.deltaMin) >= 1){
+    reasons.push('已按出生地经度做<b>真太阳时</b>校正（'+(k.trueSolar.deltaMin>=0?'+':'')+k.trueSolar.deltaMin+
+      ' 分）：时辰按校正后的时刻定，所以落宫可能与你按钟表时间数的不同 —— 经度偏得越多（如新疆、西藏）差得越多。');
+  }
   reasons.push('吉凶层级：<b>'+esc(info.luck)+'</b>。小六壬六宫里，大安、速喜、小吉偏吉，留连、赤口、空亡偏凶 —— 这是断事的骨架。');
 
   var pros = [], cons = [];
@@ -3573,7 +3683,7 @@ function xlrHtml(k, q, mode){
 
   h += '<div class="verdict">';
   h += '<div class="v2">农历 '+(k.lunar.y?esc(k.lunar.y)+'年':'')+esc(k.lunar.m)+'月'+esc(k.lunar.d)+'日　'+
-       esc(k.shiZhi)+'时'+(k.gz && k.gz.dayGZ ? '　'+esc(k.gz.dayGZ)+'日　'+esc(k.gz.hourGZ)+'时' : '')+'</div>';
+       esc(k.shiZhi)+'时'+(k.gz && k.gz.dayGZ ? '　'+esc(k.gz.dayGZ)+'日　'+esc(k.gz.hourGZ)+'时' : '')+'</div>'+tsLine;
   h += '</div>';
 
   /* 掌诀六宫，标出三次落点 */
@@ -3903,8 +4013,8 @@ function renderQiMen(){
   var dt, now = new Date();
   if (manual) dt = parseDateTime($('qm-date').value, $('qm-time').value);
   else dt = { y: now.getFullYear(), m: now.getMonth()+1, d: now.getDate(), hh: now.getHours(), mm: now.getMinutes() };
-  var city = $('qm-city').value;
-  var lng = LunarCore.CITY_LNG[city];
+  var ll = geoUseLng('qm-lnglat', 'qm');
+  var lng = ll ? ll.lng : null;
   var useTS = $('qm-truesolar').checked && typeof lng === 'number';
   var p = QiMen.pan({ year:dt.y, month:dt.m, day:dt.d, hour:dt.hh, minute:dt.mm,
                       trueSolar: useTS, longitude: lng, useEoT: true });
@@ -4152,8 +4262,6 @@ function qmHighlights(p){
 /* ================================================================
    六爻（摇手机 / 点按钮，三枚铜钱六次）
    ================================================================ */
-fillCity($('ly-city'), true);
-$('ly-city').value = '';
 var lyTosses = [], lyShaking = false;
 $('ly-mode').addEventListener('change', function(){
   $('ly-hint').innerHTML = this.value === 'shake'
@@ -4253,8 +4361,9 @@ function lyNoChange(){
 
 function renderLiuYao(){
   var now = lyNoChange();
-  var city = $('ly-city').value, lng = LunarCore.CITY_LNG[city];
-  var useTS = typeof lng === 'number' && city !== '';
+  var ll = geoUseLng('ly-lnglat', 'ly');
+  var lng = ll ? ll.lng : null;
+  var useTS = typeof lng === 'number';
   var r = LiuYao.qi({
     method: 'shake', tosses: lyTosses, question: $('ly-q').value.trim(),
     year: now.year, month: now.month, day: now.day, hour: now.hour, minute: now.minute,
@@ -4478,10 +4587,11 @@ function lyYaoRead(ln, useQin, prob){
 function lyPlainText(){
   if (!lyTosses.length) return '';
   var now = lyNoChange();
-  var city = $('ly-city').value, lng = LunarCore.CITY_LNG[city];
+  var ll = geoUseLng('ly-lnglat', 'ly');
+  var lng = ll ? ll.lng : null;
   var r = LiuYao.qi({ method:'shake', tosses:lyTosses, question:$('ly-q').value.trim(),
     year:now.year, month:now.month, day:now.day, hour:now.hour, minute:now.minute,
-    trueSolar: (city !== '' && typeof lng === 'number'), longitude: lng });
+    trueSolar: (typeof lng === 'number'), longitude: lng });
   var Z = [];
   Z.push('【六爻 · 装卦】' + (r.question ? ' 所问：' + r.question : ''));
   Z.push(r.gang.dayGZ + '日　旬空 ' + r.gang.kong.join(''));
@@ -4544,7 +4654,6 @@ if (location.search.indexOf('demo=1') >= 0) {
     $('zw-sm').value = '6'; zwFillSolarDays();
     $('zw-sd').value = '6';
     $('zw-shichen').value = '2';
-    $('zw-city').value = '鞍山';
     renderZiwei();
   } catch(e) { showErr('zw-err', '排盘失败：' + e.message); }
 }

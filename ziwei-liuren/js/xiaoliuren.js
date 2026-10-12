@@ -104,7 +104,9 @@
       gzText = { yearGZ: LC.gzName(LC.yearGZ(LC.monthLing(ty, tm, td, thh, tmm).ganZhiYear)), dayGZ: LC.gzName(LC.dayGZ(ty, tm, td)),
                  hourGZ: GAN.charAt(LC.hourGZ(LC.dayGZ(ty, tm, td), shiIdx)) + ZHI.charAt(shiIdx) };
       if (tst) gzText.trueSolar = tst;
-      gzText.clock = { hh: thh, mm: tmm };
+      /* clock 记「钟表时刻」（未校正），真太阳时另存 trueSolar，界面好做「钟表→真太阳时」对照 */
+      gzText.clock = { hh: opts.hour, mm: opts.minute || 0 };
+      gzText.clockUsed = { hh: thh, mm: tmm };
     }
     if (shiIdx == null) throw new Error('缺少时辰');
 
@@ -113,6 +115,7 @@
     k.shiZhi = ZHI.charAt(shiIdx);
     k.shiIdx = shiIdx;
     k.gz = gzText;
+    if (gzText && gzText.trueSolar) k.trueSolar = gzText.trueSolar;
     k.gongList = GONG;
     k.infoAll = INFO;
     return k;
