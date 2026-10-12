@@ -96,12 +96,30 @@
   }
   function hexName(up, low) { return (HEX[up] && HEX[up][low]) || (up + '上' + low + '下'); }
   function hexMean(name) { return HEX_MEAN[name] || ''; }
-  /* 互卦：本卦 2-3-4 爻为下卦，3-4-5 爻为上卦 */
-  function huGua(upperTrigram, lowerTrigram) {
+  /* 互卦：本卦 2-3-4 爻为下卦（下互），3-4-5 爻为上卦（上互）
+     《梅花易數》卷三《體用互變之訣》：「如體在上，則上互為體之互，下互為用之互；
+     體卦在下，則下互為體之互，上互為用之互。體互最緊，用互次之。」
+     又《互卦起例》：「乾坤無互，互其變卦。」——乾坤两卦的互卦仍是自身，
+     无「中间之应」，故改取其变卦充当互卦之用。 */
+  function huGua(upperTrigram, lowerTrigram, opts) {
+    opts = opts || {};
     var lines = lowerLines(lowerTrigram).concat(upperLines(upperTrigram));   // 1..6 爻，从下往上
-    var low = linesToTrigram([lines[1], lines[2], lines[3]]);
-    var up  = linesToTrigram([lines[2], lines[3], lines[4]]);
-    return { up: up.name, low: low.name };
+    var low = linesToTrigram([lines[1], lines[2], lines[3]]);   /* 2-3-4 → 下互 */
+    var up  = linesToTrigram([lines[2], lines[3], lines[4]]);   /* 3-4-5 → 上互 */
+    var noHu = (up.name === upperTrigram && low.name === lowerTrigram);   /* 乾坤：互卦即自身 */
+    var r = { up: up.name, low: low.name, noHu: noHu };
+    /* 乾坤无互 → 互其变卦（用变卦的上下卦充当上下互） */
+    if (noHu && opts.bianUp) {
+      r.up = opts.bianUp; r.low = opts.bianLow;
+      r.note = '乾坤無互，互其變卦 —— 本卦为纯卦，互卦仍是自身，故改取其变卦充当互卦（' +
+               opts.bianUp + '上' + opts.bianLow + '下）';
+    }
+    /* 体互／用互：体在上则上互为体互；体在下则下互为体互 */
+    if (opts.tiInUpper != null) {
+      r.tiHu = opts.tiInUpper ? up.name : low.name;      /* 体之互（最紧） */
+      r.yongHu = opts.tiInUpper ? low.name : up.name;    /* 用之互（次之） */
+    }
+    return r;
   }
   /* 八卦三爻（从下往上）：阳=1 阴=0 */
   var LINES = { '乾':[1,1,1], '兑':[1,1,0], '离':[1,0,1], '震':[1,0,0],
@@ -173,10 +191,13 @@
 
     var ben = { up: upper.name, low: lower.name };
     ben.name = hexName(ben.up, ben.low);
-    var hu = huGua(upper.name, lower.name);
-    hu.name = hexName(hu.up, hu.low);
     var bian = bianGua(upper.name, lower.name, dong);
     bian.name = hexName(bian.up, bian.low);
+    /* 体在上卦（动爻在下卦）→ 上互为体互；体在下卦 → 下互为体互 */
+    var tiInUpper = !dongInUpper;
+    var hu = huGua(upper.name, lower.name, { tiInUpper: tiInUpper, bianUp: bian.up, bianLow: bian.low });
+    hu.name = hexName(hu.up, hu.low);
+    hu.tiInUpper = tiInUpper;
 
     var bianRel = relation(tiTri.name, (dong >= 4 ? bian.up : bian.low));
 
@@ -212,8 +233,14 @@
       (dong >= 4 ? yongTri.name : tiTri.name) + '卦为用、' + (dong >= 4 ? tiTri.name : yongTri.name) + '卦为体）' });
     out.evidence.push({ title:'本卦卦象', text: ben.name + '（上' + ben.up + '下' + ben.low + '）：' +
       (hexMean(ben.name) || '—') + '。' + '上卦' + ben.up + '为' + triNature(ben.up) + '，下卦' + ben.low + '为' + triNature(ben.low) + '。' });
+    /* 互卦分体互／用互（《梅花易數》卷三《體用互變之訣》：「體互最緊，用互次之」）*/
+    var huA = hu.tiHu ? relation(tiTri.name, hu.tiHu) : null;
+    var huB = hu.yongHu ? relation(tiTri.name, hu.yongHu) : null;
     out.evidence.push({ title:'互卦（中间过程／暗藏）', text: hu.name + '：' +
-      (hexMean(hu.name) || '—') + '。事情进行中会走到这个局面，注意这一层。' });
+      (hexMean(hu.name) || '—') + (hu.noHu ? '（本卦为纯卦，乾坤無互、互其變卦）' : '') +
+      '。互卦要拆成两个看：<b>体互「' + (hu.tiHu || '') + '」</b>对我本身最要紧（' +
+      (huA ? huA.text + '・' + huA.luck : '') + '），<b>用互「' + (hu.yongHu || '') + '」</b>次之（' +
+      (huB ? huB.text + '・' + huB.luck : '') + '）。中间过程会走到这个局面，注意这一层。' });
     out.evidence.push({ title:'变卦（最终结果）', text: bian.name + '（' + bianRel.text + '）：' +
       (hexMean(bian.name) || '—') + '。' + '末后走向' + bianRel.luck + '，' + bianRel.note });
     out.evidence.push({ title:'动爻', text: '第' + dong + '爻动 —— ' + dongText(dong) });

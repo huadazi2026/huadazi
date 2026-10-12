@@ -254,6 +254,21 @@ table.ketable tr:last-child td{border-bottom:0}
   .tp-a i,.tp-b i{font-size:9px}
   .tp-cl{font-size:11px}.tp-cl2{font-size:10px}
 }
+/* ===== 小六壬 三宫 ===== */
+.sanGong{display:flex;gap:6px;margin:8px 0 4px}
+.sanGong .sg{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:7px 6px;text-align:center;min-width:0}
+.sanGong .sg-ren{border-color:var(--gold);background:rgba(217,178,106,.08)}
+.sanGong .sg-h{font-size:11px;color:var(--gold);font-weight:600}
+.sanGong .sg-h i{display:block;font-style:normal;font-size:9px;color:var(--dim2);font-weight:400}
+.sanGong .sg-g{font-size:19px;color:var(--txt);font-weight:600;margin:3px 0 1px}
+.sanGong .sg-g em{font-style:normal;font-size:11px;color:var(--info);margin-left:3px}
+.sanGong .sg-d{font-size:9.5px;color:var(--dim);line-height:1.35}
+.sanGong .sg-s{font-size:9px;color:var(--dim2);margin-top:3px}
+.sg-sum{margin-top:8px;font-size:12.5px;color:var(--txt);background:var(--bg2);border-radius:8px;padding:7px 9px}
+.sg-sum b{color:var(--gold)}
+ul.tight{margin:4px 0;padding-left:17px}
+ul.tight li{font-size:12px;color:var(--dim);line-height:1.6;margin:3px 0}
+ul.tight li b{color:var(--txt)}
 /* ===== 结果栏里的「为什么」 ===== */
 .ansbox .why{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
 .ansbox .whyt{font-size:12px;color:var(--gold);font-weight:600;margin-bottom:5px}
@@ -1066,9 +1081,20 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v40 · 2026-10-05"
+var APP_BUILD = "v41 · 2026-10-05"
 var APP_CHANGELOG = [
-  ["v40", "这次的更新", [
+  ["v41", "这次的更新", [
+    "<b>小六壬：加「三宫合断」</b> —— 原来只看最后落的那一宫（单宫断），而古籍与主流断法是三宫连看：<b>月宫＝天宫＝起因</b>、<b>日宫＝地宫＝经过</b>、<b>时宫＝人宫＝结果</b>。现在会给三宫定性、算三宫五行流转（谁生谁克谁泄）、以人宫为体算天地的助力或压力，并据此调整把握度",
+    "小六壬新增：<b>同宫重复</b>提醒（原文：「和我相同代表的意思就是朋友、小人、小三」；问工作则是同级竞争者）、<b>三宫具象法</b>（时宫＝初爻、日宫＝二爻、月宫＝三爻，转成一个三画卦，是整件事的总象）、<b>六宫配地支</b>应期（大安子午、留连丑未…）",
+    "小六壬修正<b>六宫五行</b>：留连原写「木」应为<b>水</b>（临玄武）、小吉原写「水」应为<b>木</b>（临六合）—— 两宫五行正好互换了；留连六神也由勾陈更正为玄武。六宫现在五行俱全（木2 水1 火1 金1 土1），且与各自的颜色方位自洽",
+    "<b>梅花易数：加「体互／用互」</b> —— 互卦不能只给一个。原文《體用互變之訣》：「如體在上，則上互為體之互，下互為用之互；體卦在下，則下互為體之互，上互為用之互。<b>體互最緊，用互次之</b>」。现在会分别给出体互、用互，并各自算它与体卦的生克",
+    "梅花易数新增：<b>乾坤無互，互其變卦</b> —— 乾、坤两卦的互卦仍是自身，无「中间之应」，故改取其变卦充当互卦（原文《互卦起例》）",
+    "<b>奇门遁甲：加「格局」识别</b>（原来完全没有）—— 依《奇门遁甲统宗》卷一「奇门四十格」实现 15 种：龙返首、鸟跌穴（吉）；龙逃走、虎猖狂、蛇夭矫、雀投江、大格、刑格、小格、伏宫格、飞干格、三奇入墓、五不遇、伏吟、反吟（凶）",
+    "奇门新增<b>格勃例外</b>：原文凡例「如逢庚为值符，则为格勃，格勃又不可用」—— 值符为庚时龙返首、鸟跌穴等吉格<b>一律作废</b>。不加这个前置判断会把凶局判成吉局",
+    "奇门修正<b>天盘九星排布</b>：原来星与宫的索引错位，导致八宫环上出现<b>空位与重星</b>（有时缺一颗星、有时天禽同时落在两宫）。已改为星与宫按环整体偏移，并正确处理「中宫天禽寄坤二」与「值符自中宫出时天禽携旬首之干」。校验：400 盘八宫环星位无缺无重、甲子时九星全归本宫、值符随时干 200/200、天盘干 960/960",
+    "奇门确认无误：三元定局与古法「符头地支」逐日等价（60/60），已加回归测试锁死"
+  ]],
+  ["v40", "更早", [
     "请了三位研究助手去查《增删卜易》《梅花易数》《六壬大全》《奇门宝典》等古籍原文（维基文库可得），逐条对照程序。结论：<b>大六壬与奇门的排盘算法核对无误</b>，六爻与结果栏确实有错，已修",
     "六爻：<b>断卦逻辑按《增删卜易》重写</b> —— 原来只是拿「用神六亲 + 有没有空亡」套一个概率，现在按古法的<b>四处生克冲合</b>逐条算：① 月建 ② 日辰 ③ 卦中动爻 ④ 用神自化出之爻（回头生克）",
     "六爻新增：四时旺相、月破、日破、<b>暗动</b>（日辰冲旺相之爻）、旬空分<b>真空／假空</b>、进神退神、生旺墓绝、用神两现并列、应期候选",
@@ -3698,6 +3724,11 @@ function xlrHtml(k, q, mode){
   /* 最可能的结果 */
   var PROB = { '大安':72, '速喜':76, '小吉':80, '留连':42, '赤口':34, '空亡':26 };
   var prob = PROB[k.gong] || 50;
+  /* 并入三宫合断的支持度：天宫／地宫对人宫是生是克，会明显改变吉凶 */
+  if (k.analysis && typeof k.analysis.support === 'number'){
+    prob = Math.max(18, Math.min(88, prob + k.analysis.support * 8));
+  }
+  prob = Math.round(prob);
   var tag = (info.luck === '吉' ? '吉' : (info.luck === '凶' || info.luck === '大凶' ? '凶' : '平'));
   var VERD = {
     '大安': '能成，但不会快：这事的走势是"原地稳着来"，按原来的安排走就会有结果，你不需要额外做什么，尤其别临时改主意。',
@@ -3723,6 +3754,22 @@ function xlrHtml(k, q, mode){
       ' 分）：时辰按校正后的时刻定，所以落宫可能与你按钟表时间数的不同 —— 经度偏得越多（如新疆、西藏）差得越多。');
   }
   reasons.push('吉凶层级：<b>'+esc(info.luck)+'</b>。小六壬六宫里，大安、速喜、小吉偏吉，留连、赤口、空亡偏凶 —— 这是断事的骨架。');
+  /* 三宫合断的依据（主流断法，不能只看落宫）*/
+  if (k.analysis){
+    var A3r = k.analysis;
+    reasons.push('<b>三宫合断</b>：月宫「'+esc(A3r.tian.gong)+'」（'+esc(A3r.tian.info.wuxing)+'）是<b>天宫・起因</b>；' +
+      '日宫「'+esc(A3r.di.gong)+'」（'+esc(A3r.di.info.wuxing)+'）是<b>地宫・经过</b>；' +
+      '时宫「'+esc(A3r.ren.gong)+'」（'+esc(A3r.ren.info.wuxing)+'）是<b>人宫・结果</b>。' +
+      '小六壬的主流断法是把这三宫连起来看，不是只看最后落的那一宫。');
+    reasons.push('<b>三宫五行怎么走</b>：'+esc(A3r.flows[0].text)+'；'+esc(A3r.flows[1].text)+'。');
+    reasons.push('<b>以人宫为体</b>：'+A3r.supportWhy.join('；')+'。合计 <b>'+(A3r.support>=0?'+':'')+A3r.support+'</b>' +
+      '（'+(A3r.support>0.6?'天、地两宫对人宫是生扶为主，外力站在你这边':(A3r.support<-0.6?'天、地两宫对人宫是克泄为主，阻力大于助力':'两下相抵，成不成主要看你自己的操作'))+'）。');
+    if (A3r.dups.length){
+      A3r.dups.forEach(function(d){ reasons.push('<b>同宫重复</b>：'+d.text); });
+    }
+    reasons.push('<b>三宫具象</b>：'+esc(A3r.notes[0]));
+    reasons.push('<b>应期</b>：'+A3r.yingQi.text);
+  }
 
   var pros = [], cons = [];
   for (var a=0;a<info.yi.length && a<3;a++) pros.push(info.yi[a]);
@@ -3760,6 +3807,52 @@ function xlrHtml(k, q, mode){
   h += '</div>';
   h += '<div class="note">数法：'+esc(k.lunar.m)+'月落在「'+esc(k.monthGong)+'」→ '+esc(k.lunar.d)+'日落在「'+esc(k.dayGong)+
        '」→ '+esc(k.shiZhi)+'时落在「'+esc(k.gong)+'」。</div></div>';
+
+  /* 三宫合断 —— 主流断法：天宫＝起因、地宫＝经过、人宫＝结果 */
+  if (k.analysis){
+    var A3 = k.analysis;
+    h += '<div class="card"><h2>三宫合断（天宫・地宫・人宫）</h2>';
+    h += '<div class="note">小六壬的主流断法<b>不是只看落宫</b>，要把三次落点连起来看：' +
+      '月宫＝<b>天宫</b>（起因／外部机遇）、日宫＝<b>地宫</b>（经过／环境）、时宫＝<b>人宫</b>（结果／自身）。</div>';
+    h += '<div class="sanGong">';
+    [A3.tian, A3.di, A3.ren].forEach(function(x){
+      h += '<div class="sg' + (x.role.key === 'ren' ? ' sg-ren' : '') + '">' +
+        '<div class="sg-h">' + esc(x.role.name) + '<i>' + esc(x.role.src) + '・' + esc(x.role.mean) + '</i></div>' +
+        '<div class="sg-g">' + esc(x.gong) + '<em>' + esc(x.info.wuxing) + '</em></div>' +
+        '<div class="sg-d">' + esc(x.role.detail) + '</div>' +
+        '<div class="sg-s">临' + esc(x.info.tigan) + '・' + esc(x.info.fangwei) + '・' + esc(x.info.luck) + '</div>' +
+        '</div>';
+    });
+    h += '</div>';
+    /* 五行流转 */
+    h += '<div class="note" style="margin-top:8px"><b>三宫五行怎么走</b>（看谁生谁、谁克谁）：</div>';
+    h += '<ul class="tight">';
+    A3.flows.forEach(function(f){ h += '<li>' + esc(f.text) + '</li>'; });
+    h += '</ul>';
+    /* 以人宫为体 */
+    var sTxt = A3.support > 0.6 ? '得助' : (A3.support < -0.6 ? '受制' : '不偏');
+    h += '<div class="note" style="margin-top:8px"><b>以人宫（结果）为体，看天、地两宫对它怎么样 —— 这是断吉凶的主干</b>：</div>';
+    h += '<ul class="tight">';
+    A3.supportWhy.forEach(function(x){ h += '<li>' + x + '</li>'; });
+    h += '</ul>';
+    h += '<div class="sg-sum">合计：<b>' + (A3.support >= 0 ? '+' : '') + A3.support + '</b> → ' + esc(sTxt) +
+      '（正数＝有人帮、外力足；负数＝受压制、要自己扛）</div>';
+    /* 同宫重复 */
+    if (A3.dups.length){
+      h += '<div class="note" style="margin-top:8px"><b>同宫重复</b>（这一条很容易漏，但原文专门讲过）：</div>';
+      h += '<ul class="tight">';
+      A3.dups.forEach(function(d){ h += '<li>' + d.text + '</li>'; });
+      h += '</ul>';
+    }
+    /* 三宫具象法 */
+    h += '<div class="note" style="margin-top:8px"><b>三宫具象法</b>（把三宫转成一个三画卦，是整件事的总象）：</div>';
+    h += '<ul class="tight"><li>' + esc(A3.notes[0]) + '</li>';
+    h += '<li>总象：<b>' + esc(A3.trigram.text) + '</b></li>';
+    h += '<li style="color:var(--dim2)">' + esc(A3.notes[1]) + '</li></ul>';
+    /* 应期 */
+    h += '<div class="note" style="margin-top:8px"><b>应期（什么时候应）</b>：' + A3.yingQi.text + '</div>';
+    h += '</div>';
+  }
 
   /* 第 3 步：解课 */
   h += stepper(3) + stepTag(3, '解课 · 「'+k.gong+'」讲什么', '第 3 / 4 步');
@@ -3991,8 +4084,19 @@ function mhHtml(r){
   reasons.push('<b>看体用生克（最重要的一条）</b>：动爻在第'+r.dong+'爻，属'+(r.dongInUpper?'上卦':'下卦')+
     '，所以下卦/上卦里那一半是「用」，另一半是「体」。本卦为 <b>'+esc(r.rel.text)+'</b>，' +
     esc(r.rel.luck) + '。' + esc(r.rel.note));
-  reasons.push('<b>看互卦（中间过程）</b>：'+esc(r.hu.name)+'—— ' + esc(MeiHua.HEX_MEAN[r.hu.name] || '') +
-    '。事情做到一半会走到这个局面，提前有个数。');
+  /* 互卦：分体互／用互 —— 《梅花易數》卷三《體用互變之訣》：「體互最緊，用互次之」 */
+  (function(){
+    var a = MeiHua.relation(r.tiTri.name, r.hu.tiHu);
+    var b = MeiHua.relation(r.tiTri.name, r.hu.yongHu);
+    var t = '<b>看互卦（中间过程）</b>：'+esc(r.hu.name)+'—— ' + esc(MeiHua.HEX_MEAN[r.hu.name] || '') + '。';
+    t += '互卦要拆成两个看：<b>体互</b>「'+esc(r.hu.tiHu)+'」对我本身最要紧，<b>用互</b>「'+esc(r.hu.yongHu)+'」次之' +
+      '（原文：「體互最緊，用互次之」）。';
+    t += '体互对体的作用是<b>'+esc(a.text)+'</b>（'+esc(a.luck)+'），用互对体的作用是<b>'+esc(b.text)+'</b>（'+esc(b.luck)+'）。';
+    if (a.key === '用克体') t += '体互克体 —— 中间过程会出岔子，就算本卦吉也要防中途生变。';
+    else if (a.key === '用生体') t += '体互生体 —— 中间过程有人帮，是顺的。';
+    if (r.hu.noHu) t += '<br><b>乾坤無互，互其變卦</b>：'+esc(r.hu.note || '') + '。';
+    reasons.push(t);
+  })();
   reasons.push('<b>看变卦（最终结果）</b>：'+esc(r.bian.name)+'（'+esc(r.bianRel.text)+'）—— ' +
     esc(MeiHua.HEX_MEAN[r.bian.name] || '') + '。' + esc(r.bianRel.note));
   reasons.push('<b>看动爻爻位</b>：'+esc(v.evidence[4] ? v.evidence[4].text : ('第'+r.dong+'爻动')));
@@ -4122,6 +4226,33 @@ function qmHtml(p, q){
     h += '</div>';
   }
   h += '</div><div class="note">每格：上＝九星，中＝八门，下＝天盘干/地盘干，底＝八神。金框为本局值符所在宫。</div></div>';
+
+  /* 格局（依《奇门遁甲统宗》卷一「奇门四十格」） */
+  if (p.geJu && (p.geJu.list.length || p.geJu.geBo)){
+    h += '<div class="card"><h2>格局（本局落到的格）</h2>';
+    h += '<div class="note">奇门断事，「格」比单看门星更直接 —— 原文：「奇门最重格局」。</div>';
+    if (p.geJu.geBo){
+      h += '<div class="note" style="color:var(--warn)"><b>格勃</b>：本局值符为庚。' +
+        '原文《奇门遁甲统宗》凡例：「如逢庚为值符，则为格勃，格勃又不可用」——' +
+        '故龙回首、鸟跌穴等吉格<b>一律作废</b>，不能按吉断。' +
+        (p.geJu.blocked.length ? ('本局被作废的吉格：<b>' + p.geJu.blocked.join('、') + '</b>。') : '') +
+        '</div>';
+    }
+    if (p.geJu.list.length){
+      h += '<ul class="tight">';
+      p.geJu.list.forEach(function(gj){
+        var col = gj.ji === '吉' ? 'var(--good)' : (gj.ji === '凶' ? 'var(--bad)' : 'var(--dim2)');
+        h += '<li><b style="color:' + col + '">' + esc(gj.name) + '（' + esc(gj.ji) + '）</b>' +
+          (gj.gong ? '　落' + esc(M.GONG_NAME[gj.gong]) + '宫' : '') +
+          (gj.extra ? '　' + esc(gj.extra) : '') +
+          '<br><span style="color:var(--dim)">' + esc(gj.key) + '</span></li>';
+      });
+      h += '</ul>';
+    } else {
+      h += '<div class="note">本局没有落到明确的吉格或凶格（格表共 ' + Object.keys(QiMen.GE_JU || {}).length + ' 种）—— 那就主要看用神宫的门、星、神组合。</div>';
+    }
+    h += '</div>';
+  }
 
   /* 第 3 步：解局（取用神 → 用神宫解析） */
   var yong = qmPickYongShen(p, q);

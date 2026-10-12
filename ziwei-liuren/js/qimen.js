@@ -185,6 +185,88 @@
   }
 
   /* ---------- 主函数 ---------- */
+  /* ---------- 格局（依《奇门遁甲统宗》卷一「奇门四十格」） ----------
+     每条都有明确的干支条件，可直接判定。
+     另有「格勃」例外（同卷凡例第四条）：值符为庚时，龙回首、鸟跌穴等吉格作废，不可用。 */
+  var GAN_WX_Q = { 甲:'木', 乙:'木', 丙:'火', 丁:'火', 戊:'土', 己:'土', 庚:'金', 辛:'金', 壬:'水', 癸:'水' };
+  var KE_Q = { 木:'土', 土:'水', 水:'火', 火:'金', 金:'木' };
+  var STAR_OPPOSITE = { 1:9, 9:1, 2:8, 8:2, 3:7, 7:3, 4:6, 6:4 };
+  var GE_JU = {
+    '龙返首': { ji:'吉', key:'甲加丙：主贵人相助、谋事顺遂，宜见贵求名' },
+    '鸟跌穴': { ji:'吉', key:'丙加甲：主事有转机、意外之喜，宜进取' },
+    '龙逃走': { ji:'凶', key:'乙加辛：主逃避、走失、破财，宜退不宜进' },
+    '虎猖狂': { ji:'凶', key:'辛加乙：主凶暴、争斗、损伤，宜守不宜攻' },
+    '蛇夭矫': { ji:'凶', key:'癸加丁：主文书官司、纠缠不清' },
+    '雀投江': { ji:'凶', key:'丁加癸：主文书遗失、音信断绝、被人算计' },
+    '大格':   { ji:'凶', key:'庚加癸：主阻隔不通、事情卡死' },
+    '刑格':   { ji:'凶', key:'庚加己：主刑伤、官非、意外' },
+    '小格':   { ji:'凶', key:'庚加壬：主小人暗算、口舌是非' },
+    '伏宫格': { ji:'凶', key:'庚加戊：庚临值符本宫，主事被压制、谋而不得' },
+    '飞干格': { ji:'凶', key:'戊加庚：主事有反复、中途生变' },
+    '三奇入墓': { ji:'凶', key:'乙入坤、丙入乾、丁入艮 —— 奇入墓则不能用，吉事难成' },
+    '五不遇': { ji:'凶', key:'时干克日干：主百事不利，宜静不宜动' },
+    '伏吟':   { ji:'平', key:'九星各归本宫：主静、主守旧、事情停滞不前，宜守不宜动' },
+    '反吟':   { ji:'凶', key:'九星各临对宫：主反复、动荡、去而复返' }
+  };
+  var SANQI_MU = { '乙': 2, '丙': 6, '丁': 8 };   /* 三奇入墓之宫 */
+
+  function detectGeJu(gongs, ctx) {
+    var found = [], seen = {};
+    function push(name, gong, extra) {
+      if (seen[name]) return;
+      seen[name] = 1;
+      var info = GE_JU[name] || { ji:'平', key:'' };
+      found.push({ name: name, ji: info.ji, key: info.key, gong: gong || 0, extra: extra || '' });
+    }
+    var geBo = false;
+    for (var gi = 0; gi < gongs.length; gi++) {
+      var g = gongs[gi];
+      if (!g) continue;
+      var gno = g.gong;
+      var tg = g.tianGan, dg = g.diGan;
+      if (g.isZhiFu && tg === '庚') geBo = true;
+      if (tg === '戊' && dg === '丙') push('龙返首', gno);
+      if (tg === '丙' && dg === '戊') push('鸟跌穴', gno);
+      if (tg === '乙' && dg === '辛') push('龙逃走', gno);
+      if (tg === '辛' && dg === '乙') push('虎猖狂', gno);
+      if (tg === '癸' && dg === '丁') push('蛇夭矫', gno);
+      if (tg === '丁' && dg === '癸') push('雀投江', gno);
+      if (tg === '庚' && dg === '癸') push('大格', gno);
+      if (tg === '庚' && dg === '己') push('刑格', gno);
+      if (tg === '庚' && dg === '壬') push('小格', gno);
+      if (tg === '庚' && dg === '戊') push('伏宫格', gno);
+      if (tg === '戊' && dg === '庚') push('飞干格', gno);
+      if (SANQI_MU[tg] === gno) push('三奇入墓', gno, tg + '奇落' + GONG_NAME[gi] + '宫（其墓位）');
+    }
+    if (ctx && ctx.hourGan && ctx.dayGan) {
+      var hw = GAN_WX_Q[ctx.hourGan], dw = GAN_WX_Q[ctx.dayGan];
+      if (KE_Q[hw] === dw) push('五不遇', 0, ctx.hourGan + '时干克' + ctx.dayGan + '日干');
+    }
+    /* 只看八宫（宫号 1-4、6-9）：中五宫不排星，天禽已寄坤二 */
+    var BAGONG = [1, 2, 3, 4, 6, 7, 8, 9];
+    var same = 0, oppo = 0, total = 0;
+    for (var ri = 0; ri < BAGONG.length; ri++) {
+      var gj = BAGONG[ri];
+      var gg = gongs[gj - 1];                     /* gongs 是 0-indexed 数组 */
+      if (!gg || !gg.star) continue;
+      var stName = (gg.star === '禽芮') ? '天芮' : gg.star;
+      var home = STAR_HOME[stName];
+      if (home == null) continue;
+      total++;
+      if (home === gj) same++;
+      else if (STAR_OPPOSITE[home] === gj) oppo++;
+    }
+    if (total === 8 && same === 8) push('伏吟', 0, '九星尽归本宫，天盘与地盘重合（事情停滞、宜守）');
+    else if (total === 8 && oppo === 8) push('反吟', 0, '九星尽临对宫，天地盘对冲（主反复动荡）');
+    var blocked = [];
+    if (geBo) {
+      for (var k = found.length - 1; k >= 0; k--) {
+        if (found[k].ji === '吉') blocked.push(found.splice(k, 1)[0].name);
+      }
+    }
+    return { list: found, geBo: geBo, blocked: blocked };
+  }
+
   function pan(opts) {
     opts = opts || {};
     var lng = opts.longitude, useTS = opts.trueSolar && typeof lng === 'number';
@@ -224,18 +306,25 @@
     var targetGong = (hourGan === '甲') ? fuGong : di.gong[hourGan];
     if (!targetGong) targetGong = fuGong;
 
-    /* 天盘九星：值符随时干；天禽寄坤二（值符为中宫时，天禽代替天芮走在坤二的位置上） */
+    /* 天盘九星：值符随时干 —— 旬首之仪本宫之星（值符星）转到「时干地盘宫」，
+       其余八星沿八宫环整体同向随转。每颗星与其本宫绑定，故整段星序与宫序一起偏移。
+       中宫：八宫环上不排中宫，天禽寄坤二与天芮同宫（禽芮并称）。 */
     var tianStars = {};
-    var shift = ringDist(fuGong === 5 ? 2 : fuGong, targetGong === 5 ? 2 : targetGong);
-    var startGong = starHomeFor(fuGong);        /* 用本宫在环上的位置 */
-    var starSeq = ringStarSequence(startGong);  /* 从该宫起的星序（沿环） */
-    if (fuGong === 5) starSeq[0] = '天禽';      /* 中宫值符 → 天禽落在坤二 */
-    for (var i = 0; i < 8; i++) {
-      var g = step(startGong, i + shift);
-      tianStars[g] = starSeq[i];
+    var fuGX = (fuGong === 5) ? 2 : fuGong;              /* 中宫寄坤二 */
+    var tgtX = (targetGong === 5) ? 2 : targetGong;
+    var shift2 = ringDist(fuGX, tgtX);                   /* 沿八宫环顺行的步数 */
+    var seq2 = ringStarSequence(fuGX);                   /* 自值符本宫起、沿环的星序（8 颗） */
+    if (fuGong === 5) seq2[0] = '天禽';                  /* 值符自中宫出：天禽代替当值符 */
+    var hasQin = false;
+    for (var i2 = 0; i2 < 8; i2++) {
+      var gPut = RING[mod(ringIdx(fuGX) + i2 + shift2, 8)];
+      var sPut = seq2[i2];
+      if (sPut === '天禽') hasQin = true;
+      tianStars[gPut] = sPut;
     }
-    /* 中宫：天禽寄坤二 */
-    tianStars[5] = '天禽';
+    /* 值符自中宫出 → 天禽当值符，与天芮同宫（禽芮）*/
+    if (hasQin && tianStars[2] === '天芮') tianStars[2] = '禽芮';
+    tianStars[5] = '';                                   /* 中宫不另排星（天禽已寄坤二） */
 
     /* 八门：值使门加时支 —— 值使门从本宫转到「时辰地支」所落之宫，其余七门沿八宫【逆行】顺布 */
     var zhiShiStart = menHomeFor(fuGong);
@@ -269,13 +358,19 @@
         isZhiFu: tianStars[gi] === zhiFuStar, isZhiShi: doors[gi] === zhiShiMen
       });
     }
-    /* 天盘干：天盘星随值符转动，其所携之干 = 该星本宫的地盘干 */
+    /* 天盘干：天盘星随值符转动，其所携之干 = 该星本宫的地盘干。
+       特例：值符自中宫出（fuGong===5）时天禽当值符，天禽此时携「旬首之干」，
+       即值符（天禽）所落之宫的地盘干；其余八星不受影响。 */
     for (var n = 0; n < gongs.length; n++) {
       var g2 = gongs[n];
       if (!g2.star) continue;
-      var home = STAR_HOME[g2.star];
-      g2.tianGan = di.gan[(g2.star === '天禽') ? 2 : home] || '';
-      if (g2.star === '天禽') g2.tianGan = di.gan[2] || '';
+      var stName2 = (g2.star === '禽芮') ? '天芮' : g2.star;
+      if (stName2 === '天禽') {
+        g2.tianGan = di.gan[targetGong] || '';
+      } else {
+        var home2 = STAR_HOME[stName2];
+        g2.tianGan = (home2 == null) ? '' : (di.gan[home2] || '');
+      }
     }
 
     return {
@@ -289,19 +384,27 @@
       zhiFuStar: zhiFuStar, zhiShiMen: zhiShiMen,
       fuGong: fuGong, targetGong: targetGong,
       gongs: gongs,
+      geJu: detectGeJu(gongs, { hourGan: GAN.charAt(hourGanIdx), dayGan: GAN.charAt(dayGZIdx % 10), zhiFuStar: zhiFuStar }),
       meta: { GONG_NAME:GONG_NAME, STAR_INFO:STAR_INFO, MEN_INFO:MEN_INFO, SHEN_INFO:SHEN_INFO }
     };
   }
 
   /* 八宫环上的星序（从指定宫起）：以本宫星为首，沿环依次取各宫本宫星 */
+  /* 自某宫起、沿八宫环的星序。中五宫不排星（天禽寄坤二），故只收八宫之星，恒为 8 颗。
+     注意：环上逐宫取「该宫本宫之星」，八宫共 8 颗；天禽不出现在环上，
+     只有在「值符自中宫出」时才代替当值符（此时与天芮同宫，称禽芮）。 */
   function ringStarSequence(startGong) {
     var out = [];
     for (var i = 0; i < 8; i++) {
       var g = step(startGong, i);
       var s = starAtHome(g);
-      out.push(s);
+      if (!s || s === '天禽') { out.push('天禽'); }   /* 理论上不会走到这里 */
+      else out.push(s);
     }
-    return out;
+    /* 兜底：若混入天禽，用中宫寄宫的坤二之星（天芮）补位，保持 8 颗 */
+    var cleaned = [];
+    for (var k = 0; k < out.length; k++) cleaned.push(out[k] === '天禽' ? '天芮' : out[k]);
+    return cleaned;
   }
   function ringMenSequence(startGong) {
     var out = [];
@@ -329,6 +432,7 @@
 
   var API = { pan: pan, juOf: juOf, diPan: diPan, RING: RING, STAR_HOME: STAR_HOME, MEN_HOME: MEN_HOME,
               JU_TABLE: JU_TABLE, GAN: GAN, ZHI: ZHI, GONG_NAME: GONG_NAME,
+    detectGeJu: detectGeJu, GE_JU: GE_JU,
               STAR_INFO: STAR_INFO, MEN_INFO: MEN_INFO, SHEN_INFO: SHEN_INFO };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.QiMen = API;
