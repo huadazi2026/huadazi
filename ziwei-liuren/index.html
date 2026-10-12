@@ -269,6 +269,19 @@ table.ketable tr:last-child td{border-bottom:0}
 ul.tight{margin:4px 0;padding-left:17px}
 ul.tight li{font-size:12px;color:var(--dim);line-height:1.6;margin:3px 0}
 ul.tight li b{color:var(--txt)}
+/* ===== 梅花 外应／十应 勾选区 ===== */
+.wy-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0}
+.wy-h{font-size:12.5px;color:var(--gold);font-weight:600;margin-bottom:4px}
+.wy-cat{font-size:11px;color:var(--dim2);margin:8px 0 4px}
+.wy-box{display:flex;flex-wrap:wrap;gap:5px}
+.wy-box button{background:var(--bg2);border:1px solid var(--line);color:var(--dim);border-radius:7px;
+  padding:4px 8px;font-size:11.5px;cursor:pointer;font-family:inherit}
+.wy-box button.on{background:var(--gold);color:#1a1428;border-color:var(--gold);font-weight:600}
+/* 奇门 门迫／旺相 标记 */
+.qc .po{position:absolute;right:2px;top:2px;font-size:8.5px;padding:1px 4px;border-radius:4px;
+  background:rgba(224,106,106,.85);color:#fff}
+.qc .wang{position:absolute;right:2px;bottom:2px;font-size:8.5px;padding:1px 4px;border-radius:4px;
+  background:rgba(122,167,224,.8);color:#12101c}
 /* ===== 结果栏里的「为什么」 ===== */
 .ansbox .why{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
 .ansbox .whyt{font-size:12px;color:var(--gold);font-weight:600;margin-bottom:5px}
@@ -768,6 +781,12 @@ nav button.on{color:var(--gold)}
           <div class="note" style="margin:0;padding-top:9px">时间卦用农历月日与年支、时支</div>
         </div>
       </div>
+      <div class="wy-wrap">
+        <div class="wy-h">外应／十应（起卦那一刻你身边看到、听到、遇到的东西 · 可不选）</div>
+        <div class="note" style="margin:0 0 8px">原文《內外論》：「凡占卜，體用為內，諸應卦為外卦…必合內外卦而斷之也。
+          苟不知合內外卦為斷…則鮮見其有驗者。」—— 外应能<b>助体</b>也能<b>破体</b>，同一件东西对不同体卦吉凶相反。</div>
+        <div id="mh-wy-boxes"></div>
+      </div>
       <button class="btn" id="mh-go">起 卦</button>
       <div class="note">梅花易数讲「不动不占」：心里真有事、真拿不定主意时起卦最准，一天别反复起同一件事。</div>
     </div>
@@ -1081,9 +1100,18 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v42 · 2026-10-05"
+var APP_BUILD = "v43 · 2026-10-05"
 var APP_CHANGELOG = [
-  ["v42", "这次的更新", [
+  ["v43", "这次的更新", [
+    "<b>梅花易数：加「外应／十应」</b> —— 起卦那一刻你身边看到、听到、遇到的东西，会影响结果。表单一共 42 项可选（人事应 8、方应 8、外应 8、天时应 6、地理应 8、真生真克 4）",
+    "外应是「内外合断」：原文《內外論》「凡占卜，體用為內，諸應卦為外卦…必合內外卦而斷之也。苟不知合內外卦為斷…<b>則鮮見其有驗者</b>」。外应对体卦<b>生/比和</b>则助、「克」则破、「体生外应」则泄（也非吉），结果栏会逐项列出并给合计分",
+    "外应的关键特性：<b>同一样东西对不同体卦吉凶相反</b>。原文《十應奧論》的例子——见黄金白银，遇震巽体（木）则金克木为<b>凶</b>，遇坎体（水）则金生水为<b>吉</b>；占产见少男，遇坎体则艮土克水为<b>凶</b>；占病遇棺，遇离体则木生火反<b>吉</b>。这四条已作为硬性校验写进测试",
+    "梅花新增<b>真生真克之分</b>（《體用生克之訣》）：真火（炉火、窑灶、烈焰）能克金，形色之火（红紫、中虚）不能；快刀锐刃能克木，钗钏锡器类琐屑之金不能。故同是「火」「金」，克力分重轻两档",
+    "<b>奇门遁甲：加「门迫」</b> —— 门之五行克宫之五行即为迫。原文《奇门宝鉴御定》「释迫」：「迫者，門制其宫也…<b>吉門被迫，吉事成凶；凶門被迫，凶災愈甚</b>」。原文列出的 13 组（开门临三四宫、休门临九宫、生门临一宫、景门临六七宫、伤杜门临二八宫、死门临一宫、惊门临三四宫）已全部校验通过。九宫格上会标红「迫」",
+    "奇门新增<b>九星旺相</b>：按节气当令五行给每颗星定旺／相／休／囚／死（口诀「当令者旺、我生者相、生我者休、克我者囚、我克者死」），九宫格上标蓝字，并新加一张「门迫与旺相」卡逐星列出",
+    "奇门修正：旺相休囚死里「囚」与「死」的方向。犯旺被囚（它克当令者）为囚，气尽（当令者克它）为死 —— 已用春木旺表（木旺、火相、水休、金囚、土死）复核"
+  ]],
+  ["v42", "更早", [
     "修正显示：梅花的「互卦」那一段，<b>体互／用互</b> 的加粗标记被当成普通文字显示出来了（页面上直接看到尖括号）。原因是转义做重了一层，已修",
     "其余与 v41 相同"
   ]],
@@ -1951,6 +1979,7 @@ function bzInit(){
     for (var j = 0; j < gb.length; j++) gb[j].onclick = (function(v){ return function(){
       bzGender = v; var x = g.querySelectorAll("button");
       for (var k = 0; k < x.length; k++) x[k].className = (x[k].getAttribute("data-v") === v ? "on" : ""); }; })(gb[j].getAttribute("data-v")); }
+  if (typeof mhBuildWyBoxes === 'function') mhBuildWyBoxes();
   bzFillSolarYears(); bzFillSolarMonths();
   bzFillLunarYears(); bzFillLunarMonths();
   /* 时辰下拉 */
@@ -3938,6 +3967,39 @@ $('mh-go').onclick = function(){
     catch (e) { btn.innerHTML = '起 卦'; showErr3('mh-err', '起卦失败：' + e.message); }
   }, 20);
 };
+/* 外应勾选区：按类分组生成按钮，选中项存进 mhWySel */
+var mhWySel = [];
+function mhBuildWyBoxes(){
+  var box = $('mh-wy-boxes'); if (!box) return;
+  var WY = MeiHua.WAI_YING, ZK = MeiHua.ZHEN_KE;
+  var cats = {};
+  Object.keys(WY).forEach(function(k){ var c = WY[k].cat; (cats[c] = cats[c] || []).push(k); });
+  var h = '';
+  ['人事应','方应','外应','天时应','地理应'].forEach(function(c){
+    if (!cats[c]) return;
+    h += '<div class="wy-cat">' + esc(c) + '</div><div class="wy-box" data-cat="' + esc(c) + '">';
+    cats[c].forEach(function(k){
+      h += '<button type="button" data-k="' + esc(k) + '" title="' + esc(WY[k].gua + '卦 · ' + WY[k].note) + '">' + esc(k) + '</button>';
+    });
+    h += '</div>';
+  });
+  h += '<div class="wy-cat">真生真克之分（《體用生克之訣》：真火能克金，形色之火不能）</div><div class="wy-box">';
+  Object.keys(ZK).forEach(function(k){
+    h += '<button type="button" data-k="' + esc(k) + '" title="' + esc(ZK[k].gua + '卦 · ' + ZK[k].note) + '">' + esc(k) + '</button>';
+  });
+  h += '</div>';
+  box.innerHTML = h;
+  var bs = box.querySelectorAll('button');
+  for (var i = 0; i < bs.length; i++){
+    bs[i].onclick = function(){
+      var k = this.getAttribute('data-k');
+      var p = mhWySel.indexOf(k);
+      if (p >= 0) { mhWySel.splice(p, 1); this.className = ''; }
+      else { mhWySel.push(k); this.className = 'on'; }
+    };
+  }
+}
+
 function renderMeiHua(){
   var method = $('mh-method').value;
   var q = $('mh-q').value.trim();
@@ -3956,6 +4018,7 @@ function renderMeiHua(){
     opt = { method:'time', question:q, year:dt.y, month:dt.m, day:dt.d,
             hour: (shi*2) % 24, minute:0, trueSolar:false };
   }
+  opt.waiYing = mhWySel;          /* 外应／十应（用户勾选的）*/
   var r = MeiHua.qi(opt);
   $('mh-out').innerHTML = mhHtml(r);
 }
@@ -4105,6 +4168,23 @@ function mhHtml(r){
   reasons.push('<b>看变卦（最终结果）</b>：'+esc(r.bian.name)+'（'+esc(r.bianRel.text)+'）—— ' +
     esc(MeiHua.HEX_MEAN[r.bian.name] || '') + '。' + esc(r.bianRel.note));
   reasons.push('<b>看动爻爻位</b>：'+esc(v.evidence[4] ? v.evidence[4].text : ('第'+r.dong+'爻动')));
+  /* 外应／十应（内外合断）*/
+  if (r.waiYing && r.waiYing.items.length){
+    var wy = r.waiYing;
+    var wt = '<b>外应／十应（内外合断）</b>：你选了 ' + wy.items.length + ' 项外应。' +
+      '原文《內外論》要求「合內外卦而斷」—— 外应对体卦的生克会直接加减吉凶。';
+    wt += '<ul style="margin:5px 0 0;padding-left:16px">';
+    wy.items.forEach(function(it){
+      var col = it.effKey === 'help' ? 'var(--good)' : (it.effKey === 'break' ? 'var(--bad)' : 'var(--warn)');
+      wt += '<li><b>' + esc(it.key) + '</b>（' + esc(it.gua) + '・' + esc(it.guaWx) + '・' + esc(it.cat) + '）→ ' +
+        '<span style="color:' + col + '">' + esc(it.eff) + '</span>' +
+        '<br><span style="color:var(--dim2);font-size:11px">' + esc(it.note) + '</span></li>';
+    });
+    wt += '</ul>';
+    wt += '<div style="margin-top:5px">' + wy.notes.join('') + '　合计 <b>' +
+      (wy.score >= 0 ? '+' : '') + wy.score + '</b> 分。</div>';
+    reasons.push(wt);
+  }
 
   /* 建议：先看问的哪类事，再看体用 —— 不同的事做法完全不同 */
   var mhTp = askTopic(r.question);
@@ -4227,10 +4307,14 @@ function qmHtml(p, q){
       h += '<div class="sn">'+esc(g.shen||'')+'</div>';
       if (g.isZhiFu) h += '<div class="tag">值符</div>';
       else if (g.isZhiShi) h += '<div class="tag">值使</div>';
+      /* 门迫：门克宫（《奇门宝鉴御定》「释迫」）*/
+      if (g.menPo) h += '<div class="po" title="'+esc(g.menPo.note)+'　'+esc(g.menPo.effect)+'">迫</div>';
+      /* 九星旺相（按节气当令五行）*/
+      if (g.starWang) h += '<div class="wang" title="'+esc((g.starWx||'')+'在'+esc(p.seasonWx||'')+'当令时为「'+g.starWang.key+'」')+'">'+esc(g.starWang.key)+'</div>';
     }
     h += '</div>';
   }
-  h += '</div><div class="note">每格：上＝九星，中＝八门，下＝天盘干/地盘干，底＝八神。金框为本局值符所在宫。</div></div>';
+  h += '</div><div class="note">每格：上＝九星，中＝八门，下＝天盘干/地盘干，底＝八神。' +    '金框为本局值符所在宫；<span style="color:var(--bad)">红「迫」</span>＝门迫（门克宫）；' +    '<span style="color:var(--info)">蓝字</span>＝九星在本节气的旺相休囚死。</div></div>';
 
   /* 格局（依《奇门遁甲统宗》卷一「奇门四十格」） */
   if (p.geJu && (p.geJu.list.length || p.geJu.geBo)){
@@ -4256,6 +4340,40 @@ function qmHtml(p, q){
     } else {
       h += '<div class="note">本局没有落到明确的吉格或凶格（格表共 ' + Object.keys(QiMen.GE_JU || {}).length + ' 种）—— 那就主要看用神宫的门、星、神组合。</div>';
     }
+    h += '</div>';
+  }
+
+  /* 门迫与旺相（《奇门宝鉴御定》「释迫」＋《奇门遁甲统宗》九星旺相）*/
+  if (p.seasonWx){
+    h += '<div class="card"><h2>门迫与旺相（门克宫 · 星旺衰）</h2>';
+    /* 门迫 */
+    if (p.menPo && p.menPo.length){
+      h += '<div class="note"><b>门迫</b>：门之五行克宫之五行。原文《奇门宝鉴御定》「释迫」：' +
+        '「迫者，門制其宫也…<b>吉門被迫，吉事成凶；凶門被迫，凶災愈甚</b>」。本局 ' + p.menPo.length + ' 处：</div>';
+      h += '<ul class="tight">';
+      p.menPo.forEach(function(x){
+        h += '<li><b style="color:' + (x.good ? 'var(--warn)' : 'var(--bad)') + '">' + esc(x.men) + '临' +
+          esc(M.GONG_NAME[x.gong]) + '宫</b>　' + esc(x.note) +
+          '<br><span style="color:var(--dim)">' + esc(x.effect) + '</span></li>';
+      });
+      h += '</ul>';
+    } else {
+      h += '<div class="note"><b>门迫</b>：本局没有门迫（门与宫不相克）—— 八门的力量没有被宫位压住，是好事。</div>';
+    }
+    /* 九星旺相 */
+    h += '<div class="note" style="margin-top:8px"><b>九星旺相</b>：本节气当令五行为 <b>' + esc(p.seasonWx) +
+      '</b>。原文《奇门遁甲统宗》卷一「九星旺相」：' +
+      '「九星旺于子月，相于本月，死于父母月，囚于鬼月，废于妻月」。' +
+      '通行口诀为「当令者旺、我生者相、生我者休、克我者囚、我克者死」：</div>';
+    h += '<div class="wy-box" style="margin-top:4px">';
+    p.gongs.forEach(function(g){
+      if (g.gong === 5 || !g.starWang) return;
+      var col = g.starWang.score >= 2 ? 'var(--good)' : (g.starWang.score <= -2 ? 'var(--bad)' : 'var(--dim)');
+      h += '<span style="font-size:11.5px;color:var(--dim)">' + esc(g.star || '') + '（' + esc(g.starWx || '') + '）' +
+        '<b style="color:' + col + '">' + esc(g.starWang.key) + '</b></span>';
+    });
+    h += '</div>';
+    h += '<div class="note">星的旺衰是「事情本身的底气」—— 用神宫里的星旺，事有底气；星衰，看着好也推不动。</div>';
     h += '</div>';
   }
 

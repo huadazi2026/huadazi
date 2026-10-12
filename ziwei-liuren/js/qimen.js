@@ -210,6 +210,62 @@
   };
   var SANQI_MU = { '乙': 2, '丙': 6, '丁': 8 };   /* 三奇入墓之宫 */
 
+  /* ---------- 旺相休囚 与 门迫 ----------
+     《奇门遁甲统宗》卷一「八节应八门旺相」：「冬至：休门旺，生门绝，伤门胎，杜门沐，
+       景门死，死门囚，惊门休，开门废。」（按八节循环）
+     《奇门宝鉴御定》「释迫」：「迫者，門制其宫也…吉門被迫，吉事成凶，凶門被迫，凶災愈甚。」
+     门迫 = 门之五行克宫之五行。如开门（金）临三、四宫（木）→ 金克木 → 迫。 */
+  /* 八门五行 */
+  var MEN_WX = { 休门:'水', 生门:'土', 伤门:'木', 杜门:'木', 景门:'火', 死门:'土', 惊门:'金', 开门:'金' };
+  /* 九星五行 */
+  var STAR_WX = { 天蓬:'水', 天芮:'土', 天冲:'木', 天辅:'木', 天禽:'土', 天心:'金', 天柱:'金', 天任:'土', 天英:'火' };
+  /* 十二消息：节气 → 当令五行（用于九星旺相）*/
+  var JIEQI_WX = {
+    立春:'木', 雨水:'木', 惊蛰:'木', 春分:'木', 清明:'木', 谷雨:'木',
+    立夏:'火', 小满:'火', 芒种:'火', 夏至:'火', 小暑:'火', 大暑:'火',
+    立秋:'金', 处暑:'金', 白露:'金', 秋分:'金', 寒露:'金', 霜降:'金',
+    立冬:'水', 小雪:'水', 大雪:'水', 冬至:'水', 小寒:'水', 大寒:'水'
+  };
+  /* 旺相休囚死：以当令五行为「旺」
+     我当令=旺；我生者=相；生我者=休；克我者=囚；我克者=死（依五行生克循环）*/
+  var SHENG_Q = { 木:'火', 火:'土', 土:'金', 金:'水', 水:'木' };
+  var KE_Q2 = { 木:'土', 土:'水', 水:'火', 火:'金', 金:'木' };
+  /* 旺相休囚死（以当令五行为准，标准表见下）
+     春木旺：木旺、火相、水休、金囚、土死
+     相 = 当令者所生（木生火）
+     休 = 生当令者（水生木）
+     囚 = 克当令者（金克木，犯旺被囚）
+     死 = 当令者所克（木克土，气尽）
+     校验：冬水旺 → 水旺、木相（水生木）、金休（金生水）、火囚（火被水克，按「当令者所克」=死？）
+     注意：火与水的关系是「水克火」，即当令者克它 → 按上表应为「死」。
+     但通关标准五行旺相表（春木旺表）反推：冬水旺时火为「囚」还是「死」？
+     以「我克者死、克我者囚」为通则，水火之间是水克火 → 水为当令，火为「我所克」→ 死。
+     而通行命理口诀「旺相休囚死」正是：当令者旺、我生者相、生我者休、克我者囚、我克者死。
+     代入冬水旺验算：水旺、木相、金休、土囚（土克水）、火死（水克火）——即本实现。
+     然本文测试期望按春木表推得「火囚、土死」为误，已按通行口诀更正测试。 */
+  function wangState(wx, seasonWx) {
+    if (wx === seasonWx) return { key:'旺', score: 3 };
+    if (SHENG_Q[seasonWx] === wx) return { key:'相', score: 2 };   /* 当令者生它 */
+    if (SHENG_Q[wx] === seasonWx) return { key:'休', score: 0 };   /* 它生当令者 */
+    if (KE_Q2[wx] === seasonWx) return { key:'囚', score: -2 };    /* 它克当令者（犯旺） */
+    return { key:'死', score: -3 };                                /* 当令者克它（气尽） */
+  }
+  /* 门迫：门五行克宫五行 */
+  function menPo(menName, gongNo) {
+    var mw = MEN_WX[menName];
+    var gw = GONG_WX[gongNo];
+    if (!mw || !gw) return null;
+    if (KE_Q2[mw] !== gw) return null;
+    var ji = MEN_INFO[menName] ? MEN_INFO[menName].ji : '';
+    var isGood = (ji === '吉' || ji === '大吉');
+    return { men: menName, gong: gongNo, menWx: mw, gongWx: gw,
+             good: isGood,
+             note: '門制其宫 —— ' + menName + '（' + mw + '）克' + GONG_NAME[gongNo] + '宫（' + gw + '）',
+             effect: isGood ? '吉門被迫，吉事成凶（吉门的力量被宫位压住，好处打折）'
+                              : '凶門被迫，凶災愈甚（凶门再压宫位，问题加重）',
+             score: isGood ? -8 : -4 };
+  }
+
   function detectGeJu(gongs, ctx) {
     var found = [], seen = {};
     function push(name, gong, extra) {
@@ -373,6 +429,27 @@
       }
     }
 
+    /* 旺相休囚＋门迫：逐宫标注 */
+    var seasonWx = JIEQI_WX[jq] || '';
+    var menPoList = [];
+    for (var wi = 0; wi < gongs.length; wi++) {
+      var wg = gongs[wi];
+      var gn = wg.gong;
+      /* 门迫：中宫无门，跳过 */
+      if (gn !== 5 && wg.men && wg.men !== '—') {
+        var mp = menPo(wg.men, gn);
+        if (mp) { wg.menPo = mp; menPoList.push(mp); }
+      }
+      /* 九星旺相 */
+      if (wg.star) {
+        var sn = (wg.star === '禽芮') ? '天芮' : wg.star;
+        var sw = STAR_WX[sn];
+        if (sw && seasonWx) { wg.starWang = wangState(sw, seasonWx); wg.starWx = sw; }
+      }
+      /* 宫位本身在当季的旺衰（供参考）*/
+      if (gn !== 5 && seasonWx) wg.gongWang = wangState(GONG_WX[gn], seasonWx);
+    }
+
     return {
       input: { y:opts.year, m:opts.month, d:opts.day, hh:opts.hour, mm:opts.minute || 0 },
       trueSolar: tst,
@@ -385,6 +462,7 @@
       fuGong: fuGong, targetGong: targetGong,
       gongs: gongs,
       geJu: detectGeJu(gongs, { hourGan: GAN.charAt(hourGanIdx), dayGan: GAN.charAt(dayGZIdx % 10), zhiFuStar: zhiFuStar }),
+      seasonWx: seasonWx, menPo: menPoList,
       meta: { GONG_NAME:GONG_NAME, STAR_INFO:STAR_INFO, MEN_INFO:MEN_INFO, SHEN_INFO:SHEN_INFO }
     };
   }
@@ -433,6 +511,7 @@
   var API = { pan: pan, juOf: juOf, diPan: diPan, RING: RING, STAR_HOME: STAR_HOME, MEN_HOME: MEN_HOME,
               JU_TABLE: JU_TABLE, GAN: GAN, ZHI: ZHI, GONG_NAME: GONG_NAME,
     detectGeJu: detectGeJu, GE_JU: GE_JU,
+    menPo: menPo, wangState: wangState, MEN_WX: MEN_WX, STAR_WX: STAR_WX, JIEQI_WX: JIEQI_WX,
               STAR_INFO: STAR_INFO, MEN_INFO: MEN_INFO, SHEN_INFO: SHEN_INFO };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.QiMen = API;

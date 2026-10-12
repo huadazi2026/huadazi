@@ -182,12 +182,112 @@
     return build(tri(s1), tri(s2), mod(s2 - 1, 6) + 1, opts, used, desc);
   }
 
+  /* ================= 外应 / 十应 ===================
+     《梅花易數》卷二《內外論》：「凡占卜，體用為內，諸應卦為外卦…必合內外卦而斷之也。
+       苟不知合內外卦為斷，謂體用自體用，三要十應自三要十應，如此則鮮見其有驗者。」
+     《十應目論》：「十應並以體卦為主…內卦不吉而外卦又吉，可以解其不吉；
+       內卦吉而外卦不吉，反破其吉。」
+     故：外应卦对体卦「生／比和」→ 助；「克」→ 破；「体生外应」→ 泄（也非吉）。
+     注意《十應奧論》的反转：同一样东西对不同体卦吉凶相反 ——
+       见金（乾兑）遇震巽体则克木为凶，遇坎体则生水为吉；见少男（艮）遇坎体则土克水为凶。 */
+  var WAI_YING = {
+    老父:   { gua:'乾', cat:'人事应', note:'老人、长者、领导、公门中人' },
+    老母:   { gua:'坤', cat:'人事应', note:'老妇、母亲、众人、农夫' },
+    少女:   { gua:'兑', cat:'人事应', note:'少女、歌女、口才好的人' },
+    少男:   { gua:'艮', cat:'人事应', note:'少男、闲人、山中人' },
+    中女:   { gua:'离', cat:'人事应', note:'中女、文人、目疾之人' },
+    中男:   { gua:'坎', cat:'人事应', note:'中男、江湖人、舟人' },
+    长男:   { gua:'震', cat:'人事应', note:'长男、司机、行动的人' },
+    长女:   { gua:'巽', cat:'人事应', note:'长女、秀士、山林修道之人' },
+    西北方: { gua:'乾', cat:'方应', note:'西北方（乾位）' },
+    西方:   { gua:'兑', cat:'方应', note:'西方（兑位）' },
+    南方:   { gua:'离', cat:'方应', note:'南方（离位）' },
+    东方:   { gua:'震', cat:'方应', note:'东方（震位）' },
+    东南方: { gua:'巽', cat:'方应', note:'东南方（巽位）' },
+    北方:   { gua:'坎', cat:'方应', note:'北方（坎位）' },
+    东北方: { gua:'艮', cat:'方应', note:'东北方（艮位）' },
+    西南方: { gua:'坤', cat:'方应', note:'西南方（坤位）' },
+    金玉圆物: { gua:'乾', cat:'外应', note:'金玉、宝珠、圆物、冠镜、刚物' },
+    刀剑锐器: { gua:'兑', cat:'外应', note:'金刃、刀剑、乐器、缺器、废器' },
+    火与文书: { gua:'离', cat:'外应', note:'火、书文、干戈、甲胄、赤色之物' },
+    竹木花草: { gua:'震', cat:'外应', note:'竹木、花草、乐器（竹木者）、鲜嫩之物' },
+    长物绳索: { gua:'巽', cat:'外应', note:'长物、绳、直木、工巧之器、香气' },
+    水与酒器: { gua:'坎', cat:'外应', note:'水、酒器、带核之物、弓轮、鱼豕' },
+    土石瓜果: { gua:'艮', cat:'外应', note:'土石、瓜果、黄土、虎狗鼠' },
+    布帛五谷: { gua:'坤', cat:'外应', note:'方物、布帛、丝绵、五谷、瓦器、牛' },
+    晴:     { gua:'离', cat:'天时应', note:'晴天（离为日）' },
+    雨雪:   { gua:'坎', cat:'天时应', note:'雨、雪、霜、露（坎为水）' },
+    风:     { gua:'巽', cat:'天时应', note:'风（巽为风）' },
+    雷:     { gua:'震', cat:'天时应', note:'雷（震为雷）' },
+    云阴:   { gua:'坤', cat:'天时应', note:'云阴、雾气（坤为地）' },
+    云雾山岚:{ gua:'艮', cat:'天时应', note:'云雾、山岚（艮为山）' },
+    江河溪涧:{ gua:'坎', cat:'地理应', note:'江河、溪涧、泉井、卑湿之地' },
+    竹林草木:{ gua:'震', cat:'地理应', note:'竹林、树木茂盛之所' },
+    花果菜园:{ gua:'巽', cat:'地理应', note:'花果菜园、草木茂秀之所' },
+    窑灶炉火:{ gua:'离', cat:'地理应', note:'窑灶、炉冶之所、向阳之地' },
+    五金之处:{ gua:'乾', cat:'地理应', note:'形胜之地、大郡、高亢之所' },
+    田野平地:{ gua:'坤', cat:'地理应', note:'田野、乡里、平地' },
+    山径丘陵:{ gua:'艮', cat:'地理应', note:'山径、丘陵、坟墓' },
+    泽水废井:{ gua:'兑', cat:'地理应', note:'泽、水际、缺池、废井' }
+  };
+
+  /* 真生真克之分（《梅花易數》卷三《體用生克之訣》）
+     「乾、兌之金為體，見火則克，然有真火之體，有火之形色。真火能克金，形色則不能克。
+       爐中火、窯灶之火、烈焰巨炷，真火也，遇之不吉；若色之紅紫、形之中虛…非真火也，不為深忌。
+       又震、巽之木體遇金則克，然釵釧之金、金鉑、成錠之銀、杯盤之銀、器之錫、瑣屑之鋼鐵皆金也，
+       此等之金豈能克木？木之所忌者，快刀銳刃、巨斧大鋸。」 */
+  var ZHEN_KE = {
+    真火:   { gua:'离', zhen:true,  cat:'真生真克', note:'爐中火、窯灶之火、烈焰巨炷 —— 真火，能克金' },
+    火之形色:{ gua:'离', zhen:false, cat:'真生真克', note:'紅紫色、中虛之形、日火 —— 非真火，不為深忌' },
+    快刀锐刃:{ gua:'兑', zhen:true,  cat:'真生真克', note:'快刀、銳刃、巨斧、大鋸 —— 真金，能克木' },
+    琐屑之金:{ gua:'兑', zhen:false, cat:'真生真克', note:'釵釧、金鉑、成錠之銀、錫器、瑣屑鋼鐵 —— 不能克木' }
+  };
+
+  function trigramWx(name) {
+    for (var k in TRIGRAM) if (TRIGRAM[k].name === name) return TRIGRAM[k].wuxing;
+    return '';
+  }
+
+  /* 计算外应对体卦的作用（以体卦为主）*/
+  function waiYing(keys, tiTriName) {
+    var out = { items: [], score: 0, helps: [], breaks: [], notes: [] };
+    if (!keys || !keys.length) return out;
+    var tiWx = trigramWx(tiTriName);
+    keys.forEach(function(k){
+      var it = WAI_YING[k] || ZHEN_KE[k];
+      if (!it) return;
+      var g = it.gua;
+      var gw = trigramWx(g);
+      var eff, effKey;
+      if (SHENG[gw] === tiWx) { eff = '外应生体 —— 助'; effKey = 'help'; }
+      else if (gw === tiWx)   { eff = '外应与体比和 —— 助'; effKey = 'help'; }
+      else if (KE[gw] === tiWx){ eff = '外应克体 —— 破'; effKey = 'break'; }
+      else if (SHENG[tiWx] === gw){ eff = '体生外应 —— 泄气（非吉）'; effKey = 'drain'; }
+      else { eff = '体克外应 —— 费力但有掌控'; effKey = 'control'; }
+      var discount = '';
+      if (it.zhen === false && effKey === 'break') { eff += '（属「形色」而非真物，克力很轻，不必深忌）'; discount = '（非真物，克力打折）'; }
+      else if (it.zhen === true && effKey === 'break') { eff += '（真物，克力实，须认真对待）'; }
+      var sc = effKey === 'help' ? 8 : (effKey === 'break' ? (it.zhen === false ? -3 : -10) : (effKey === 'drain' ? -6 : 2));
+      out.score += sc;
+      out.items.push({ key: k, gua: g, guaWx: gw, cat: it.cat || '真生真克', note: it.note, eff: eff, effKey: effKey, score: sc });
+      if (effKey === 'help') out.helps.push(k + '（' + g + '）');
+      else if (effKey === 'break') out.breaks.push(k + '（' + g + '）' + discount);
+    });
+    if (out.score > 0) out.notes.push('外应整体<b>助体</b> —— 原文：「內卦不吉而外卦又吉，可以解其不吉」，本卦就算不理想，外应也给了缓冲。');
+    else if (out.score < 0) out.notes.push('外应整体<b>破体</b> —— 原文：「內卦吉而外卦不吉，反破其吉」，本卦再好也要防外部因素把局面打散。');
+    else out.notes.push('外应有助有破，两下相抵 —— 看具体哪一项落在关键环节。');
+    return out;
+  }
+
   function build(upper, lower, dong, opts, used, desc) {
     /* 动爻在上卦（4-6 爻）则上卦为用、下卦为体；动爻在下卦（1-3 爻）则下卦为用、上卦为体 */
     var dongInUpper = dong >= 4;
     var tiTri = dongInUpper ? lower : upper;
     var yongTri = dongInUpper ? upper : lower;
     var rel = relation(tiTri.name, yongTri.name);
+
+    /* 外应／十应（《梅花易數》卷二）*/
+    var wy = waiYing(opts.waiYing, tiTri.name);
 
     var ben = { up: upper.name, low: lower.name };
     ben.name = hexName(ben.up, ben.low);
@@ -208,7 +308,7 @@
       upper: upper, lower: lower, tiTri: tiTri, yongTri: yongTri,
       dong: dong, dongInUpper: dongInUpper,
       ben: ben, hu: hu, bian: bian,
-      rel: rel, bianRel: bianRel,
+      rel: rel, bianRel: bianRel, waiYing: wy,
       question: opts.question || '',
       used: used, desc: desc,
       verdict: verdict
@@ -307,7 +407,7 @@
     return t[d - 1];
   }
 
-  var API = { qi: qi, TRIGRAM: TRIGRAM, HEX: HEX, HEX_MEAN: HEX_MEAN, relation: relation,
+  var API = { qi: qi, waiYing: waiYing, WAI_YING: WAI_YING, ZHEN_KE: ZHEN_KE, trigramWx: trigramWx, TRIGRAM: TRIGRAM, HEX: HEX, HEX_MEAN: HEX_MEAN, relation: relation,
               hexName: hexName, huGua: huGua, bianGua: bianGua, ZHI: ZHI };
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
   root.MeiHua = API;
