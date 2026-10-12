@@ -496,6 +496,12 @@
       <div class="hint">开了它会更像医生：先问诊，再开方。少给你「正确但没用」的话。</div>
 
       <label class="row" style="align-items:center; gap:8px">
+        <input type="checkbox" id="cfgTellDate" style="width:auto; flex:none">
+        <span>告诉它今天是几号</span>
+      </label>
+      <div class="hint">关掉的话，它不知道现在是什么时候，会把「明年」「下个月」算错 —— 因为它只能按训练数据那年猜。</div>
+
+      <label class="row" style="align-items:center; gap:8px">
         <input type="checkbox" id="cfgConfidence" style="width:auto; flex:none">
         <span>回答末尾标一个把握程度</span>
       </label>
@@ -848,6 +854,7 @@ function load(){
   if(cfg.askFirst === undefined) cfg.askFirst = false;   // 信息不够先追问，别给泛泛的建议
   if(cfg.confidence === undefined) cfg.confidence = false; // 回答末尾给「我认为…把握多少」
   if(cfg.memory === undefined) cfg.memory = true;         // 长对话自动摘要 + 暗号接前情
+  if(cfg.tellDate === undefined) cfg.tellDate = true;     // 把今天的日期告诉它（否则它按训练数据那年算）
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   // 人设一旦存进 localStorage 就是"用户的"了，改默认值对它没用。
   // 存着的正好等于某一版旧默认 —— 说明用户压根没动过 —— 那就顺手升到新版。
@@ -1312,6 +1319,31 @@ function setBusy(on){
 function stopGen(){
   if(abortCtl){ try{ abortCtl.abort(); }catch(e){} }
 }
+/* ---------- 告诉它今天是几号 ---------- */
+// 不告诉它日期，它就按训练数据截止那年去推。
+// 表现就是：你说明年，它算成今年（因为它以为现在还是 2024）。
+function dateNote(){
+  if(cfg.tellDate === false) return "";
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const day = now.getDate();
+  const wd = "日一二三四五六"[now.getDay()];
+  const pad = (n) => String(n).padStart(2, "0");
+  const hm = pad(now.getHours()) + ":" + pad(now.getMinutes());
+  const nextM = (m === 12) ? (y + 1) + " 年 1 月" : y + " 年 " + (m + 1) + " 月";
+  const lastM = (m === 1) ? (y - 1) + " 年 12 月" : y + " 年 " + (m - 1) + " 月";
+  return [
+    "",
+    "",
+    "【今天是几号 —— 别算错】",
+    "现在是 " + y + " 年 " + m + " 月 " + day + " 日（星期" + wd + "）" + hm + "，北京时间。",
+    "- 今年 = " + y + " 年；明年 = " + (y + 1) + " 年；去年 = " + (y - 1) + " 年",
+    "- 这个月 = " + y + " 年 " + m + " 月；下个月 = " + nextM + "；上个月 = " + lastM,
+    "我说「明年」「下个月」这类词，一律以这个日期为基准推，不要按你的训练数据猜。"
+  ].join("\n");
+}
+
 /* ---------- 聪明一点：摘要 / 暗号 / 追问 / 把握程度 ---------- */
 
 // 摘要里模型要遵守的格式。用一行带标记的文本，回显时会被摘掉。
@@ -1501,7 +1533,7 @@ async function send(text, opts){
     + hookBlock()
     + (cfg.memory !== false ? sumInstruction() : "")
     + (cfg.confidence ? confInstruction() : "");
-  const sys = persona + SYS_NOTE + ctxText + (cfg.qface === false ? "" : QF_NOTE) + _extra;
+  const sys = persona + dateNote() + SYS_NOTE + ctxText + (cfg.qface === false ? "" : QF_NOTE) + _extra;
   const history = c.msgs.slice(-MAX_CTX_MSGS).map(toApiMsg);
   const payload = {
     model: cfg.model,
@@ -2065,6 +2097,7 @@ $("btnSet").addEventListener("click", ()=>{
   $("cfgQface").checked = cfg.qface !== false;
   if($("cfgAskFirst"))  $("cfgAskFirst").checked  = cfg.askFirst === true;
   if($("cfgConfidence"))$("cfgConfidence").checked= cfg.confidence === true;
+  if($("cfgTellDate"))  $("cfgTellDate").checked  = cfg.tellDate !== false;
   if($("cfgMemory"))    $("cfgMemory").checked    = cfg.memory !== false;
   if($("cfgHook"))      $("cfgHook").value        = (active() && active().hook) || "";
   if($("cfgHookUse"))   $("cfgHookUse").value     = (active() && active().useHook) || "";
@@ -2093,6 +2126,7 @@ $("btnSave").addEventListener("click", ()=>{
   cfg.qface = $("cfgQface").checked;
   if($("cfgAskFirst"))  cfg.askFirst   = $("cfgAskFirst").checked;
   if($("cfgConfidence"))cfg.confidence = $("cfgConfidence").checked;
+  if($("cfgTellDate"))  cfg.tellDate   = $("cfgTellDate").checked;
   if($("cfgMemory"))    cfg.memory     = $("cfgMemory").checked;
   const ac = active();
   if(ac && $("cfgHook"))    ac.hook    = ($("cfgHook").value || "").trim();
