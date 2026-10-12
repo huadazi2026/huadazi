@@ -254,6 +254,37 @@ table.ketable tr:last-child td{border-bottom:0}
   .tp-a i,.tp-b i{font-size:9px}
   .tp-cl{font-size:11px}.tp-cl2{font-size:10px}
 }
+/* ===== 八字四柱盘 ===== */
+.bz-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;margin:0 0 10px;overflow-x:auto}
+.bz-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:320px}
+.bz-table th{font-size:11.5px;color:var(--gold);font-weight:600;padding:4px 2px;border-bottom:1px solid var(--line)}
+.bz-table th span{display:block;font-size:9.5px;color:var(--dim2);font-weight:400}
+.bz-table td{text-align:center;padding:5px 2px;border-bottom:1px dashed var(--line);vertical-align:top}
+.bz-table tr:last-child td{border-bottom:0}
+.bz-lab{color:var(--dim2);font-size:10.5px;white-space:nowrap;text-align:left!important;padding-left:2px!important}
+.bz-gan b{font-size:21px;color:var(--txt);font-weight:600}
+.bz-gan i{display:block;font-style:normal;font-size:10px;color:var(--dim)}
+.bz-gan em{display:block;font-style:normal;font-size:10px;color:var(--info)}
+.bz-day b{color:var(--gold)}
+.bz-day em{color:var(--gold);font-weight:600}
+.bz-zhi b{font-size:21px;color:var(--txt);font-weight:600}
+.bz-zhi i{display:block;font-style:normal;font-size:10px;color:var(--dim)}
+.bz-cang span{display:block;font-size:11px;color:var(--dim)}
+.bz-cang em{font-style:normal;font-size:10px;color:var(--info);margin-left:2px}
+.bz-small{font-size:10.5px;color:var(--dim)}
+.bz-key{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--dim);margin:0 0 10px}
+.bz-key b{color:var(--gold);margin-left:3px}
+.bz-warn{color:var(--warn)}
+.bz-wx{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:10px}
+.bz-wxrow{display:flex;align-items:center;gap:8px;font-size:11.5px;margin:3px 0}
+.bz-wxn{width:18px;color:var(--dim)}
+.bz-wxb{flex:1;height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+.bz-wxb i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:4px}
+.bz-wxv{width:30px;text-align:right;color:var(--dim2)}
+/* 底栏七门（窄屏可横滑）*/
+nav{overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;min-width:52px}
 /* 盘面样式切换 */
 .zwview{display:flex;gap:6px;align-items:center;margin:0 0 10px;font-size:12.5px;color:var(--dim2)}
 .zwview button{border:1px solid #3a3260;background:transparent;color:var(--dim);border-radius:8px;
@@ -481,6 +512,68 @@ nav button.on{color:var(--gold)}
     </div>
     <div id="zw-out"></div>
     <div id="zw-out-ask"></div>
+  </section>
+
+  <!-- ============ 八字 ============ -->
+  <section class="pane" id="pane-bazi">
+    <div class="card">
+      <div class="step-h"><span class="no">1</span><span class="tt">定盘 · 出生信息</span><span class="hint">八字看一生格局与运程；具体一件事请用六爻／奇门</span></div>
+      <div id="bz-err" class="err hidden"></div>
+      <div class="step-h"><span class="no">2</span><span class="tt">排盘 · 定生辰</span><span class="hint">年月日与时辰都从下拉选</span></div>
+      <div class="row">
+        <div class="field" style="flex:1.1">
+          <label>出生日期用哪种历</label>
+          <div class="seg" id="bz-datemode">
+            <button data-v="solar" class="on">公历</button><button data-v="lunar">农历</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>性别</label>
+          <div class="seg" id="bz-gender">
+            <button data-v="男" class="on">男</button><button data-v="女">女</button>
+          </div>
+        </div>
+      </div>
+      <div class="row" id="bz-row-solar">
+        <div class="field" style="flex:.9"><label>公历年</label><select id="bz-sy"></select></div>
+        <div class="field" style="flex:.8"><label>月</label><select id="bz-sm"></select></div>
+        <div class="field" style="flex:.8"><label>日</label><select id="bz-sd"></select></div>
+      </div>
+      <div class="row hidden" id="bz-row-lunar">
+        <div class="field" style="flex:.9"><label>农历年</label><select id="bz-ly"></select></div>
+        <div class="field" style="flex:1.1"><label>农历月（有闰月会自动列出）</label><select id="bz-lm"></select></div>
+        <div class="field" style="flex:.8"><label>日</label><select id="bz-ld"></select></div>
+      </div>
+      <div class="note hidden" id="bz-lunar-tip"></div>
+      <div class="row">
+        <div class="field"><label>出生时辰</label><select id="bz-shichen"></select></div>
+      </div>
+      <div class="note hidden" id="bz-timetip"></div>
+      <div class="row">
+        <div class="field" style="flex:1.2">
+          <label>出生地（常用城市）</label>
+          <select id="bz-city"></select>
+        </div>
+        <div class="field" style="flex:1.1">
+          <label>经纬度</label>
+          <input type="text" id="bz-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="bz-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="bz-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="bz-geo-tip"></div>
+      <button class="btn" id="bz-go">排 八 字</button>
+    </div>
+    <div id="bz-out"></div>
+    <div id="bz-out-ask"></div>
   </section>
 
   <!-- ============ 六壬 ============ -->
@@ -724,14 +817,17 @@ nav button.on{color:var(--gold)}
   <button id="nav-liuren"><span class="ic">䷀</span>大六壬</button>
   <button id="nav-xiaoliuren"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11.2V4.8a1.3 1.3 0 0 1 2.6 0V10"/><path d="M11.6 10V3.6a1.3 1.3 0 0 1 2.6 0V10"/><path d="M14.2 10.4V4.8a1.3 1.3 0 0 1 2.6 0V13"/><path d="M16.8 12.2V7.8a1.3 1.3 0 0 1 2.6 0V15c0 3.3-2.4 6-5.8 6h-1.2c-1.9 0-3.3-.8-4.3-2.3L5 14.4a1.4 1.4 0 0 1 2.2-1.7l1.8 1.9"/></svg></span>小六壬</button>
   <button id="nav-meihua"><span class="ic">❀</span>梅花</button>
-  <button id="nav-liuyao"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8.6" cy="15.2" r="5.9"/><rect x="6.9" y="13.5" width="3.4" height="3.4" rx=".4"/><circle cx="15.4" cy="8.8" r="5.9"/><rect x="13.7" y="7.1" width="3.4" height="3.4" rx=".4"/></svg></span>六爻</button>
+  <button id="nav-liuyao"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8.2" cy="7.6" r="5.1"/><rect x="6.8" y="6.2" width="2.8" height="2.8" rx=".35"/><circle cx="15.8" cy="7.6" r="5.1"/><rect x="14.4" y="6.2" width="2.8" height="2.8" rx=".35"/><circle cx="12" cy="16.6" r="5.1"/><rect x="10.6" y="15.2" width="2.8" height="2.8" rx=".35"/></svg></span>六爻</button>
   <button id="nav-qimen"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" aria-hidden="true"><circle cx="12" cy="12" r="9.6" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M12 2.4a4.8 4.8 0 0 1 0 9.6 4.8 4.8 0 0 0 0 9.6A9.6 9.6 0 0 1 12 2.4z" fill="currentColor"/><circle cx="12" cy="7.2" r="1.5" fill="currentColor"/><circle cx="12" cy="16.8" r="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>奇门</button>
+  <button id="nav-bazi"><span class="ic"><svg viewBox="0 0 24 24" width="1.15em" height="1.15em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.2 6.4L12 2.6l6.8 3.8"/><path d="M12 2.6V6.4"/><rect x="6.6" y="6.6" width="10.8" height="5.6" rx=".6"/><path d="M12 12.2v2"/><path d="M7.8 14.2h8.4v6.4"/><path d="M16.2 14.2v6.4"/><path d="M7.8 20.6h8.4"/></svg></span>八字</button>
   <button id="nav-about"><span class="ic">ⓘ</span>说明</button>
 </nav>
 
 <script src="js/calendar_data.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/ziwei.js"></script>
+<script src="js/bazi.js"></script>
+<script src="js/bazi_read.js"></script>
 <script src="js/liuren.js"></script>
 <script src="js/ziwei_read.js"></script>
 <script src="js/liuren_read.js"></script>
@@ -858,6 +954,15 @@ function segBind(el, onPick){
 var zwGender = '男';
 var zwCharts = [], zwActive = 0, zwKey = '';
 segBind($('zw-gender'), function(v){ zwGender = v; });
+/* ---------- 八字：点「排八字」开始推算 ---------- */
+$('bz-go').onclick = function(){
+  var btn = this;
+  btn.innerHTML = '<span class="spin"></span>推算中…';
+  setTimeout(function(){
+    try { renderBaZi(); btn.innerHTML = '排 八 字'; }
+    catch (e) { btn.innerHTML = '排 八 字'; showErr('bz-err', '排盘失败：' + e.message); }
+  }, 20);
+};
 /* 出生时辰：不再需要联动（时辰直接从下拉选） */
 $('lr-mode').addEventListener('change', function(){
   var manual = this.value === 'manual';
@@ -868,7 +973,7 @@ $('lr-mode').addEventListener('change', function(){
 $('lr-date').disabled = true; $('lr-time').disabled = true;
 
 /* ---------- 顶部/底部切换 ---------- */
-var PANE_TABS = ['ziwei','liuren','xiaoliuren','meihua','liuyao','qimen'];
+var PANE_TABS = ['ziwei','liuren','xiaoliuren','meihua','liuyao','qimen','bazi'];
 function clearTabs(){
   for (var i=0;i<PANE_TABS.length;i++){
     var t = $('tab-'+PANE_TABS[i]), n = $('nav-'+PANE_TABS[i]);
@@ -902,9 +1007,18 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v33 · 2026-10-05";
+var APP_BUILD = "v34 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v33", "这次的更新", [
+  ["v34", "这次的更新", [
+    "新增第七门：<b>八字（四柱）</b>。图标是小篆体的「命」字",
+    "排法依倪海厦《天纪》讲义：年柱以<b>立春</b>换年、月柱以<b>十二节</b>换月、时柱用五鼠遁；早子／晚子分开处理（晚子时日柱仍用本日、时干按次日）",
+    "排盘内容：四柱、藏干、十神、十二长生、纳音、旬空、神煞、五行分量、大运（起运岁数按距节天数÷3）、流年",
+    "解盘按子平三步：<b>旺衰 → 格局 → 用神喜忌</b>，再逐柱看十神落在哪一宫代表什么，最后给大运流年的喜忌档位",
+    "结果栏只给方向与节奏，并说明「要问单件事的成不成，请用六爻或奇门」",
+    "六爻图标改成<b>三枚铜钱</b>",
+    "底栏七门，窄屏可横向滑动"
+  ]],
+  ["v33", "更早", [
     "三方四正改成「准确标注」：原来在盘上画斜线，但矩形宫格上画直线必然斜穿无关宫位（例如命宫在辰时，辰↔戌 那条会穿过午宫），看着像连上去了其实不是，会误导",
     "现在给四个宫位直接打标签：本宫（金）／三合（蓝）／对宫（绿），一眼看清哪四宫是一组，不会牵进别的宫"
   ]],
@@ -1347,6 +1461,316 @@ function zwInitDateMode(){
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", zwInitDateMode);
 else setTimeout(zwInitDateMode, 0);
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bzInit);
+else setTimeout(bzInit, 0);
+
+/* ---- 四柱盘（HTML 表格，手机上也不溢出）---- */
+function bzPlate(r){
+  var de = r.dayGan;
+  var h = '<div class="bz-wrap"><table class="bz-table">';
+  /* 表头：四柱名 */
+  h += '<tr><th></th>';
+  r.pillars.forEach(function(p){ h += '<th>' + esc(p.name) + '<span>' + esc({年柱:"祖辈·少年",月柱:"父母·青壮",日柱:"自己·配偶",时柱:"子女·晚年"}[p.name]) + '</span></th>'; });
+  h += '</tr>';
+  /* 天干 */
+  h += '<tr><td class="bz-lab">天干</td>';
+  r.pillars.forEach(function(p, i){
+    var isDay = (i === 2);
+    h += '<td class="bz-gan' + (isDay ? " bz-day" : "") + '"><b>' + esc(p.gan) + '</b>' +
+         '<i>' + esc(BaZi.WX_GAN[p.gan]) + '</i>' +
+         (isDay ? '<em>日主</em>' : '<em>' + esc(p.ganShiShen) + '</em>') + '</td>';
+  });
+  h += '</tr>';
+  /* 地支 */
+  h += '<tr><td class="bz-lab">地支</td>';
+  r.pillars.forEach(function(p){
+    h += '<td class="bz-zhi"><b>' + esc(p.zhi) + '</b><i>' + esc(BaZi.WX_ZHI[p.zhi]) + '</i></td>';
+  });
+  h += '</tr>';
+  /* 藏干 + 十神 */
+  h += '<tr><td class="bz-lab">藏干</td>';
+  r.pillars.forEach(function(p){
+    h += '<td class="bz-cang">' + p.cangShiShen.map(function(c){
+      return '<span>' + esc(c.gan) + '<em>' + esc(c.shiShen) + '</em></span>';
+    }).join("") + '</td>';
+  });
+  h += '</tr>';
+  /* 长生 / 纳音 / 神煞 */
+  h += '<tr><td class="bz-lab">长生</td>';
+  r.pillars.forEach(function(p){ h += '<td>' + esc(p.changSheng) + '</td>'; });
+  h += '</tr>';
+  h += '<tr><td class="bz-lab">纳音</td>';
+  r.pillars.forEach(function(p){ h += '<td class="bz-small">' + esc(p.naYin) + '</td>'; });
+  h += '</tr>';
+  h += '<tr><td class="bz-lab">神煞</td>';
+  r.pillars.forEach(function(p){ h += '<td class="bz-small">' + (p.shenSha.length ? esc(p.shenSha.join("、")) : "—") + '</td>'; });
+  h += '</tr>';
+  h += '</table></div>';
+  /* 盘下要点 */
+  h += '<div class="bz-key">';
+  h += '<span>日主 <b>' + esc(de) + '（' + esc(BaZi.WX_GAN[de]) + '）</b></span>';
+  h += '<span>' + esc(r.strength) + '<b>' + r.strengthRatio + '%</b></span>';
+  h += '<span>格局 <b>' + esc(r.geJu) + '</b></span>';
+  h += '<span>生肖 <b>' + esc(r.shengXiao) + '</b></span>';
+  h += '<span>旬空 <b>' + esc(r.xunKong.join("、")) + '</b></span>';
+  if (r.lateZi) h += '<span class="bz-warn">晚子时（日柱用本日、时干按次日）</span>';
+  h += '</div>';
+  /* 五行条 */
+  h += '<div class="bz-wx">';
+  var mx = Math.max.apply(null, Object.keys(r.wuXing).map(function(k){ return r.wuXing[k]; })) || 1;
+  Object.keys(r.wuXing).forEach(function(k){
+    var w = Math.round(r.wuXing[k] / mx * 100);
+    h += '<div class="bz-wxrow"><span class="bz-wxn">' + k + '</span>' +
+         '<span class="bz-wxb"><i style="width:' + w + '%"></i></span>' +
+         '<span class="bz-wxv">' + r.wuXing[k] + '</span></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+function renderBaZi(){
+  var dt = bzReadDate();
+  var shiIdx = parseInt($("bz-shichen").value, 10) || 0;
+  var hour = SHICHEN_MID[shiIdx];
+  var loc = bzUseLng();
+  var useTS = (loc.lng != null);
+  var r = BaZi.paipan({ year:dt.y, month:dt.m, day:dt.d, hour:hour, minute:0,
+    gender: bzGender, trueSolar: useTS, longitude: loc.lng, useEoT: true });
+  r._input = { note: dt.note, solar: dt.y + "-" + zwPad2(dt.m) + "-" + zwPad2(dt.d),
+    shichen: ZHI.charAt(shiIdx) + "时", place: loc.src };
+  var a = BaZiRead.analyze(r, {});
+  bzLast = { r: r, a: a };
+  $("bz-out").innerHTML = bzOneHtml(r, a);
+  /* 常用问法：点一下填进问事栏 */
+  var qs = $("bz-qs");
+  if (qs){
+    var qb = qs.querySelectorAll("button");
+    for (var qi = 0; qi < qb.length; qi++){
+      qb[qi].onclick = function(){
+        var t = $("bz-q"); if (t) { t.value = this.getAttribute("data-q"); t.focus(); }
+        var bs2 = qs.querySelectorAll("button");
+        for (var k2 = 0; k2 < bs2.length; k2++) bs2[k2].className = (bs2[k2] === this ? "on" : "");
+      };
+    }
+  }
+}
+
+function bzOneHtml(r, a){
+  var h = "";
+  /* 第 1 步：问事 */
+  h += stepper(2);
+  h += stepHead(1, "你所问的事", "可留空 —— 八字本身看一生格局");
+  h += lead("看八字问的是「我这一生的底色是什么、该怎么走」，所以问题越像这个方向越好。要不要写都行。");
+  h += '<div class="field"><label>你想问什么（可留空）</label><textarea id="bz-q" placeholder="例：我这辈子适合打工还是自己做？／我该往哪个方向使劲？"></textarea></div>';
+  h += '<div class="note" style="margin:-4px 0 8px">常用问法（点一下就填进去）：</div>';
+  h += '<div class="seg" id="bz-qs" style="flex-wrap:wrap;gap:6px">';
+  ["我适合打工还是自己做？","我该往哪个方向使劲？","我这辈子的财怎么来？","我的感情婚姻怎么看？","我现在这步运好不好？","我适合去外地发展吗？"].forEach(function(q){
+    h += '<button data-q="' + q + '" style="font-size:12px;padding:5px 9px">' + q + '</button>';
+  });
+  h += '</div>';
+  /* 第 2 步：排盘 */
+  h += stepTag(2, "排盘 · 四柱八字", "第 2 / 4 步");
+  h += '<div class="charthead">';
+  h += '<div class="big">' + esc(r.pillars.map(function(p){ return p.text; }).join("　")) + '</div>';
+  h += '<div class="kv">';
+  h += '<span>公历 <b>' + esc(r._input.solar) + '</b></span>';
+  if (r._input.note) h += '<span>' + esc(r._input.note) + '</span>';
+  h += '<span>时辰 <b>' + esc(r._input.shichen) + '</b></span>';
+  h += '<span>日主 <b class="hl">' + esc(r.dayGan) + '</b></span>';
+  h += '<span>' + esc(r.strength) + '</span>';
+  h += '<span>格局 <b>' + esc(r.geJu) + '</b></span>';
+  h += '</div>';
+  if (r.trueSolar) {
+    h += '<div class="note">真太阳时校正：钟表 ' + esc(zwPad2(r.input.hour)) + ':' + esc(zwPad2(r.input.minute)) +
+         ' → 真太阳时 ' + esc(zwPad2(r.hourUsed)) + ':' + esc(zwPad2(r.trueSolar.minute)) +
+         '（' + (r.trueSolar.deltaMin >= 0 ? "+" : "") + r.trueSolar.deltaMin + ' 分' +
+         (r._input.place ? "，" + esc(r._input.place) : "") + '）</div>';
+  }
+  h += '</div>';
+  h += bzPlate(r);
+  /* 第 3 步：解盘 */
+  h += stepTag(3, "解盘 · 逐项详解", "第 3 / 4 步");
+  a.sections.forEach(function(sec){
+    h += '<div class="card"><h2>' + esc(sec.title) + '</h2>';
+    sec.items.forEach(function(it){
+      h += '<div class="pr"><div class="prk">' + it.k + '</div><div class="prv">' + it.v + '</div></div>';
+    });
+    h += '</div>';
+  });
+  /* 第 4 步：结果 */
+  h += stepTag(4, "结果与原因", "第 4 / 4 步");
+  h += resultBox({
+    answer: a.verdict.answer,
+    prob: a.verdict.conf,
+    probText: "（" + esc(a.verdict.strength) + "・按日主旺衰与格局定的方向）",
+    tag: "八"
+  });
+  h += '<div class="card" style="margin-top:-4px"><h2>所以该怎么走</h2>';
+  h += '<ul class="tight">' + a.verdict.points.map(function(p){ return "<li>" + esc(p) + "</li>"; }).join("") + '</ul>';
+  h += '<div class="note">八字给的是「方向与节奏」，不是具体某件事的吉凶。要问某一件具体的事，用六爻或奇门。</div></div>';
+  /* 第 5 步：继续询问 */
+  /* 第 5 步的标题由 showAsk 自带，这里不重复 */
+  h += showAsk("bazi", { r: r });
+  return h;
+}
+
+var bzLast = null;
+
+/* ============================== 八字 ============================== */
+var bzGender = "男";
+var bzDateMode = "solar";
+var bzPlace = null;    /* 自填地名查到的经纬度 */
+var bzGeoSeq = 0;
+
+/* ---- 下拉初始化 ---- */
+function bzFillSolarYears(){
+  var el = $("bz-sy"); if (!el || el.options.length) return;
+  var h = ""; for (var y = 1901; y <= 2099; y++) h += '<option value="' + y + '">' + y + ' 年</option>';
+  el.innerHTML = h; el.value = "1990";
+}
+function bzFillSolarMonths(keep){
+  var el = $("bz-sm"); if (!el) return;
+  var h = ""; for (var m = 1; m <= 12; m++) h += '<option value="' + m + '">' + m + ' 月</option>';
+  var old = el.value; el.innerHTML = h;
+  if (keep && old) { try { el.value = old; } catch(e){} }
+  if (!el.value) el.selectedIndex = 0;
+  bzFillSolarDays();
+}
+function bzFillSolarDays(){
+  var el = $("bz-sd"); if (!el) return;
+  var y = parseInt($("bz-sy").value, 10) || 1990, m = parseInt($("bz-sm").value, 10) || 1;
+  var days = new Date(y, m, 0).getDate(), old = el.value, h = "";
+  for (var d = 1; d <= days; d++) h += '<option value="' + d + '">' + d + ' 日</option>';
+  el.innerHTML = h;
+  if (old && parseInt(old, 10) <= days) el.value = old;
+}
+function bzFillLunarYears(){
+  var el = $("bz-ly"); if (!el || el.options.length) return;
+  var h = ""; for (var y = 1900; y <= 2100; y++) h += '<option value="' + y + '">' + y + ' 年</option>';
+  el.innerHTML = h; el.value = "1990";
+}
+function bzFillLunarMonths(keep){
+  var el = $("bz-lm"); if (!el) return;
+  var y = parseInt($("bz-ly").value, 10) || 1990;
+  var ms = LC.lunarMonthsOfYear(y), h = "";
+  for (var i = 0; i < ms.length; i++){
+    h += '<option value="' + ms[i].m + ',' + (ms[i].isLeap ? 1 : 0) + '">' +
+         (ms[i].isLeap ? "闰" : "") + ZW_CN_MON[ms[i].m] + '月（' + ms[i].days + '天）</option>';
+  }
+  var old = el.value; el.innerHTML = h;
+  if (keep && old) { try { el.value = old; } catch(e){} }
+  if (!el.value) el.selectedIndex = 0;
+  var leap = LC.leapMonthOfYear(y);
+  var tip = $("bz-lunar-tip");
+  if (tip){
+    tip.className = "note";
+    tip.innerHTML = leap ? ("农历 " + y + " 年有<b>闰" + ZW_CN_MON[leap] + "月</b>，月份下拉里已列出。") : ("农历 " + y + " 年没有闰月。");
+  }
+  bzFillLunarDays();
+}
+function bzFillLunarDays(keep){
+  var el = $("bz-ld"); if (!el) return;
+  var y = parseInt($("bz-ly").value, 10) || 1990;
+  var parts = ($("bz-lm").value || "1,0").split(",");
+  var m = parseInt(parts[0], 10) || 1, isLeap = parts[1] === "1";
+  var days = LC.monthDaysOfYear(y, m, isLeap), old = el.value, h = "";
+  for (var d = 1; d <= days; d++) h += '<option value="' + d + '">' + ZW_CN_DAY[d] + '</option>';
+  el.innerHTML = h;
+  if (keep && old && parseInt(old, 10) <= days) el.value = old;
+}
+function bzFillCities(){
+  var el = $("bz-city"); if (!el || el.options.length) return;
+  var names = []; try { for (var k in LunarCore.CITY_LNG) names.push(k); } catch(e){}
+  var h = '<option value="">（不校正真太阳时）</option>';
+  for (var i = 0; i < names.length; i++) h += '<option value="' + names[i] + '">' + names[i] + '（东经 ' + LunarCore.CITY_LNG[names[i]] + '°）</option>';
+  el.innerHTML = h;
+}
+function bzUseLng(){
+  var manual = $("bz-lnglat") ? zwParseLngLat($("bz-lnglat").value) : null;
+  if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
+  if (bzPlace && typeof bzPlace.lng === "number") return { lng: bzPlace.lng, src: bzPlace.name + "（东经" + bzPlace.lng.toFixed(2) + "°）" };
+  var city = $("bz-city") ? $("bz-city").value : "";
+  if (city && LunarCore.CITY_LNG && typeof LunarCore.CITY_LNG[city] === "number")
+    return { lng: LunarCore.CITY_LNG[city], src: city + "（东经" + LunarCore.CITY_LNG[city] + "°）" };
+  return { lng: null, src: "" };
+}
+function bzGeocode(){
+  var el = $("bz-place"); if (!el) return;
+  var q = (el.value || "").trim();
+  if (!q) { bzPlace = null; bzGeoShow("请先填城市或县名。"); return; }
+  var direct = zwParseLngLat(q);
+  if (direct){ bzPlace = { name:q, lng:direct.lng, lat:direct.lat }; bzGeoShow("已按经纬度用：东经 " + direct.lng + "°"); return; }
+  var hit = zwLocalSearch(q);
+  if (hit){
+    bzGeoSeq++;
+    bzPlace = { name:(hit.path || hit.name), lng:hit.lng, lat:hit.lat };
+    bzGeoShow("已定位：<b>" + (hit.path || hit.name) + "</b>　东经 " + hit.lng.toFixed(2) + "°，北纬 " + hit.lat.toFixed(2) + "°");
+    return;
+  }
+  var mySeq = ++bzGeoSeq;
+  bzGeoShow("本地地名库没查到「" + q + "」，正在联网查…");
+  fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q)).then(function(r){ return r.json(); }).then(function(jj){
+    if (mySeq !== bzGeoSeq) return;
+    var fs2 = (jj && jj.features) || [];
+    if (!fs2.length) throw new Error("没查到");
+    var f = fs2[0], prop = f.properties || {}, c = f.geometry.coordinates;
+    var nm = [prop.name, prop.city, prop.county, prop.state].filter(function(x){ return !!x; }).join("·");
+    bzPlace = { name:q, lng:c[0], lat:c[1] };
+    bzGeoShow("已联网定位：<b>" + nm + "</b>　东经 " + c[0].toFixed(2) + "°");
+  }).catch(function(){
+    if (mySeq !== bzGeoSeq) return;
+    bzPlace = null;
+    bzGeoShow("没查到「" + q + "」。可以换个写法，或直接填经纬度，或用上面的常用城市。");
+  });
+}
+function bzGeoShow(html){ var t = $("bz-geo-tip"); if (!t) return; t.className = "note"; t.innerHTML = html; }
+function bzSetDateMode(v){
+  bzDateMode = v;
+  var bs = document.querySelectorAll("#bz-datemode button");
+  for (var i = 0; i < bs.length; i++) bs[i].className = (bs[i].getAttribute("data-v") === v ? "on" : "");
+  $("bz-row-solar").className = "row" + (v === "solar" ? "" : " hidden");
+  $("bz-row-lunar").className = "row" + (v === "lunar" ? "" : " hidden");
+  var tip = $("bz-lunar-tip"); if (tip && v !== "lunar") tip.className = "note hidden";
+  if (v === "lunar") bzFillLunarMonths(true);
+}
+function bzReadDate(){
+  if (bzDateMode === "lunar"){
+    var ly = parseInt($("bz-ly").value, 10), parts = ($("bz-lm").value || "").split(",");
+    var lm = parseInt(parts[0], 10), isLeap = parts[1] === "1", ld = parseInt($("bz-ld").value, 10);
+    if (!ly || !lm || !ld) throw new Error("农历年月日没选全");
+    var sol = LC.lunarToSolar(ly, lm, ld, isLeap);
+    if (!sol) throw new Error("这个农历日期换算不出来，请检查年月日");
+    return { y:sol.y, m:sol.m, d:sol.d, note:"农历" + (isLeap ? "闰" : "") + ZW_CN_MON[lm] + "月" + ZW_CN_DAY[ld] };
+  }
+  var y = parseInt($("bz-sy").value, 10), m = parseInt($("bz-sm").value, 10), d = parseInt($("bz-sd").value, 10);
+  if (!y || !m || !d) throw new Error("公历年月日没选全");
+  return { y:y, m:m, d:d, note:"" };
+}
+function bzInit(){
+  if (!$("bz-sy")) return;
+  var seg = $("bz-datemode");
+  if (seg){ var bs = seg.querySelectorAll("button");
+    for (var i = 0; i < bs.length; i++) bs[i].onclick = (function(v){ return function(){ bzSetDateMode(v); }; })(bs[i].getAttribute("data-v")); }
+  var g = $("bz-gender");
+  if (g){ var gb = g.querySelectorAll("button");
+    for (var j = 0; j < gb.length; j++) gb[j].onclick = (function(v){ return function(){
+      bzGender = v; var x = g.querySelectorAll("button");
+      for (var k = 0; k < x.length; k++) x[k].className = (x[k].getAttribute("data-v") === v ? "on" : ""); }; })(gb[j].getAttribute("data-v")); }
+  bzFillSolarYears(); bzFillSolarMonths();
+  bzFillLunarYears(); bzFillLunarMonths();
+  bzFillCities();
+  /* 时辰下拉 */
+  (function(){ var el = $("bz-shichen"); if (!el || el.options.length) return; var h = "";
+    for (var i = 0; i < 12; i++) h += '<option value="' + i + '">' + ZHI.charAt(i) + '时（' + shichenRange(i) + '）</option>';
+    el.innerHTML = h; el.value = "6"; })();
+  $("bz-sy").onchange = function(){ bzFillSolarDays(); };
+  $("bz-sm").onchange = function(){ bzFillSolarDays(); };
+  $("bz-ly").onchange = function(){ bzFillLunarMonths(); };
+  $("bz-lm").onchange = function(){ bzFillLunarDays(); };
+  if ($("bz-geo")) $("bz-geo").onclick = bzGeocode;
+  if ($("bz-place")) $("bz-place").onkeydown = function(e){ if (e.key === "Enter"){ e.preventDefault(); bzGeocode(); } };
+  bzSetDateMode("solar");
+}
 
 function renderZiwei(){
   /* ① 出生日期：公历或农历（农历自动换公历） */
@@ -2105,7 +2529,7 @@ var F_TOPIC = { weather:"天气", lost:"失物", person:"等人的消息", money
   love:"感情", health:"身体", travel:"出行", legal:"官非", people:"求人", general:"这件事" };
 var F_QIN = { money:"妻财", career:"官鬼", health:"官鬼", legal:"官鬼", love:"妻财",
   lost:"妻财", travel:"父母", weather:"父母", people:"父母", person:"应爻" };
-var F_BOX = { ziwei:"zw-out", liuren:"lr-out", xiaoliuren:"xlr-out", meihua:"mh-out", liuyao:"ly-out", qimen:"qm-out" };
+var F_BOX = { ziwei:"zw-out", liuren:"lr-out", xiaoliuren:"xlr-out", meihua:"mh-out", liuyao:"ly-out", qimen:"qm-out", bazi:"bz-out" };
 
 function showAsk(kind, data){
   FOLLOW.kind = kind; FOLLOW.data = data;
@@ -2127,12 +2551,46 @@ function showAsk(kind, data){
   };
 }
 
+function groupNameOf(ss){
+  if (ss === '比肩' || ss === '劫财') return '比劫';
+  if (ss === '食神' || ss === '伤官') return '食伤';
+  if (ss === '正财' || ss === '偏财') return '财星';
+  if (ss === '正官' || ss === '七杀') return '官杀';
+  return '印星';
+}
 function buildFollow(q2){
   var k = FOLLOW.kind, d = FOLLOW.data, tp = askTopic(q2);
   var name = F_TOPIC[tp] || "这件事";
   var lines = [];
   try {
-    if (k === "xiaoliuren"){
+    if (k === "bazi"){
+      var rb = (d && d.r) ? d.r : (bzLast && bzLast.r);
+      if (!rb) { lines.push("先把八字排出来再问。"); }
+      else {
+        lines.push("<b>你是 " + rb.dayGan + " 日主（" + BaZi.WX_GAN[rb.dayGan] + "），" + rb.strength + "，" + rb.geJu + "。</b>");
+        lines.push("你问的是<b>" + name + "</b>。八字不看单件事的成不成，看的是<b>方向对不对、时机顺不顺</b>。");
+        var tpG = { money:"财星", career:"官杀", love:"财星", health:"印星", travel:"比劫", legal:"官杀", people:"比劫", general:"日主" }[tp] || "日主";
+        if (tpG === "日主") {
+          lines.push("这问题太泛，八字给不出具体结论 —— 换成「该往哪个方向使劲」这类问题更合适。");
+        } else {
+          var favor = rb.yongShen.indexOf(tpG) >= 0, avoid = rb.jiShen.indexOf(tpG) >= 0;
+          lines.push("这件事在八字里属<b>" + tpG + "</b>：" + (favor
+            ? "是你的<b>喜用</b> —— 方向跟你命里需要的一致，可以做，做了有加成。"
+            : avoid
+              ? "是你的<b>忌神</b> —— 跟你命里缺的相反，做起来费力不讨好，最好借人、借平台来做。"
+              : "中性 —— 做不做看你当下这步运。"));
+        }
+        var yy = new Date().getFullYear(), ln = null;
+        for (var i2 = 0; i2 < rb.liuNian.length; i2++) if (rb.liuNian[i2].year === yy) ln = rb.liuNian[i2];
+        if (ln) {
+          var lf = rb.yongShen.indexOf(groupNameOf(ln.shiShen)) >= 0;
+          lines.push("今年 " + ln.year + " 走<b>" + ln.text + "（" + ln.shiShen + "）</b>，" + (lf
+            ? "流年助喜用，今年是能推的年份。"
+            : "流年不助，今年宜守成、宜积累，别硬上。"));
+        }
+        lines.push("要问「这一件事成不成」，请用<b>六爻</b>或<b>奇门</b> —— 那两门才是断单件事的。");
+      }
+    } else if (k === "xiaoliuren"){
       var info = XiaoLiuRen.INFO[d.gong], ta = xlrTopicAnswer(d.gong, tp);
       lines.push("<b>卦不动，还是那一宫</b>：" + d.gong + "（" + info.wuxing + "·" + info.fangwei + "）。你这次问的是<b>" + name + "</b>，这一宫断这类事是：<b>" + (ta || info.xiang) + "</b>");
       lines.push("<b>为什么</b>：" + (ta ? ("小六壬一卦只落一宫，同一宫对每类事都有固定断语 —— " + d.gong + " 断「" + name + "」就是上面那句。") : ("掌诀里「" + name + "」没有专门断语，按这一宫本义看：" + info.shi)));
