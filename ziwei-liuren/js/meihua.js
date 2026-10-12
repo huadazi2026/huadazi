@@ -238,8 +238,8 @@
     var huB = hu.yongHu ? relation(tiTri.name, hu.yongHu) : null;
     out.evidence.push({ title:'互卦（中间过程／暗藏）', text: hu.name + '：' +
       (hexMean(hu.name) || '—') + (hu.noHu ? '（本卦为纯卦，乾坤無互、互其變卦）' : '') +
-      '。互卦要拆成两个看：<b>体互「' + (hu.tiHu || '') + '」</b>对我本身最要紧（' +
-      (huA ? huA.text + '・' + huA.luck : '') + '），<b>用互「' + (hu.yongHu || '') + '」</b>次之（' +
+      '。互卦要拆成两个看：体互「' + (hu.tiHu || '') + '」对我本身最要紧（' +
+      (huA ? huA.text + '・' + huA.luck : '') + '），用互「' + (hu.yongHu || '') + '」次之（' +
       (huB ? huB.text + '・' + huB.luck : '') + '）。中间过程会走到这个局面，注意这一层。' });
     out.evidence.push({ title:'变卦（最终结果）', text: bian.name + '（' + bianRel.text + '）：' +
       (hexMean(bian.name) || '—') + '。' + '末后走向' + bianRel.luck + '，' + bianRel.note });
