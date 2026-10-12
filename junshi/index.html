@@ -166,6 +166,12 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   footer #btnHold:active,footer #btnHold.rec{animation:none}
   #btnHold.wait{animation:pulse 1.1s infinite}
+  .conf{
+    font-size:11.5px; color:var(--dim); border:1px solid var(--line);
+    border-radius:20px; padding:2px 9px; align-self:flex-start;
+  }
+  .conf.hi{color:var(--ok-ink); border-color:var(--ok-line); background:var(--ok-bg)}
+  .conf.lo{color:var(--danger-ink); border-color:var(--danger-line); background:var(--danger-bg)}
   .acts{display:flex; gap:6px; flex-wrap:wrap}
   .acts button{
     background:transparent; border:1px solid var(--line); color:var(--dim);
@@ -481,6 +487,40 @@
       <textarea id="cfgContext" rows="12"></textarea>
       <div class="hint">把你自己的情况写这儿——越具体，他的建议越准。以后有变化随时改。背景**不会**被截断，写多长都会完整发过去。<span id="statCtx"></span></div>
     </div>
+    <div class="grp">
+      <h2>🧠 怎么说更管用</h2>
+      <label class="row" style="align-items:center; gap:8px">
+        <input type="checkbox" id="cfgAskFirst" style="width:auto; flex:none">
+        <span>信息不够时先问我，别急着给建议</span>
+      </label>
+      <div class="hint">开了它会更像医生：先问诊，再开方。少给你「正确但没用」的话。</div>
+
+      <label class="row" style="align-items:center; gap:8px">
+        <input type="checkbox" id="cfgConfidence" style="width:auto; flex:none">
+        <span>回答末尾标一个把握程度</span>
+      </label>
+      <div class="hint">例如「把握 70%」。它得先自己掂量一次，你也能看出哪些结论能信。</div>
+
+      <label class="row" style="align-items:center; gap:8px">
+        <input type="checkbox" id="cfgMemory" style="width:auto; flex:none">
+        <span>记住更远：长对话自动压缩成摘要</span>
+      </label>
+      <div class="hint">聊得再久也不会忘了前面说的。关掉就只带最近 24 条。</div>
+    </div>
+
+    <div class="grp">
+      <h2>🔗 接头暗号</h2>
+      <div class="hint">
+        给这个对话起个暗号（比如「南京」「钱」「她」）。下次开新对话，把暗号填进下面的框，
+        它就能接上这里聊过的前情。
+      </div>
+      <label>这个对话的暗号</label>
+      <input id="cfgHook" placeholder="留空 = 不起暗号" maxlength="20">
+      <label>新对话要接哪个暗号的前情</label>
+      <input id="cfgHookUse" placeholder="填暗号，比如「南京」" maxlength="20">
+      <div class="hint" id="hookDiag"></div>
+    </div>
+
     <div class="grp">
       <h2>🎨 外观</h2>
       <label>主题</label>
@@ -804,6 +844,10 @@ function load(){
   cfg.key   = cfg.key   || "";
   if(cfg.qface === undefined) cfg.qface = true;
   if(cfg.theme === undefined) cfg.theme = "system";   // system / light / dark
+  // 智能相关的三个开关
+  if(cfg.askFirst === undefined) cfg.askFirst = false;   // 信息不够先追问，别给泛泛的建议
+  if(cfg.confidence === undefined) cfg.confidence = false; // 回答末尾给「我认为…把握多少」
+  if(cfg.memory === undefined) cfg.memory = true;         // 长对话自动摘要 + 暗号接前情
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   // 人设一旦存进 localStorage 就是"用户的"了，改默认值对它没用。
   // 存着的正好等于某一版旧默认 —— 说明用户压根没动过 —— 那就顺手升到新版。
@@ -919,6 +963,16 @@ function renderChat(){
     }
 
     const bubble = col.querySelector(".bubble");
+
+    // 把握程度：模型自己标的那一行，单独显示成一个小标记
+    if(m.role !== "user" && typeof m.conf === "number"){
+      const cf = document.createElement("div");
+      cf.className = "conf" + (m.conf >= 70 ? " hi" : (m.conf >= 40 ? "" : " lo"));
+      cf.textContent = "把握 " + m.conf + "%";
+      cf.title = m.conf >= 70 ? "它对这个结论比较有底"
+               : (m.conf >= 40 ? "半信半疑，注意它可能是在推" : "基本是猜的，别当结论用");
+      col.appendChild(cf);
+    }
 
     const acts = document.createElement("div");
     acts.className = "acts";
@@ -1258,6 +1312,148 @@ function setBusy(on){
 function stopGen(){
   if(abortCtl){ try{ abortCtl.abort(); }catch(e){} }
 }
+/* ---------- 聪明一点：摘要 / 暗号 / 追问 / 把握程度 ---------- */
+
+// 摘要里模型要遵守的格式。用一行带标记的文本，回显时会被摘掉。
+const SUM_TAG = "【摘要】";
+function sumInstruction(){
+  return "\n\n【这轮的内部记录】回答完之后，另起一行，输出 " + SUM_TAG +
+         " 开头的一段话（80 字以内）：把这一轮里关于「我的处境、我的决定、我的约束」的关键信息压缩进去，" +
+         "用第三人称写，像给自己做的备忘录。不要写建议，只写事实和结论。" +
+         "这段我会存起来，以后开新对话接前情用。";
+}
+// 从回答里摘出【摘要】那一行，返回 [剩下的正文, 摘要文本]
+function pullSummary(raw){
+  const i = raw.lastIndexOf(SUM_TAG);
+  if(i < 0) return [raw, ""];
+  const body = raw.slice(0, i).replace(/\s+$/, "");
+  let tail = raw.slice(i + SUM_TAG.length);
+  const nl = tail.indexOf("\n");
+  if(nl >= 0) tail = tail.slice(0, nl);
+  return [body, tail.trim()];
+}
+
+// 把握程度：让模型单独给一行「把握 NN%」
+const CONF_TAG = "【把握】";
+function confInstruction(){
+  return "\n\n【这轮的最后一行】正文写完后，另起一行输出 " + CONF_TAG +
+         "NN%（就这个格式，NN 是 0-100 的数字）：对你自己刚才那个结论的把握有多大。" +
+         "如果是靠猜的，就老实写低一点。";
+}
+function pullConfidence(raw){
+  const m = raw.match(new RegExp(CONF_TAG + "\\s*(\\d{1,3})\\s*%?\\s*$"));
+  if(!m) return [raw, null];
+  let n = parseInt(m[1], 10);
+  if(isNaN(n)) return [raw, null];
+  n = Math.max(0, Math.min(100, n));
+  return [raw.slice(0, m.index).replace(/\s+$/, ""), n];
+}
+
+// 信息不够先追问：写进 system，作为硬规则
+const ASK_FIRST_NOTE = "\n\n【先问再答 · 硬规则】" +
+  "如果我现在给的信息不足以让我给出的建议真正有用，你不要给泛泛的建议 —— " +
+  "先问我最关键的 1-3 个问题，问完就停，等我说。" +
+  "只有信息够了才给结论。判断标准：如果换一个人、换一个处境，这段话同样成立，那它就没用，就别写。";
+
+// 找暗号对应的对话
+function findByHook(hook){
+  const h = String(hook || "").trim().toLowerCase();
+  if(!h) return null;
+  const list = convs.filter(c => (c.hook || "").trim().toLowerCase() === h && (c.summary || "").trim());
+  if(!list.length) return null;
+  list.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+  return list[0];
+}
+
+// 组装「前情提要」那段。返回空串表示没有可接的
+function hookBlock(){
+  if(cfg.memory === false) return "";
+  const c = active(); if(!c) return "";
+  const parts = [];
+  // 1) 自己的摘要（同一个对话聊长了）
+  if((c.summary || "").trim()){
+    parts.push("【这个对话前面聊过的】\n" + c.summary.trim());
+  }
+  // 2) 报暗号接前情
+  if((c.useHook || "").trim()){
+    const src = findByHook(c.useHook);
+    if(src){
+      parts.push("【接上「" + (src.hook || "").trim() + "」那个对话的前情】\n" + src.summary.trim() +
+                 "\n（那是另一个对话里发生的，和当前这个是同一条线，别当成新问题重复问）");
+    }
+  }
+  return parts.length ? "\n\n" + parts.join("\n\n") : "";
+}
+
+// 设置里那段暗号状态提示
+function showHookDiag(){
+  const el = $("hookDiag");
+  if(!el) return;
+  const c = active();
+  const out = [];
+  const h = ((c && c.hook) || "").trim();
+  if(h){
+    const n = c.msgs.length;
+    out.push("这个对话的暗号是「<b>" + h + "</b>」" + (c.summary ? "，已有摘要。" : "，还没生成摘要（聊几条就有了）。"));
+  }else{
+    out.push("这个对话还没起暗号。");
+  }
+  const u = ((c && c.useHook) || "").trim();
+  if(u){
+    const src = findByHook(u);
+    if(src) out.push("正在接「<b>" + u + "</b>」的前情" + (src.summary ? "（已找到）" : "") + "。");
+    else out.push("<b style='color:var(--danger)'>没找到暗号「" + u + "」的摘要</b> —— 要么拼错了，要么那个对话还没聊够。");
+  }
+  const all = convs.filter(x => (x.hook||"").trim());
+  if(all.length){
+    out.push("已有的暗号：" + all.map(x => "<b>" + x.hook.trim() + "</b>" + (x.summary?"":"（无摘要）")).join("、"));
+  }
+  el.innerHTML = out.join("<br>");
+}
+
+// 聊够了就刷新摘要（每 20 条一次，静默，不挡回复）
+async function maybeSummarize(c){
+  if(cfg.memory === false) return;
+  if(!c || !c.msgs.length) return;
+  if(c.msgs.length - (c.sumAt || 0) < 20 && c.summary) return;
+  if(c.msgs.length < 6) return;                 // 太短不值得
+  if(c._summing) return;
+  c._summing = true;
+  try{
+    const url = cfg.base.replace(/\/+$/,"") + "/chat/completions";
+    const digest = c.msgs.map(m => (m.role === "user" ? "我：" : "他：") +
+      String(m.content || "").replace(/\s+/g, " ").slice(0, 300)).join("\n");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.key },
+      body: JSON.stringify({
+        model: cfg.model,
+        stream: false,
+        temperature: 0.3,
+        messages: [
+          { role: "system", content:
+            "你在帮一个人整理他自己的对话记录。把下面的对话压缩成一段 150 字以内的备忘录，" +
+            "用第三人称写，只写「他的处境、他的决定、他的约束、已经确认的事实」，不要写建议、不要写安慰。" +
+            "直接输出那段话，别加任何前缀。" },
+          { role: "user", content: digest }
+        ]
+      })
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const j = await res.json();
+    const txt = (((j.choices || [])[0] || {}).message || {}).content || "";
+    if(txt.trim()){
+      c.summary = txt.trim().slice(0, 600);
+      c.sumAt = c.msgs.length;
+      saveConvs();
+    }
+  }catch(e){
+    // 静默失败：摘要不是必须的，别打扰用户
+  }finally{
+    c._summing = false;
+  }
+}
+
 async function send(text, opts){
   opts = opts || {};
   if(busy){ showErr("还在生成，等一下，或点「停止」。"); return; }
@@ -1299,7 +1495,13 @@ async function send(text, opts){
   setBusy(true);
   abortCtl = new AbortController();
 
-  const sys = persona + SYS_NOTE + ctxText + (cfg.qface === false ? "" : QF_NOTE);
+  const _ac = active();
+  const _extra =
+      (cfg.askFirst ? ASK_FIRST_NOTE : "")
+    + hookBlock()
+    + (cfg.memory !== false ? sumInstruction() : "")
+    + (cfg.confidence ? confInstruction() : "");
+  const sys = persona + SYS_NOTE + ctxText + (cfg.qface === false ? "" : QF_NOTE) + _extra;
   const history = c.msgs.slice(-MAX_CTX_MSGS).map(toApiMsg);
   const payload = {
     model: cfg.model,
@@ -1367,9 +1569,19 @@ async function send(text, opts){
       bubble.textContent = "（这次没收到内容，再发一次试试）";
       showErr("接口返回空内容。检查模型名对不对、余额够不够。");
     }else{
-      c.msgs.push({role:"assistant", content:acc, t:Date.now()});
+      // 把内部用的两行标记摘掉，别让它们出现在聊天里
+      let body = acc, conf = null, sum = "";
+      if(cfg.memory !== false){ const r = pullSummary(body); body = r[0]; sum = r[1]; }
+      if(cfg.confidence){ const r = pullConfidence(body); body = r[0]; conf = r[1]; }
+      const rec = {role:"assistant", content:body, t:Date.now()};
+      if(conf !== null) rec.conf = conf;
+      c.msgs.push(rec);
+      // 模型自己写的这轮摘要：有就用，没有就等 maybeSummarize 兜底
+      if(sum){ c.summary = sum.slice(0, 600); c.sumAt = c.msgs.length; }
       c.updatedAt = Date.now();
       saveConvs(); saveMsgsLegacy();
+      // 聊长了就后台刷新一次摘要（不 await，不挡回复）
+      if(cfg.memory !== false) setTimeout(()=>{ maybeSummarize(c); }, 800);
     }
     renderAll();
   }catch(e){
@@ -1851,6 +2063,12 @@ $("btnSet").addEventListener("click", ()=>{
   if(!confirmLeave()) return;
   $("cfgBase").value = cfg.base; $("cfgKey").value = cfg.key || ""; $("cfgModel").value = cfg.model;
   $("cfgQface").checked = cfg.qface !== false;
+  if($("cfgAskFirst"))  $("cfgAskFirst").checked  = cfg.askFirst === true;
+  if($("cfgConfidence"))$("cfgConfidence").checked= cfg.confidence === true;
+  if($("cfgMemory"))    $("cfgMemory").checked    = cfg.memory !== false;
+  if($("cfgHook"))      $("cfgHook").value        = (active() && active().hook) || "";
+  if($("cfgHookUse"))   $("cfgHookUse").value     = (active() && active().useHook) || "";
+  showHookDiag();
   $("cfgPersona").value = persona; $("cfgContext").value = ctxText;
   statLine(); markDirty(false);
   $("drawer").style.display = "none";
@@ -1873,9 +2091,17 @@ $("btnSave").addEventListener("click", ()=>{
   cfg.key = $("cfgKey").value.trim();
   cfg.model = $("cfgModel").value.trim() || "deepseek-chat";
   cfg.qface = $("cfgQface").checked;
+  if($("cfgAskFirst"))  cfg.askFirst   = $("cfgAskFirst").checked;
+  if($("cfgConfidence"))cfg.confidence = $("cfgConfidence").checked;
+  if($("cfgMemory"))    cfg.memory     = $("cfgMemory").checked;
+  const ac = active();
+  if(ac && $("cfgHook"))    ac.hook    = ($("cfgHook").value || "").trim();
+  if(ac && $("cfgHookUse")) ac.useHook = ($("cfgHookUse").value || "").trim();
+  showHookDiag();
   persona = $("cfgPersona").value.trim() || DEFAULT_PERSONA;
   ctxText = $("cfgContext").value.trim();
-  saveCfg(); markDirty(false);
+  // 暗号是存在「对话」里的，saveCfg 只存设置 —— 必须连对话一起落盘
+  saveCfg(); saveConvs(); markDirty(false);
   $("overlay").classList.remove("show");
   renderAll();
   toast("已保存 ✅", true);
