@@ -150,8 +150,9 @@
     var hasBian = dong.length > 0;
     var bian = hasBian ? guaInfo(xt.up, xt.low) : null;
 
-    /* 日干支：用于六神与旬空 */
+    /* 日干支：用于六神与旬空；月建另算，断卦要用 */
     var dayGZIdx = null, dayGan = '甲', kong = [];
+    var monthZhi = '', dayZhi = '', monthGZText = '';
     if (opts.year && LC) {
       var lng = opts.longitude, useTS = opts.trueSolar && typeof lng === 'number';
       var ty = opts.year, tm = opts.month, td = opts.day, thh = opts.hour || 0, tmm = opts.minute || 0;
@@ -161,7 +162,12 @@
       }
       dayGZIdx = LC.dayGZ(ty, tm, td);
       dayGan = GAN.charAt(dayGZIdx % 10);
+      dayZhi = ZHI.charAt(dayGZIdx % 12);
       kong = xunKong(dayGZIdx);
+      /* 月建：以节气定月（与四柱同口径），月支即当月之建 */
+      var ml = LC.monthLing(ty, tm, td, thh, tmm);
+      monthZhi = ZHI.charAt((2 + ml.idx) % 12);
+      monthGZText = LC.monthGZ(LC.yearGZ(ml.ganZhiYear), ml.idx).text;
     } else {
       dayGZIdx = 0; dayGan = '甲'; kong = xunKong(0);
     }
@@ -186,7 +192,10 @@
       if (hasBian) {
         var zb = njB[i].zhi;
         item.bianZhi = zb;
-        item.bianQin = liuQin(bian.gongWx, ZHI_WX[zb]);
+        /* 《增删卜易》：六亲一律照「本卦」宫五行推，不可照变卦推 ——
+           否则回头生/回头克会整片算反 */
+        item.bianQin = liuQin(ben.gongWx, ZHI_WX[zb]);
+        item.bianQinOfBian = liuQin(bian.gongWx, ZHI_WX[zb]);   /* 仅供参考对照 */
       }
       yaoList.push(item);
     }
@@ -199,7 +208,8 @@
       method: opts.method || 'shake',
       tosses: tosses, yao: benYao, bianYao: bianYao, dong: dong,
       ben: ben, bian: hasBian ? bian : null, hasBian: hasBian,
-      gang: { dayGZ: dayGZIdx === null ? '' : LC.gzName(dayGZIdx), dayGan: dayGan, kong: kong },
+      gang: { dayGZ: dayGZIdx === null ? '' : LC.gzName(dayGZIdx), dayGan: dayGan, kong: kong,
+              monthZhi: monthZhi, dayZhi: dayZhi, monthGZ: monthGZText },
       lines: yaoList,
       text: text, textBian: textBian,
       question: opts.question || ''

@@ -254,6 +254,17 @@ table.ketable tr:last-child td{border-bottom:0}
   .tp-a i,.tp-b i{font-size:9px}
   .tp-cl{font-size:11px}.tp-cl2{font-size:10px}
 }
+/* ===== 结果栏里的「为什么」 ===== */
+.ansbox .why{margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
+.ansbox .whyt{font-size:12px;color:var(--gold);font-weight:600;margin-bottom:5px}
+.ansbox .why ul,.ansbox .pc ul{margin:0;padding-left:16px}
+.ansbox .why li,.ansbox .pc li{font-size:12.5px;color:var(--dim);line-height:1.65;margin:4px 0}
+.ansbox .why li b{color:var(--txt)}
+.ansbox .pc{margin-top:9px}
+.ansbox .pc-h{font-size:12px;font-weight:600;margin-bottom:3px}
+.ansbox .pc-h.good{color:var(--good)}
+.ansbox .pc-h.bad{color:var(--bad)}
+.ansbox .cond{margin-top:9px;font-size:12px;color:var(--dim2);line-height:1.6;padding-top:8px;border-top:1px dashed var(--line)}
 /* ===== 八字四柱盘 ===== */
 .bz-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;margin:0 0 10px;overflow-x:auto}
 .bz-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:320px}
@@ -878,6 +889,7 @@ nav button.on{color:var(--gold)}
 <script src="js/meihua.js"></script>
 <script src="js/yijing_data.js"></script>
 <script src="js/liuyao.js"></script>
+<script src="js/liuyao_read.js"></script>
 <script src="js/qimen.js"></script>
 <script src="js/cn_areas.js"></script>
 <script src="js/nhx_tables.js"></script>
@@ -1054,9 +1066,17 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v38 · 2026-10-05";
+var APP_BUILD = "v39 · 2026-10-05"
 var APP_CHANGELOG = [
-  ["v38", "这次的更新", [
+  ["v39", "这次的更新", [
+    "<b>六爻断卦重写</b>：原来只是按「用神六亲 + 有没有空亡」套一个概率，现在改成依《增删卜易》的断卦骨架 —— <b>四处生克冲合</b>：① 月建 ② 日辰 ③ 卦中动爻 ④ 用神自化出之爻（回头生克）",
+    "新增：四时旺相（旺相休囚死）、月破、日破、<b>暗动</b>（日辰冲旺相之爻）、旬空分<b>真空／假空</b>、进神退神、生旺墓绝、用神两现并列、应期候选",
+    "新增《增删卜易》原文给的<b>卦体硬规则</b>（优先于逐爻旺衰）：卦化克 → 不论用神衰旺直接凶断；六冲卦变六合卦 → 不看用神直接吉断（先散后成）；卦无用神 → 以月建为用神",
+    "修了一个会让<b>回头生／回头克整片算反</b>的错误：变爻的六亲原来按「变卦」宫五行推，《增删卜易》明说「六亲须照前卦」，已改成本卦宫五行",
+    "断卦结论会连同「为什么」逐条列出（每条都注明是月建、日辰、动爻还是变爻起的作），并给出应期候选（值日／冲日／填实／出空／合日／冲开墓）",
+    "核对：64 卦的八宫归属与宫五行全部正确，600 卦试跑 0 异常"
+  ]],
+  ["v38", "更早", [
     "出生信息只留两栏：<b>经纬度</b> 与 <b>直接写城市／县名</b>。「出生地（常用城市）」下拉已全部删掉（紫微／八字／大六壬／奇门／六爻）",
     "大六壬、奇门、六爻原来只有城市下拉，现在改成跟紫微一样的经纬度输入框，并补上「直接写城市／县名（自动查经纬度）」一栏",
     "小六壬原来只有「启用真太阳时」勾选框却没有经度可填，现已补上经纬度与地名两栏，且真太阳时真正生效",
@@ -1710,11 +1730,22 @@ function bzOneHtml(r, a){
   });
   /* 第 4 步：结果 */
   h += stepTag(4, "结果与原因", "第 4 / 4 步");
+  /* 依据：从解盘各段抽出要点（日主、旺衰、格局、用神、大运）*/
+  var bzReasons = [];
+  a.sections.forEach(function(sec){
+    sec.items.forEach(function(it){
+      if (/日主与旺衰|格局|用神与喜忌|大运与流年/.test(sec.title)){
+        var v = String(it.v).replace(/<br>/g, '　');
+        bzReasons.push('<b>' + esc(it.k) + '</b>：' + v);
+      }
+    });
+  });
   h += resultBox({
     answer: a.verdict.answer,
     prob: a.verdict.conf,
     probText: "（" + esc(a.verdict.strength) + "・按日主旺衰与格局定的方向）",
-    tag: "八"
+    tag: "八",
+    reasons: bzReasons
   });
   h += '<div class="card" style="margin-top:-4px"><h2>所以该怎么走</h2>';
   h += '<ul class="tight">' + a.verdict.points.map(function(p){ return "<li>" + esc(p) + "</li>"; }).join("") + '</ul>';
@@ -2793,6 +2824,23 @@ function resultBox(o){
   if (o.tag) h += ' <span class="badge">'+esc(o.tag)+'</span>';
   if (o.probText) h += ' <span style="font-size:11.5px;color:var(--dim2)">'+o.probText+'</span>';
   h += '</div>';
+  /* 为什么是这个结果 —— 逐条依据 */
+  if (o.reasons && o.reasons.length){
+    h += '<div class="why"><div class="whyt">为什么是这个结果</div><ul class="tight">';
+    for (var i=0;i<o.reasons.length;i++) h += '<li>'+o.reasons[i]+'</li>';
+    h += '</ul></div>';
+  }
+  if (o.pros && o.pros.length){
+    h += '<div class="pc"><div class="pc-h good">对你有利的地方</div><ul class="tight">';
+    for (var a=0;a<o.pros.length;a++) h += '<li>'+esc(o.pros[a])+'</li>';
+    h += '</ul></div>';
+  }
+  if (o.cons && o.cons.length){
+    h += '<div class="pc"><div class="pc-h bad">要提防的地方</div><ul class="tight">';
+    for (var b=0;b<o.cons.length;b++) h += '<li>'+esc(o.cons[b])+'</li>';
+    h += '</ul></div>';
+  }
+  if (o.condition) h += '<div class="cond">'+o.condition+'</div>';
   h += '</div>';
   return h;
 }
@@ -3715,7 +3763,8 @@ function xlrHtml(k, q, mode){
   h += stepper(4) + stepTag(4, '结果与原因', '第 4 / 4 步');
   h += resultBox({ answer: (q ? answerOf(q, prob, topicAns).txt : null), question: q,
     verdict: verdict, tag: tag, prob: prob,
-    probText: '（' + esc(k.gong) + '宫 · ' + (topicAns ? ('问' + TOPIC_NAME[topic]) : '未指明事类') + ' · ' + esc(info.luck) + '）', condition: condition });
+    probText: '（' + esc(k.gong) + '宫 · ' + (topicAns ? ('问' + TOPIC_NAME[topic]) : '未指明事类') + ' · ' + esc(info.luck) + '）', condition: condition ,
+    reasons: reasons});
 
   showAsk('xiaoliuren', k);
   return h;
@@ -3979,7 +4028,8 @@ function mhHtml(r){
     question: r.question, verdict: verdict, tag: tag, prob: prob,
     probText: '（体用「' + esc(r.rel.key) + '」+ 变卦「' + esc(r.bianRel.key) + '」合出来的）',
     condition: '梅花讲「不动不占」：如果你问这件事的时候心里其实已经有答案、只是想要个支持，那这个卦的参考价值会打折。' +
-      '另外应期按卦数看，' + esc(v.timing) });
+      '另外应期按卦数看，' + esc(v.timing) ,
+    reasons: reasons});
 
   showAsk('meihua', r);
   return h;
@@ -4439,22 +4489,46 @@ function lyHtml(r){
   var noYongShen = !useLine;
   if (noYongShen) useLine = r.lines[r.ben.shi - 1];   /* 用神不上卦：暂以世爻代看，并在依据里说明 */
 
-  /* 打分：用神本身的六亲属性 + 是否临世应 + 是否空亡 + 是否动 */
-  var base = useLine ? (QIN_POS[useLine.qin] || 60) : 55;
-  if (useLine && useLine.shi) base += 6;
-  if (useLine && useLine.ying) base += 2;
-  if (useLine && useLine.kong) base -= 14;
-  if (useLine && useLine.old) base += 5;                 /* 用神发动，事有变化，多半在动 */
-  if (r.dong.length === 0) base -= 4;                    /* 六爻安静，事不动 */
-  var prob = Math.max(22, Math.min(86, base));
-  var tag = prob >= 66 ? '吉' : (prob >= 54 ? '偏吉' : (prob >= 46 ? '平' : (prob >= 36 ? '偏凶' : '凶')));
+  /* 依《增删卜易》断卦：四处生克冲合（月建／日辰／卦中动爻／变爻回头）*/
+  var A = null;
+  if (typeof LiuYaoRead !== 'undefined' && r.gang && r.gang.monthZhi){
+    try { A = LiuYaoRead.analyze(r, { monthZhi: r.gang.monthZhi, dayZhi: r.gang.dayZhi, topic: topic }); }
+    catch (e) { A = null; }
+  }
+  var PROB_OF = { '吉': 78, '偏吉': 64, '平': 50, '偏凶': 36, '凶': 22 };
+  var prob, tag;
+  if (A){
+    prob = PROB_OF[A.verdict] || 50;
+    tag = A.verdict;
+    /* 用神以断卦层选出的为准（可能多现，取评分最高的一爻）*/
+    if (A.yongMain) useLine = r.lines[A.yongMain.line.pos - 1];
+    useQin = A.yong.qin; useWhy = A.yong.why;
+    noYongShen = A.noYong;
+  } else {
+    var base = useLine ? (QIN_POS[useLine.qin] || 60) : 55;
+    if (useLine && useLine.shi) base += 6;
+    if (useLine && useLine.ying) base += 2;
+    if (useLine && useLine.kong) base -= 14;
+    if (useLine && useLine.old) base += 5;
+    if (r.dong.length === 0) base -= 4;
+    prob = Math.max(22, Math.min(86, base));
+    tag = prob >= 66 ? '吉' : (prob >= 54 ? '偏吉' : (prob >= 46 ? '平' : (prob >= 36 ? '偏凶' : '凶')));
+  }
 
+  var V_TEXT = {
+    '吉': '这事能成：用神在四处生克上占优，可以按计划推进 —— 该约的约、该签的签，别拖。',
+    '偏吉': '这事偏顺，但有条件：用神不弱，不过还看得力还是受制，结果取决于你下一步怎么动，坐等不会有结果。',
+    '平': '这事平：卦里没有明确助力也没有明显杀伤，属于「做多少得多少」。想办就自己去盯，想省事就往后放。',
+    '偏凶': '这事偏难：用神受伤（休囚、受克、落空或化回头克），眼下推不动。别硬来，先找卡住的那一环。',
+    '凶': '这事眼下不成：用神受克太重或彻底落空，硬推白费力气。换个时间、换个人，或者干脆放下 —— 卦已经提示你了。'
+  };
   var verdict;
-  if (prob >= 66) verdict = '这事能成，而且是"人找事"的顺局：用神得力、不受空，你只要正常推进就会落地。这时候别犹豫，该约的约、该签的签。';
-  else if (prob >= 54) verdict = '这事偏顺，但要有个条件：用神不算弱，不过要看动爻怎么走 —— 也就是说，结果取决于你下一步怎么动，坐等不会有结果。';
-  else if (prob >= 46) verdict = '这事平：卦里没有明确的助力，也没有明显的杀伤，属于"做多少得多少"。想省事就往后放放，想办就自己去盯。';
-  else if (prob >= 36) verdict = '这事偏难：用神受伤（临空、受克或卦身安静不动），眼下推不动。别硬来，先找卡住的那一环。';
-  else verdict = '这事眼下不成：用神落空或受克太重，硬推白费力气。换个时间、换个人、或者干脆放下 —— 卦已经提示你了。';
+  if (A) verdict = V_TEXT[A.verdict] || V_TEXT['平'];
+  else if (prob >= 66) verdict = V_TEXT['吉'];
+  else if (prob >= 54) verdict = V_TEXT['偏吉'];
+  else if (prob >= 46) verdict = V_TEXT['平'];
+  else if (prob >= 36) verdict = V_TEXT['偏凶'];
+  else verdict = V_TEXT['凶'];
 
   var reasons = [];
   reasons.push('<b>先装卦</b>：本卦「'+esc(ben.name)+'」（上'+esc(ben.up)+'下'+esc(ben.low)+'），属<b>'+esc(ben.gong)+'宫'+esc(ben.gongWx)+'</b>，是'+esc(ben.kind)+
@@ -4475,6 +4549,26 @@ function lyHtml(r){
     reasons.push('<b>六爻安静</b>：这一卦没有动爻，说明事情暂时不会有大变化，按现状推演即可（"静卦看世应，动卦看动爻"）。');
   }
   if (r.gang.kong && r.gang.kong.length) reasons.push('<b>旬空</b>：今日'+esc(r.gang.dayGZ)+'日，空亡在 <b>'+esc(r.gang.kong.join('、'))+'</b>。用神或关键爻落空，意味着"看着有、其实空"，是最需要提防的一点。');
+  /* 依《增删卜易》的「四处生克冲合」逐条列出 */
+  if (A && A.yongMain){
+    reasons.push('<b>断卦骨架（《增删卜易》四处生克）</b>：判用神旺衰只看四处 —— 月建、日辰、卦中动爻、用神自化出之爻。' +
+      '原文：「三處相生一處相克也以吉斷；兩處克兩處生者須看旺衰。」');
+    reasons.push('<b>本月建日辰</b>：月建 <b>'+esc(r.gang.monthGZ || r.gang.monthZhi)+'</b>（当月之建，掌一卦之权）、' +
+      '日辰 <b>'+esc(r.gang.dayGZ)+'</b>（原文：「日辰四時俱旺」，最灵最实）。');
+    if (A.guaLevel && A.guaLevel.short) reasons.push('<b>卦体已定吉凶</b>：'+esc(A.verdictReason)+' —— 这一条优先于逐爻旺衰。');
+    var wl = A.yongMain;
+    reasons.push('<b>用神「'+esc(wl.line.qin)+esc(wl.line.zhi)+'」逐条核对</b>（合计 '+(wl.score>=0?'+':'')+wl.score+' 分）：');
+    for (var wn=0; wn<wl.notes.length; wn++) reasons.push('　· '+esc(wl.notes[wn].replace(/<\/?b>/g,'')));
+    if (A.yongLines && A.yongLines.length > 1){
+      reasons.push('<b>用神两现</b>：本卦中「'+esc(A.yong.qin)+'」出现 '+A.yongLines.length+' 次（' +
+        A.yongLines.map(function(x){ return esc(x.line.name)+esc(x.line.zhi)+'('+(x.score>=0?'+':'')+x.score+')'; }).join('、') +
+        '）。原文古法「舍休囚用旺相、舍静用动」，但同章亦有反取者 —— 这里并列给你，两个都看。');
+    }
+    if (A.yingQi && A.yingQi.length){
+      reasons.push('<b>应期（什么时候应）</b>：原文「遠事定之以年月，近事應之於日時」。此卦候选取：' +
+        A.yingQi.map(function(x){ return esc(x.replace(/<\/?b>/g,'')); }).join('；') + '。');
+    }
+  }
   reasons.push('<b>看六神</b>：初爻起'+esc(r.lines[0].shen)+'（按日干'+esc(r.gang.dayGan)+'排）。六神定事情的"气质"：青龙主喜庆财喜、朱雀主口舌文书、勾陈主田土迟滞、螣蛇主虚惊缠绕、白虎主凶伤刚猛、玄武主暗昧盗失。');
   if (r.text) reasons.push('<b>《易经》原文</b>：'+esc(r.text.gc)+'　——'+esc(r.text.xiang));
 
@@ -4560,6 +4654,7 @@ function lyHtml(r){
   h += resultBox({ answer: (r.question ? answerOf(r.question, prob, topicAnswer(topic, prob)).txt : null),
     question: r.question, verdict: verdict, tag: tag, prob: prob,
     probText: '（本卦' + esc(ben.name) + ' · 用神' + esc(useQin) + ' · 动爻' + (r.dong.length ? r.dong.join('、') : '无') + '）',
+    reasons: reasons,
     condition: '六爻讲「一事一卦、一事一占」：同一个问题反复摇，卦就不准了。如果这件事拖过了旬（十天）或者中间条件变了，就重新起一卦。' });
 
   /* —— 导出 —— */
