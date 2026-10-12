@@ -42,6 +42,10 @@
     /* 整页往下挪。给 body 加底部内边距，内容就整体下沉这么多，
        而且不会超出屏幕（全局 box-sizing:border-box）。设 0px 就不动。 */
     --shift-down2:10px;
+    /* 输入区再单独往下挪。用负 margin 让 footer 底部溢出视口，
+       footer 自己的 padding-bottom 有余量，所以按钮不会被裁。
+       设 0px 就不动。 */
+    --composer-drop:20px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   html{height:100%; background:var(--panel)}   /* 兜底色：露出来也是灰的，不是白 */
@@ -178,6 +182,13 @@
   footer{
     flex:none; background:var(--panel); border-top:1px solid var(--line);
     padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    /* 输入区单独往下挪。
+       必须用 transform，不能用 margin。
+       试过两种 margin，都会把上面那排快捷提问一起挤下去：
+         负 margin-bottom → quick.top 723→743
+         负 margin-top    → quick.top 642→662（内容还变高了）
+       transform 不参与布局，只动看见的位置，所以上面纹丝不动。 */
+    transform:translateY(var(--composer-drop, 0px));
     display:flex; gap:9px; align-items:flex-end;
   }
   footer textarea{
