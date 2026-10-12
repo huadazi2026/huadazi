@@ -23,12 +23,12 @@
 html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   font-size:15px;line-height:1.55;-webkit-text-size-adjust:100%;overflow-x:hidden;max-width:100%}
-body{padding-bottom:calc(var(--navh,64px) + 8px + env(safe-area-inset-bottom))}
+body{padding-bottom:var(--navh,64px)}
 a{color:var(--gold);text-decoration:none}
 
 /* 顶部 */
-header{position:sticky;top:0;z-index:50;background:rgba(16,12,28,.94);backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);
+header{position:sticky;top:0;z-index:50;background:var(--bg);
+  border-bottom:1px solid var(--line);
   padding:calc(10px + env(safe-area-inset-top)) calc(14px + var(--safel)) 10px calc(14px + var(--safer))}
 .title{display:flex;align-items:baseline;gap:8px}
 .title h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.5px}
@@ -39,7 +39,7 @@ header{position:sticky;top:0;z-index:50;background:rgba(16,12,28,.94);backdrop-f
 .tab.on{background:linear-gradient(135deg,#3a2b63,#553c86);color:var(--gold2);border-color:#6a4fa0;
   box-shadow:0 2px 12px rgba(120,80,200,.28)}
 
-main{padding:14px calc(14px + var(--safel)) 20px calc(14px + var(--safer))}
+main{display:flex;flex-direction:column;min-height:calc(100vh - var(--navh, 64px));min-height:calc(100dvh - var(--navh, 64px));padding:14px calc(14px + var(--safel)) 20px calc(14px + var(--safer))}
 .pane{display:none}.pane.on{display:block}
 
 /* 卡片 */
@@ -416,9 +416,9 @@ ol.steps li{margin-bottom:7px;font-size:13.5px;line-height:1.6}
   border-radius:10px;padding:11px;font-size:13px;margin-bottom:12px}
 
 /* 底部 */
-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;
-  background:rgba(16,12,28,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border-top:1px solid var(--line);padding:6px var(--safel) calc(4px + env(safe-area-inset-bottom)) var(--safer)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;flex-wrap:wrap;row-gap:2px;
+  background:var(--bg2);border-top:1px solid var(--line);box-shadow:0 -8px 20px rgba(0,0,0,.35);
+  padding:6px var(--safel) calc(4px + env(safe-area-inset-bottom)) var(--safer)}
 nav button{flex:1;background:none;border:0;color:var(--dim2);font-family:inherit;font-size:9.5px;
   padding:6px 0 5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
   white-space:nowrap;overflow:hidden}
@@ -1009,9 +1009,15 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v36 · 2026-10-05";
+var APP_BUILD = "v37 · 2026-10-05";
 var APP_CHANGELOG = [
-  ["v36", "这次的更新", [
+  ["v37", "这次的更新", [
+    "顶部不再发虚：页头原来带毛玻璃模糊（backdrop-filter），已改成不透明底色，字看着清楚了",
+    "表单页不再空一大块：页面主体改成撑满屏幕高度，内容短的时候卡片就一直延伸到底栏，中间不再留一片空屏",
+    "底栏底部不再有缝：页面底部留白原来比底栏实际高度多 8px，现在正好等于底栏高度；底栏也改成不透明底 + 上边界阴影，跟页面底色之间不再有色差",
+    "手机地址栏伸缩时的高度改用 100dvh 计算（原来用 100vh 会算多、导致多余的滚动）"
+  ]],
+  ["v36", "更早", [
     "修正：页面底部多出一块空白 —— 底栏留白原来写死 96px（比底栏实际高 40px），现改成按底栏实测高度自动回填，屏大屏小都不会多也不会遮内容",
     "修正：底栏八个图标没有铺满宽度（右侧空一块）—— 恢复原来的平分宽度，窄屏自动换行",
     "修正：<b>小六壬、奇门的年干支</b>在<b>立春前</b>会多算一年。原来直接把公历年份当干支年用，现在统一按立春换年（与紫微／大六壬／八字一致）",
