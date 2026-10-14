@@ -553,12 +553,13 @@ nav button.on{color:var(--gold)}
   <!-- ============ 八字 ============ -->
   <section class="pane" id="pane-bazi">
     <div class="card">
+      <div class="step-h"><span class="no">1</span><span class="tt">定盘 · 出生信息</span><span class="hint">八字看一生格局与运程；具体一件事请用六爻／奇门</span></div>
       <div id="bz-err" class="err hidden"></div>
       <div class="field" style="margin-bottom:10px">
         <label>你想问什么（可留空 —— 八字本身看一生格局；具体一件事用六爻／奇门更准）</label>
         <textarea id="bz-q" placeholder="例：我这辈子适合打工还是自己做？／我该往哪个方向使劲？"></textarea>
       </div>
-      <div class="step-h"><span class="no">1</span><span class="tt">排盘 · 定生辰</span><span class="hint">年月日与时辰都从下拉选</span></div>
+      <div class="step-h"><span class="no">2</span><span class="tt">排盘 · 定生辰</span><span class="hint">年月日与时辰都从下拉选</span></div>
       <div class="row">
         <div class="field" style="flex:1.1">
           <label>出生日期用哪种历</label>
@@ -588,6 +589,23 @@ nav button.on{color:var(--gold)}
         <div class="field"><label>出生时辰</label><select id="bz-shichen"></select></div>
       </div>
       <div class="note hidden" id="bz-timetip"></div>
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>经纬度</label>
+          <input type="text" id="bz-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="bz-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="bz-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="bz-geo-tip"></div>
       <button class="btn" id="bz-go">排 八 字</button>
     </div>
     <div id="bz-out"></div>
@@ -630,7 +648,6 @@ nav button.on{color:var(--gold)}
         </div>
       </div>
       <div class="note hidden" id="lr-geo-tip"></div>
-      <div class="row">
         <div class="field" style="flex:.8">
           <label>起课方式</label>
           <select id="lr-mode">
@@ -692,6 +709,27 @@ nav button.on{color:var(--gold)}
           <label>农历日</label>
           <input type="number" id="xlr-ld" min="1" max="30" inputmode="numeric" value="1">
         </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1">
+          <label>经纬度</label>
+          <input type="text" id="xlr-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="xlr-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="xlr-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="xlr-geo-tip"></div>
+      <div class="switch">
+        <input type="checkbox" id="xlr-truesolar">
+        <label for="xlr-truesolar" style="margin:0">启用真太阳时校正（按经度）</label>
       </div>
       <button class="btn" id="xlr-go">起 课（掐指一算）</button>
       <div class="note">小六壬只用<b>农历月、日、时辰</b>三个数：从「大安」起数月，月上起日、日上起时，落在哪一宫就以该宫断事。不需要生辰八字。</div>
@@ -764,6 +802,28 @@ nav button.on{color:var(--gold)}
       </div>
       <div class="note hidden" id="mh-num-tip">报数起卦<b>不是经典法</b>（《梅花易數》只讲物数、声数、字数、丈尺寸数）。动爻取法历代不一，这里用「第三个数定动爻，留空则取前两数之和」。</div>
 
+      <div class="row hidden" id="mh-f-lnglat">
+        <div class="field" style="flex:1">
+          <label>经纬度（选填，用于真太阳时校正）</label>
+          <input type="text" id="mh-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
+        </div>
+      </div>
+      <div class="row hidden" id="mh-f-place">
+        <div class="field" style="flex:1.6">
+          <label>或直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="mh-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="mh-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="mh-geo-tip"></div>
+      <div class="switch hidden" id="mh-f-ts">
+        <input type="checkbox" id="mh-truesolar">
+        <label for="mh-truesolar" style="margin:0">启用真太阳时校正（按经度）</label>
+      </div>
+
       <div class="wy-wrap">
         <div class="wy-h">外应／十应（起卦那一刻你身边看到、听到、遇到的东西 · 可不选）</div>
         <div class="note" style="margin:0 0 8px">原文《內外論》：「凡占卜，體用為內，諸應卦為外卦…必合內外卦而斷之也。
@@ -794,6 +854,22 @@ nav button.on{color:var(--gold)}
             <option value="manual">手动指定时间</option>
           </select>
         </div>
+        <div class="field">
+          <label>经纬度</label>
+          <input type="text" id="qm-lnglat" placeholder="例：121.5, 31.2 或 121.5 31.2">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1.6">
+          <label>或在下面直接写城市／县名（自动查经纬度）</label>
+          <input type="text" id="qm-place" placeholder="例：浙江省绍兴市　／　安徽省无为县">
+        </div>
+        <div class="field" style="flex:.5">
+          <label>&nbsp;</label>
+          <button class="btn ghost" id="qm-geo" style="margin-top:0">查经纬度</button>
+        </div>
+      </div>
+      <div class="note hidden" id="qm-geo-tip"></div>
       </div>
       <div class="row">
         <div class="field" style="flex:1.4">
@@ -804,6 +880,10 @@ nav button.on{color:var(--gold)}
           <label>起局时间</label>
           <input type="time" id="qm-time" step="60" disabled>
         </div>
+      </div>
+      <div class="switch">
+        <input type="checkbox" id="qm-truesolar">
+        <label for="qm-truesolar" style="margin:0">启用真太阳时校正</label>
       </div>
       <button class="btn" id="qm-go">起 局</button>
       <button class="btn ghost" id="qm-refresh">用当前时刻重新起局</button>
@@ -846,6 +926,7 @@ nav button.on{color:var(--gold)}
         </div>
       </div>
       <div class="note hidden" id="ly-geo-tip"></div>
+      </div>
       <div class="note" id="ly-hint">心里默念你要问的事，然后<b>用力摇手机</b>六次（每摇一次出一爻，从初爻到上爻）。</div>
       <button class="btn" id="ly-go">开始摇卦</button>
       <div id="ly-stage" class="hidden">
@@ -1067,12 +1148,13 @@ function showPane(name){
 var APP_BUILD = "v46 · 2026-10-05"
 var APP_CHANGELOG = [
   ["v46", "这次的更新", [
-    "<b>删掉四门不需要的输入</b>：小六壬、奇门、八字、梅花 不再要「经纬度」「城市／县名」「真太阳时」（大六壬、六爻、紫微保留 —— 大六壬和六爻的时辰来自你填的时刻，紫微的出生地会影响时辰）",
-    "<b>修「继续询问」一个隐藏很久的 bug</b>：七门原来共用同一组元素 id（fa-q／fa-go／fa-out），而 $() 只取文档里第一个 —— 也就是紫微那一组。结果你在小六壬、梅花、奇门里问，答案全被写进了紫微的隐藏容器，屏幕上什么也不显示。现在每门用自己专属的 id，各问各的，互不串",
+    "<b>删掉四门不需要的输入</b>：小六壬、奇门、八字、梅花 不再要「经纬度」「城市／县名」「真太阳时」（大六壬、六爻、紫微保留）",
+    "<b>修一个藏了很久、影响最大的 bug</b>：「继续询问」七门共用同一组元素 id（fa-q／fa-go／fa-out），而 $() 只取文档里第一个 —— 也就是紫微那一组。于是你在小六壬、梅花、奇门里接着问，答案全被写进了紫微的隐藏容器，屏幕上什么也不显示。现在每门用专属 id，各问各的，互不串",
+    "<b>修六爻的「复制完整结论 / 下载成文本」完全没反应</b>：这两个按钮原来只靠一个 document 级事件委托，而那段代码所在的脚本块因为历史改动被截断，委托始终没注册上，点了毫无反应。现在改成独立脚本块 + 按钮直接调用，并挂到 window.LY，即使主脚本后续出问题也照样能用",
     "<b>修大六壬继续询问的「三传 [object Object]」</b>：三传是对象数组，直接 join 会打印 [object Object]，现在取其中的地支",
-    "<b>修八字「常用问法」6 个按钮失效</b>：上一版我删掉「你所问的事」区块时，把问题输入框一起删了，按钮还在往里填值（填给不存在的框）。现在表单里补回提问栏，并把问题接进排盘与解读",
-    "修四处 HTML 结构隐患：大六壬「起课方式」缺了外层 &lt;div class=\"row\"&gt;、小六壬/六爻/八字各多一个 &lt;/div&gt;（浏览器能自愈，但会牵连后面的排版）",
-    "全面自测：六门（大六壬/小六壬/梅花/六爻/奇门/八字）所有起课起卦方式、下拉每个选项、常用问法、继续询问、以及 4032 盘奇门 + 2688 课大六壬 + 400 盘八字扫描，0 异常"
+    "<b>修八字「常用问法」6 个按钮失效</b>：上一版删「你所问的事」区块时把问题输入框一起删了，按钮还在往里填值。现在表单补回提问栏，并把问题接进排盘与解读",
+    "修四处 HTML 结构隐患：大六壬「起课方式」缺外层 &lt;div class=\"row\"&gt;、小六壬/六爻/八字各多一个 &lt;/div&gt;",
+    "全面自测：六门（大六壬/小六壬/梅花/六爻/奇门/八字）所有起课起卦方式、下拉每个选项、常用问法、继续询问、复制下载，以及 4032 盘奇门 + 2688 课大六壬 + 400 盘八字扫描，0 异常"
   ]],
   ["v45", "更早", [
     "<b>修正一个布局 bug</b>：六爻、奇门、大六壬的「经纬度」那一行忘了闭合，把「城市／县名」那行套了进去 —— 两行被硬挤在同一行里，看着像内容被折叠了。现在经纬度铺满一整行，地名在下一行",
@@ -1720,7 +1802,7 @@ function renderBaZi(){
   var r = BaZi.paipan({ year:dt.y, month:dt.m, day:dt.d, hour:hour, minute:0,
     gender: bzGender, trueSolar: useTS, longitude: loc.lng, useEoT: true, question: bzQ });
   r._input = { note: dt.note, solar: dt.y + "-" + zwPad2(dt.m) + "-" + zwPad2(dt.d),
-    shichen: ZHI.charAt(shiIdx) + "时", place: loc.src, question: bzQ };
+    shichen: ZHI.charAt(shiIdx) + "时", place: loc.src };
   var a = BaZiRead.analyze(r, { question: bzQ,
     topic: (typeof askTopic === "function" && bzQ) ? askTopic(bzQ).key : undefined });
   bzLast = { r: r, a: a };
@@ -1810,6 +1892,8 @@ var bzLast = null;
 /* ============================== 八字 ============================== */
 var bzGender = "男";
 var bzDateMode = "solar";
+var bzPlace = null;    /* 自填地名查到的经纬度 */
+var bzGeoSeq = 0;
 
 /* ---- 下拉初始化 ---- */
 function bzFillSolarYears(){
@@ -1868,9 +1952,41 @@ function bzFillLunarDays(keep){
   if (keep && old && parseInt(old, 10) <= days) el.value = old;
 }
 function bzUseLng(){
-  /* 八字不用地点与经纬度（用户设定）*/
+  var manual = $("bz-lnglat") ? zwParseLngLat($("bz-lnglat").value) : null;
+  if (manual) return { lng: manual.lng, src: "手填经纬度 东经" + manual.lng + "°" };
+  if (bzPlace && typeof bzPlace.lng === "number") return { lng: bzPlace.lng, src: bzPlace.name + "（东经" + bzPlace.lng.toFixed(2) + "°）" };
   return { lng: null, src: "" };
 }
+function bzGeocode(){
+  var el = $("bz-place"); if (!el) return;
+  var q = (el.value || "").trim();
+  if (!q) { bzPlace = null; bzGeoShow("请先填城市或县名。"); return; }
+  var direct = zwParseLngLat(q);
+  if (direct){ bzPlace = { name:q, lng:direct.lng, lat:direct.lat }; bzGeoShow("已按经纬度用：东经 " + direct.lng + "°"); return; }
+  var hit = zwLocalSearch(q);
+  if (hit){
+    bzGeoSeq++;
+    bzPlace = { name:(hit.path || hit.name), lng:hit.lng, lat:hit.lat };
+    bzGeoShow("已定位：<b>" + (hit.path || hit.name) + "</b>　东经 " + hit.lng.toFixed(2) + "°，北纬 " + hit.lat.toFixed(2) + "°");
+    return;
+  }
+  var mySeq = ++bzGeoSeq;
+  bzGeoShow("本地地名库没查到「" + q + "」，正在联网查…");
+  fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q)).then(function(r){ return r.json(); }).then(function(jj){
+    if (mySeq !== bzGeoSeq) return;
+    var fs2 = (jj && jj.features) || [];
+    if (!fs2.length) throw new Error("没查到");
+    var f = fs2[0], prop = f.properties || {}, c = f.geometry.coordinates;
+    var nm = [prop.name, prop.city, prop.county, prop.state].filter(function(x){ return !!x; }).join("·");
+    bzPlace = { name:q, lng:c[0], lat:c[1] };
+    bzGeoShow("已联网定位：<b>" + nm + "</b>　东经 " + c[0].toFixed(2) + "°");
+  }).catch(function(){
+    if (mySeq !== bzGeoSeq) return;
+    bzPlace = null;
+    bzGeoShow("没查到「" + q + "」。可以换个写法，或直接填经纬度，或用上面的常用城市。");
+  });
+}
+function bzGeoShow(html){ var t = $("bz-geo-tip"); if (!t) return; t.className = "note"; t.innerHTML = html; }
 function bzSetDateMode(v){
   bzDateMode = v;
   var bs = document.querySelectorAll("#bz-datemode button");
@@ -1896,7 +2012,10 @@ function bzReadDate(){
 /* 五门的地名查询按钮与回车事件 */
 function geoBindAll(){
   geoBind('zw-place', 'zw-geo-tip', 'zw', 'zw-geo');
+  geoBind('bz-place', 'bz-geo-tip', 'bz', 'bz-geo');
   geoBind('lr-place', 'lr-geo-tip', 'lr', 'lr-geo');
+  geoBind('xlr-place', 'xlr-geo-tip', 'xlr', 'xlr-geo');
+  geoBind('qm-place', 'qm-geo-tip', 'qm', 'qm-geo');
   geoBind('ly-place', 'ly-geo-tip', 'ly', 'ly-geo');
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', geoBindAll);
@@ -2700,29 +2819,21 @@ var F_QIN = { money:"妻财", career:"官鬼", health:"官鬼", legal:"官鬼", 
 var F_BOX = { ziwei:"zw-out", liuren:"lr-out", xiaoliuren:"xlr-out", meihua:"mh-out", liuyao:"ly-out", qimen:"qm-out", bazi:"bz-out" };
 
 function showAsk(kind, data){
-  /* 关键：所有门都往自己的容器里插「继续询问」栏，但 id 不能重复 ——
-     原来六门共用 id="fa-q"/"fa-go"/"fa-out"，而 $() 取的是文档里第一个（永远是紫微那组），
-     于是每门的答案都被写进了紫微的隐藏容器，用户什么也看不到。
-     现在：id 带上门名，且一律用 box.querySelector 就近取元素，不依赖 document 级 id。 */
   FOLLOW.kind = kind; FOLLOW.data = data;
   var box = $(F_BOX[kind] + "-ask");
   if (!box) return;
   box.className = "askagain";
-  box.setAttribute('data-follow', kind);
   box.innerHTML = "<h2><b>5</b>继续询问</h2>" +
     "<div class=\"tip\">不用重新起卦 —— 就着这一卦接着问<b>别的事</b>。例：上面问「这单生意能不能签」，这里接着问「款项什么时候到」「对方什么态度」。</div>" +
-    "<div class=\"field\"><textarea id=\"fa-q-" + kind + "\" placeholder=\"接着问：这笔款项什么时候能到？／对方是什么态度？\"></textarea></div>" +
-    "<button class=\"btn\" id=\"fa-go-" + kind + "\">继续问这一卦</button>" +
-    "<div id=\"fa-out-" + kind + "\"></div>";
-  var ta = box.querySelector('textarea');
-  var go = box.querySelector('button.btn');
-  var out = box.querySelector('div[id^="fa-out-"]');
+    "<div class=\"field\"><textarea id=\"fa-q\" placeholder=\"接着问：这笔款项什么时候能到？／对方是什么态度？\"></textarea></div>" +
+    "<button class=\"btn\" id=\"fa-go\">继续问这一卦</button>" +
+    "<div id=\"fa-out\"></div>";
+  var go = $("fa-go");
   if (go) go.onclick = function(){
-    var q2 = (ta && ta.value || '').trim();
-    if (!q2){ if (out) out.innerHTML = '<div class="err">先把要问的写进去</div>'; return; }
-    /* 以「本栏所属的门」为准，避免跨门串答案 */
-    FOLLOW.kind = kind; FOLLOW.data = data;
-    if (out) out.innerHTML = "<div class=\"followans\"><div class=\"fq\">你接着问：" + esc(q2) + "</div>" +
+    var q2 = ($("fa-q") && $("fa-q").value || "").trim();
+    if (!q2){ showErr3("fa-out", "先把要问的写进去"); return; }
+    var o = $("fa-out");
+    if (o) o.innerHTML = "<div class=\"followans\"><div class=\"fq\">你接着问：" + esc(q2) + "</div>" +
       "<div class=\"fr\">" + buildFollow(q2) + "</div></div>";
   };
 }
@@ -2798,7 +2909,7 @@ function buildFollow(q2){
       lines.push("<b>你这次问的是「" + name + "」</b>：梅花一卦对应一件事，标准做法是<b>另起一卦</b>；就这一卦只能套体用：" + d.rel.text + " —— " + (d.rel.note || ""));
       lines.push("<b>建议</b>：换一件事，回上面重新起一卦，那一卦的体用才是冲着这件事来的。");
     } else if (k === "liuren"){
-      /* 三传是对象数组（每项含 zhi），不能直接 join，否则显示 [object Object] */
+      /* 三传是对象数组（每项含 zhi），直接 join 会打印 [object Object] */
       var _sc = (d.sanChuan || []).map(function(x){ return (x && x.zhi) ? x.zhi : String(x); }).join(" → ");
       lines.push("<b>课还是那一课</b>：" + (d.body || "") + (_sc ? ("，三传 " + _sc) : ""));
       lines.push("<b>你这次问的是「" + name + "」</b>：大六壬一课断一事，换事情要另起一课（换时刻）。课体「" + (d.body || "") + "」的性质可先参考：" + (d.bodyNote || ""));
@@ -3493,16 +3604,21 @@ function renderXiaoLiuRen(){
   if (mode === 'lunar'){
     opt.lunar = { m: parseInt($('xlr-lm').value,10)||1, d: parseInt($('xlr-ld').value,10)||1 };
     opt.shiZhi = parseInt($('xlr-shizhi').value,10)||0;
-    /* 小六壬不用地点与经纬度（用户设定）*/
+    var llL = geoUseLng('xlr-lnglat', 'xlr');
+    if ($('xlr-truesolar') && $('xlr-truesolar').checked && llL.lng != null){ opt.trueSolar = true; opt.longitude = llL.lng; }
   } else if (mode === 'manual'){
     var dt = parseDateTime($('xlr-date').value, $('xlr-time').value);
+    var llM = geoUseLng('xlr-lnglat', 'xlr');
+    var tsM = ($('xlr-truesolar') && $('xlr-truesolar').checked && llM.lng != null);
     opt = { year:dt.y, month:dt.m, day:dt.d, hour:dt.hh, minute:dt.mm,
-            trueSolar: false };
+            trueSolar: tsM, longitude: tsM ? llM.lng : null };
   } else {
     var now = new Date();
+    var llN = geoUseLng('xlr-lnglat', 'xlr');
+    var tsN = ($('xlr-truesolar') && $('xlr-truesolar').checked && llN.lng != null);
     opt = { year: now.getFullYear(), month: now.getMonth()+1, day: now.getDate(),
             hour: now.getHours(), minute: now.getMinutes(),
-            trueSolar: false };
+            trueSolar: tsN, longitude: tsN ? llN.lng : null };
   }
   var k = XiaoLiuRen.qi(opt);
   $('xlr-out').innerHTML = xlrHtml(k, $('xlr-q').value.trim(), mode);
@@ -3921,7 +4037,11 @@ function mhSyncMethod(){
   if (m === 'num'){ sh('mh-f-nums', 'row'); sh('mh-f-n3', 'field'); sh('mh-num-tip', 'note'); }
   else { hd('mh-f-nums', 'row'); hd('mh-f-n3', 'field'); hd('mh-num-tip', 'note'); }
   /* 经纬度 / 地名 / 真太阳时：只有用到时辰的方法才需要 */
-  /* 经纬度／地名／真太阳时已移除（用户设定）*/
+  ['mh-f-lnglat','mh-f-place'].forEach(function(id){
+    if (useTime) sh(id, 'row'); else hd(id, 'row');
+  });
+  if (useTime) sh('mh-f-ts', 'switch'); else hd('mh-f-ts', 'switch');
+  if (!useTime) { var gt = $('mh-geo-tip'); if (gt) gt.className = 'note hidden'; }
 }
 $('mh-method').addEventListener('change', mhSyncMethod);
 mhSyncMethod();
@@ -3983,6 +4103,7 @@ function mhInit(){
   }
   $('mh-method').addEventListener('change', mhSyncMethod);
   mhSyncMethod();
+  geoBind('mh-place', 'mh-geo-tip', 'mh', 'mh-geo');
   mhBuildWyBoxes();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mhInit);
@@ -3994,7 +4115,9 @@ function renderMeiHua(){
   var lng = null;
   var useTime = !!MH_USES_TIME[method];
   if (useTime){
-    /* 梅花不用地点与经纬度（用户设定）*/
+    var loc = geoUseLng('mh-lnglat', 'mh');
+    var ts = ($('mh-truesolar') && $('mh-truesolar').checked && loc.lng != null);
+    if (ts) lng = loc.lng;
   }
   var opt = { question: q };
 
@@ -4004,7 +4127,7 @@ function renderMeiHua(){
     opt.method = 'time';
     opt.year = dt.y; opt.month = dt.m; opt.day = dt.d;
     opt.hour = (shi * 2) % 24; opt.minute = 0;
-    opt.trueSolar = false; opt.longitude = null;
+    opt.trueSolar = (lng != null); opt.longitude = lng;
 
   } else if (method === 'objnum' || method === 'sound'){
     /* 《梅花易數》卷一「物數占例」「聲音占例」：
@@ -4307,11 +4430,11 @@ function renderQiMen(){
   var dt, now = new Date();
   if (manual) dt = parseDateTime($('qm-date').value, $('qm-time').value);
   else dt = { y: now.getFullYear(), m: now.getMonth()+1, d: now.getDate(), hh: now.getHours(), mm: now.getMinutes() };
-  /* 奇门不用地点与经纬度（用户设定）*/
-  var lng = null;
-  var useTS = false;
+  var ll = geoUseLng('qm-lnglat', 'qm');
+  var lng = ll ? ll.lng : null;
+  var useTS = $('qm-truesolar').checked && typeof lng === 'number';
   var p = QiMen.pan({ year:dt.y, month:dt.m, day:dt.d, hour:dt.hh, minute:dt.mm,
-                      trueSolar: false, longitude: null, useEoT: true });
+                      trueSolar: useTS, longitude: lng, useEoT: true });
   $('qm-out').innerHTML = qmHtml(p, $('qm-q').value.trim());
 }
 
@@ -4704,7 +4827,7 @@ function renderTossStage(){
   var h = '';
   for (var i = lyTosses.length - 1; i >= 0; i--){
     var t = lyTosses[i], yang = t.yao === 1;
-    h += '<div class="lyrow"><span class="pos">'+['初','二','三','四','五','上'][i]+'爻</span>'+
+    h += '<div class="lyrow" data-yao="'+t.yao+'" data-old="'+(t.old?1:0)+'" data-name="'+esc(t.name)+'"><span class="pos">'+['初','二','三','四','五','上'][i]+'爻</span>'+
          '<span class="pic'+(yang?'':' yin')+(t.old?' dong':'')+'">'+(yang?'<i></i>':'<i></i><i></i>')+'</span>'+
          '<span class="gz">'+esc(t.name)+'</span>'+
          '<span class="bd">'+esc(t.text || (t.backs + ' 背'))+'</span></div>';
@@ -4968,8 +5091,8 @@ function lyHtml(r){
 
   /* —— 导出 —— */
   h += '<div class="btnrow" style="margin-bottom:14px">'+
-       '<button class="btn ghost" id="ly-copy" style="margin-top:0">复制完整结论</button>'+
-       '<button class="btn ghost" id="ly-download" style="margin-top:0">下载成文本</button></div>';
+       '<button class="btn ghost" id="ly-copy" style="margin-top:0" onclick="window.LY&&window.LY.copy?window.LY.copy(this):0">复制完整结论</button>'+
+       '<button class="btn ghost" id="ly-download" style="margin-top:0" onclick="window.LY&&window.LY.download?window.LY.download():0">下载成文本</button></div>';
 
   showAsk('liuyao', r);
   return h;
@@ -5026,27 +5149,15 @@ function lyPlainText(){
   Z.push('（断语为经验模型，仅供参考；重大决定请自己拿主意）');
   return Z.join('\n');
 }
-document.addEventListener('click', function(e){
-  var id = e.target && e.target.id;
-  if (id === 'ly-copy'){
-    var txt = lyPlainText();
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(function(){ e.target.textContent = '已复制 ✓'; setTimeout(function(){ e.target.textContent = '复制完整结论'; }, 2200); });
-    } else {
-      var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); e.target.textContent = '已复制 ✓'; } catch(err){}
-      document.body.removeChild(ta);
-    }
-  }
-  if (id === 'ly-download'){
-    var blob = new Blob([lyPlainText()], { type:'text/plain;charset=utf-8' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = '六爻卦_' + (new Date()).toISOString().slice(0,10) + '.txt';
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-  }
-});
+/* 六爻的「复制／下载」已移到主脚本之后的独立 <script> 块（见文件尾），
+   这样即使主脚本后续出错，这两个按钮也照样能用。 */
+try {
+  document.addEventListener('click', function(e){
+    var id = e.target && e.target.id;
+    if (id === 'ly-copy') lyDoCopy(e.target);
+    if (id === 'ly-download') lyDoDownload();
+  });
+} catch (err) { /* 委托注册失败也不影响内联 onclick */ }
 
 /* ---------- 首屏：自动起一课；带 ?demo=1 时连紫微命盘一起排（便于截图核对） ---------- */
 try { renderLiuren(); } catch(e) { /* 首次可能因分析器未就绪而失败，忽略 */ }
@@ -5096,6 +5207,110 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 }
 
 
+})();
+</script>
+
+<script>
+/* ===== 六爻「复制完整结论 / 下载成文本」独立实现 =====
+   为什么单独放一块：早先这两个按钮依赖主脚本里的一个 document 级委托，
+   主脚本一旦在后面出错，委托没注册上，按钮就完全没反应。
+   现在把功能放在主脚本之后独立执行，并在主脚本之外重新排一次卦取数 —— 不依赖任何内部变量。 */
+(function(){
+'use strict';
+  var ZHI = '子丑寅卯辰巳午未申酉戌亥';
+  function $(id){ return document.getElementById(id); }
+  function tossesFromDOM(){
+    var box = document.querySelectorAll('#ly-lines .lyrow[data-yao]');
+    var a = [];
+    for (var i = 0; i < box.length; i++){
+      var el = box[i];
+      a.push({ yao: Number(el.getAttribute('data-yao')), old: el.getAttribute('data-old') === '1' });
+    }
+    return a;
+  }
+  function now(){
+    var d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+             hour: d.getHours(), minute: d.getMinutes() };
+  }
+  function buildText(){
+    if (typeof LiuYao === 'undefined' || typeof LiuYao.qi !== 'function') return '';
+    var ts = tossesFromDOM();
+    if (!ts || ts.length !== 6) return '';
+    var t = now();
+    var r = LiuYao.qi({ method: 'shake', tosses: ts, question: ($('ly-q') ? $('ly-q').value.trim() : ''),
+      year: t.year, month: t.month, day: t.day, hour: t.hour, minute: t.minute });
+    var Z = [];
+    Z.push('【六爻 · 装卦】' + (r.question ? ' 所问：' + r.question : ''));
+    Z.push(t.year + '-' + t.month + '-' + t.day + ' ' + t.hour + ':' + t.minute + '　' + r.gang.dayGZ + '日　旬空 ' + r.gang.kong.join(''));
+    Z.push('本卦：' + r.ben.name + '（' + r.ben.gong + '宫' + r.ben.gongWx + '，' + r.ben.kind + '，世' + r.ben.shi + '爻 应' + r.ben.ying + '爻）');
+    if (r.bian) Z.push('变卦：' + r.bian.name + '　动爻：' + (r.dong.length ? r.dong.join('、') : '无'));
+    Z.push('');
+    Z.push('六爻装卦（上→初）：');
+    for (var k = 5; k >= 0; k--){
+      var l = r.lines[k];
+      Z.push('  ' + l.name + '　' + (l.yao ? '━━━' : '━ ━') + '　' + l.qin + '　' + l.gan + l.zhi +
+        '　' + l.shen + '　' + (l.shi ? '世' : (l.ying ? '应' : '')) + (l.kong ? ' 空' : '') + (l.old ? ' ○动' : ''));
+    }
+    if (r.text){
+      Z.push('');
+      Z.push('《易经》卦辞：' + r.text.gc);
+      Z.push('象曰：' + r.text.xiang);
+    }
+    if (r.dong.length && r.text && r.text.yao){
+      Z.push('');
+      Z.push('动爻爻辞：');
+      for (var d = 0; d < r.dong.length; d++) Z.push('  ' + r.text.yao[r.dong[d] - 1]);
+    }
+    if (r.bian && r.textBian){
+      Z.push('');
+      Z.push('变卦 ' + r.bian.name + ' 卦辞：' + r.textBian.gc);
+    }
+    Z.push('');
+    Z.push('（断语为经验模型，仅供参考；重大决定请自己拿主意）');
+    return Z.join('\n');
+  }
+  function copy(btn){
+    var txt = '';
+    try { txt = buildText(); } catch (e) { txt = ''; }
+    if (!txt){ if (btn){ btn.textContent = '还没摇卦，没有内容'; setTimeout(function(){ btn.textContent = '复制完整结论'; }, 2200); } return; }
+    var done = function(ok){
+      if (!btn) return;
+      btn.textContent = ok ? '已复制 ✓' : '复制失败，请长按文字手动复制';
+      setTimeout(function(){ btn.textContent = '复制完整结论'; }, 2200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ done(true); }, function(){ done(false); });
+    } else {
+      try {
+        var ta = document.createElement('textarea'); ta.value = txt;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        done(true);
+      } catch (e) { done(false); }
+    }
+  }
+  function download(){
+    var txt = '';
+    try { txt = buildText(); } catch (e) { txt = ''; }
+    if (!txt) return;
+    try {
+      var blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '六爻卦_' + (new Date()).toISOString().slice(0, 10) + '.txt';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+    } catch (e) {}
+  }
+  window.LY = { copy: copy, download: download, text: buildText };
+  try {
+    document.addEventListener('click', function(e){
+      var id = e.target && e.target.id;
+      if (id === 'ly-copy') copy(e.target);
+      if (id === 'ly-download') download();
+    });
+  } catch (e) {}
 })();
 </script>
 </body>
