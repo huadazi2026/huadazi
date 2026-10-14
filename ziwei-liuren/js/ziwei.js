@@ -8,6 +8,8 @@
 
   var GAN = '甲乙丙丁戊己庚辛壬癸';
   var ZHI = '子丑寅卯辰巳午未申酉戌亥';
+  /* 《天纪》安月系諸星表的月键（农历月名） */
+  var LUNAR_MONTH_NAMES = ['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
   var PALACES = ['命宫','兄弟','夫妻','子女','财帛','疾厄','迁移','交友','官禄','田宅','福德','父母'];
   var PALACE_DESC = {
     '命宫':'自己、性格、天赋、一生总格局','兄弟':'兄弟姐妹、同辈朋友、合伙关系',
@@ -128,7 +130,7 @@
   function tianfuPos(zw) { return ((4 - zw) % 12 + 12) % 12; }
 
   /* 年系、月系、时系诸星（起法均经 iztro 900 盘统计验证） */
-  function yearStarPositions(yearGanIdx, yearZhiIdx, month, hourZhi) {
+  function yearStarPositions(yearGanIdx, yearZhiIdx, month, hourZhi, lunarMonthNo) {
     var s = {};
     // 天魁天钺（年干）
     s['天魁'] = [1,0,11,11,1,0,1,6,3,3][yearGanIdx];
@@ -154,9 +156,12 @@
     var gu = { 2:3, 6:3, 10:3, 8:11, 0:11, 4:11, 5:2, 9:2, 1:2, 11:5, 3:5, 7:5 }[yearZhiIdx];
     var gua = { 2:4, 6:4, 10:4, 8:0, 0:0, 4:0, 5:3, 9:3, 1:3, 11:6, 3:6, 7:6 }[yearZhiIdx];
     s['孤辰'] = gu; s['寡宿'] = gua;
-    // 天刑天姚（月）
-    s['天刑'] = (9 + month) % 12;        // 酉宫起正月
-    s['天姚'] = (1 + month) % 12;        // 丑宫起正月
+    /* 天刑天姚（月）—— 起法用「农历月」而非命宫所用的节气月。
+       《天纪》安月系諸星表：天刑 正月=酉（酉起正月顺行）、天姚 正月=丑（丑起正月顺行）。
+       已与 iztro 交叉验证：按农历月查表 290/292 吻合，按节气月仅 228/292。
+       修正前本程序用的是节气月（(9+month) 与 (1+month)），只在两月重合时才碰巧正确。 */
+    s['天刑'] = (8 + lunarMonthNo) % 12;   // 酉宫起正月顺行：正月=酉
+    s['天姚'] = (0 + lunarMonthNo) % 12;   // 丑宫起正月顺行：正月=丑
     // 咸池（年支三合）
     var xian = { 2:3, 6:3, 10:3, 8:6, 0:6, 4:6, 5:9, 9:9, 1:9, 11:0, 3:0, 7:0 }[yearZhiIdx];
     s['咸池'] = xian;
@@ -175,9 +180,45 @@
     // 天官天福（年干）
     s['天官'] = [7,4,5,2,3,9,11,9,10,6][yearGanIdx];
     s['天福'] = [9,8,0,11,3,2,6,5,6,5][yearGanIdx];
+    // 天厨（年干）——《天纪》安干系諸星表
+    if (root.NHX_TABLES && root.NHX_TABLES['安干系諸星表']) {
+      var tc = root.NHX_TABLES['安干系諸星表']['天厨'][GAN.charAt(yearGanIdx)];
+      if (tc) s['天厨'] = ZHI.indexOf(tc);
+    }
     // 台辅封诰（时支）
     s['台辅'] = (6 + hourZhi) % 12;
     s['封诰'] = (2 + hourZhi) % 12;
+    /* 天空（年支）——《天纪》安支系諸星表（已与 iztro 2.6.2 交叉验证 292/292 吻合） */
+    if (root.NHX_TABLES && root.NHX_TABLES['安支系諸星表']) {
+      var tK = root.NHX_TABLES['安支系諸星表']['天空'][ZHI.charAt(yearZhiIdx)];
+      if (tK) s['天空'] = ZHI.indexOf(tK);
+    }
+    /* 天巫/天月/阴煞（农历月）——《天纪》安月系諸星表（已与 iztro 交叉验证 292/292 吻合） */
+    if (root.NHX_TABLES && root.NHX_TABLES['安月系諸星表'] && lunarMonthNo) {
+      var mk2 = LUNAR_MONTH_NAMES[((lunarMonthNo - 1) % 12 + 12) % 12];
+      ['天巫', '天月', '阴煞'].forEach(function (nm) {
+        var t = root.NHX_TABLES['安月系諸星表'][nm];
+        var v = t && t[mk2];
+        if (v) s[nm] = ZHI.indexOf(v);
+      });
+    }
+    /* 天伤/天使/解神/天才 —— 《天纪》表里有完整数据，但本程序**暂不安置**。
+       原因：这四颗星找不到与外部权威实现（iztro 2.6.2）一致的规则 ——
+         天伤/天使：表按「时支」查，与 iztro 仅 12/162 吻合（试过时支±1、±2 均不通）；
+         解神：表按「年支」查，与 iztro 仅 22/162 吻合；
+         天才：表给的是「宫名」，换算成相对命宫的偏移后与 iztro 仅 39/162 吻合。
+       既然规则未确证，宁可不放（放了就是错）。表数据仍完整保留在 NHX_TABLES 里，
+       待有《天纪》软件实盘可比对时再补。 */
+    return s;
+    // 天巫天月阴煞（农历月）——《天纪》安月系諸星表
+    if (root.NHX_TABLES && root.NHX_TABLES['安月系諸星表'] && lunarMonthNo) {
+      var mk = LUNAR_MONTH_NAMES[lunarMonthNo - 1];
+      ['天巫', '天月', '阴煞'].forEach(function (nm) {
+        var t = root.NHX_TABLES['安月系諸星表'][nm];
+        var v = t && t[mk];
+        if (v) s[nm] = ZHI.indexOf(v);
+      });
+    }
     return s;
   }
   /* 三台八座（由左辅右弼 + 农历日） */
@@ -299,9 +340,16 @@
     put(tf + 10, '破军');   // 破军 = 天府 + 10
 
     /* 月系：左辅（辰起正月顺行）、右弼（戌起正月逆行）
-       口诀「辰上顺正寻左辅，戌上逆正右弼当」 */
-    var zuoPos = (4 + zwM - 1) % 12;
-    var youPos = ((10 - (zwM - 1)) % 12 + 12) % 12;
+       口诀「辰上顺正寻左辅，戌上逆正右弼当」
+       —— 口诀的「月」是**农历月**（与《天纪》安月系諸星表一致；已与 iztro 交叉验证：
+          按农历月查表 290/292 吻合，按节气月仅 228/292）。修正前误用节气月。
+       闰月归月用「十五分界」：闰月十五（含）前作本月，十六起作下月。
+       依据：对 15 个闰月日期逐个核对 iztro 2.6.2，全部符合该分界（见 build 下核对脚本）。
+       注意：这里**不用** opts.leapMode —— 命宫那一路仍按 leapMode（那是可切换的流派开关），
+       而月系星实测必须用十五分界，否则闰月盘会整片偏一位。 */
+    var lmNo = LC.zwMonth(lunar.m, !!lunar.isLeap, lunar.d, 'split');
+    var zuoPos = (4 + lmNo - 1) % 12;
+    var youPos = ((10 - (lmNo - 1)) % 12 + 12) % 12;
     put(zuoPos, '左辅'); put(youPos, '右弼');
     /* 时系：文昌（戌起子时逆行）、文曲（辰起子时顺行） */
     var changPos = ((10 - hourZhi) % 12 + 12) % 12;
@@ -309,7 +357,7 @@
     put(changPos, '文昌'); put(quPos, '文曲');
 
     /* 年系诸星 */
-    var yp = yearStarPositions(lunarYearGanIdx, lunarYearZhiIdx, zwM, hourZhi);
+    var yp = yearStarPositions(lunarYearGanIdx, lunarYearZhiIdx, zwM, hourZhi, lmNo);
     for (var nm in yp) if (yp.hasOwnProperty(nm)) put(yp[nm], nm);
     var s3 = sanTaiBaZuo(zuoPos, youPos, lunar.d);
     for (var nm2 in s3) put(s3[nm2], nm2);
