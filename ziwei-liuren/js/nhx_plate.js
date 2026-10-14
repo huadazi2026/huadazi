@@ -32,7 +32,10 @@
   JI.forEach(function (s, i) { JI_ORDER[s] = i; });
   SHA6.forEach(function (s, i) { SHA_ORDER[s] = i; });
   /* 宫煞（单独显示在干支下方） */
-  var GONG_SHA = ['空亡', '天伤', '天使', '旬中', '截路'];
+  /* 宫煞（单独显示在干支下方）
+     注意：'天伤'/'天使' 曾列在这里，但这两颗星本程序**暂不安置**（见 js/ziwei.js 的说明：
+     表里有数据、规则未确证），列着也不会有值，故撤掉，避免空栏。 */
+  var GONG_SHA = ['空亡', '旬中', '截路'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {

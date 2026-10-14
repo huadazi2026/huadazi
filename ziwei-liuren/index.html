@@ -1021,9 +1021,15 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v49 · 2026-10-05"
+var APP_BUILD = "v50 · 2026-10-05"
 var APP_CHANGELOG = [
-  ["v49", "这次的更新", [
+  ["v50", "这次的更新", [
+    "<b>结果说得更白话了</b>：结果栏里那些拗口的术语改成家常话 —— 「月建／日辰」→「这个月／今天」、「用克体／体克用／用生体／体生用／比和」→「事情压着你／你压得住／有人帮你／你在倒贴／两边合得来」、「旬空」→「落空（要等填实）」、「门迫」→「门被宫压住」、「回头生／回头克」→「变出来反帮它／反克它」、「旺相／休囚」按语境换掉",
+    "这一改只在<b>显示环节</b>翻译，<b>不动任何判断</b>：引擎返回的键（如 <code>rel.key = 用克体</code>）原样保留，查表、算概率、定吉凶全都照旧。中途我一度想全局替换，结果把查表的键也换了、概率会全部退化成 50 —— 已回滚改成现在这种安全做法",
+    "紫微天纪盘的「宫煞」栏撤掉了<b>天伤／天使</b>：这两颗星本程序暂不安置（表里有数据、规则未与外部实现对齐），列在那儿也不会有值，空着不如撤掉",
+    "「为什么是这个结果」标题改为更顺口的「<b>为什么这么说</b>」"
+  ]],
+  ["v49", "更早", [
     "<b>用《天纪》讲义里的命例把排盘引擎验通了</b>：讲义命例「民国44年二月十四日申时（阳历 1955-03-07）阴女·木三局·命宫在未·紫微在巳」，本程序复算 <b>五项全中</b>（农历二月十四、年干支乙未、命宫未、木三局、紫微巳），天府与紫微系六星也顺推一致。这条已写成回归测试 <code>test_tianji_cases.js</code>",
     "由此确认：<b>21 张 .ini 安星表抄录正确、本程序排盘引擎正确</b>。命例「起紫微表[木三局][十四]=巳」「命宮身宮表[二月][申]=未」逐项复核通过",
     "顺带查清讲义自身的问题（<b>不能全当基准</b>）：命例17 写「1958-06-27 命宫未」，但该日农历五月十一，任一时辰都算不出命宫未，属讲义抄录矛盾；命例26 写「土四局」，而五行局只有水二/木三/金四/土五/火六五种，是笔误；讲义亦自承至少一张命盘图排错",
@@ -2821,10 +2827,56 @@ function askCard(q, who){
   return h;
 }
 /* 第 4 步的结果块：一句答案 + 原因编号列表 */
+/* ── 白话化：只翻译「给用户看的字」，不动任何数据键与判断 ──
+   原先想把术语全局换掉，但 rel.key / BASE / MH_TOPIC_DO 的键就是这些术语，
+   换了键就查不到表，概率会全部退化成 50 —— 所以改成「显示时翻译」。 */
+var PLAIN_MAP = [
+  /* 时间口径 */
+  ['月建','这个月'], ['日辰','今天'],
+  /* 冲空 */
+  ['月破','被月冲破'], ['日破','被日冲破'], ['旬空','落空（要等填实）'],
+  /* 生克关系 */
+  ['用克体','事情压着你'], ['体克用','你压得住'], ['用生体','有人帮你'],
+  ['体生用','你在倒贴'], ['比和','两边合得来'],
+  /* 旺衰 */
+  ['得令','当季正旺'], ['失令','当季不旺'],
+  /* 变爻 */
+  ['回头生','变出来反帮它'], ['回头克','变出来反克它'],
+  ['暗动','暗中在动'], ['进神','在往前'], ['退神','在往后退'],
+  /* 奇门 */
+  ['门迫','门被宫压住'], ['格勃','值符落庚'],
+
+  /* 组合词（长串优先，避免被前面的短词拆坏）*/
+  ['本月建日辰','本月与今日'], ['用神或关键爻落空','代表这件事的那颗星或关键爻落空'],
+  ['用神旺衰','代表星的力量'], ['用神自化出之爻','代表星自己变出来的那一爻'],
+  ['不看用神衰旺','不用细看强弱'],
+  /* 「本月建日辰：」会被叠成「本这个月今天」，整句先改掉 */
+  ['本月建日辰：','本月与今日：'], ['本月建日辰','本月与今日']
+];
+var PLAIN_SORTED = null;
+function plainify(t){
+  if (t == null) return t;
+  if (!PLAIN_SORTED){
+    PLAIN_SORTED = PLAIN_MAP.slice().sort(function(a,b){ return b[0].length - a[0].length; });
+  }
+  var s2 = String(t);
+  /* 按长度降序处理，保证「本月建日辰」这类长串先于「月建」被匹配 */
+  for (var i = 0; i < PLAIN_SORTED.length; i++){
+    var a = PLAIN_SORTED[i][0], b = PLAIN_SORTED[i][1];
+    if (s2.indexOf(a) >= 0) s2 = s2.split(a).join(b);
+  }
+  /* 顺句：替换后可能出现的叠字 / 别字组合，做轻度收顺 */
+  s2 = s2.replace(/这个月[甲乙丙丁戊己庚辛壬癸]?[子丑寅卯辰巳午未申酉戌亥]?月/g, '这个月');
+  s2 = s2.replace(/今天[甲乙丙丁戊己庚辛壬癸]?[子丑寅卯辰巳午未申酉戌亥]?日/g, '今天');
+  s2 = s2.replace(/不旺力弱/g, '不旺、力弱');
+  s2 = s2.replace(/([失得])令力/g, '$1令，力');
+  return s2;
+}
+
 function resultBox(o){
   var col = o.tag === '吉' ? 'var(--good)' : (o.tag === '凶' ? 'var(--bad)' : 'var(--warn)');
   var h = '<div class="ansbox" style="border-color:'+col+'">';
-  h += '<div class="big" style="color:'+col+'">'+esc(o.answer || o.verdict)+'</div>';
+  h += '<div class="big" style="color:'+col+'">'+esc(plainify(o.answer || o.verdict))+'</div>';
   if (o.question) h += '<div class="qline">你问的是：'+esc(o.question)+'</div>';
   h += '<div class="bl"><span class="badge" style="color:'+col+';border-color:'+col+'">把握度 '+esc(o.prob+'%')+'</span>';
   if (o.tag) h += ' <span class="badge">'+esc(o.tag)+'</span>';
@@ -2832,21 +2884,21 @@ function resultBox(o){
   h += '</div>';
   /* 为什么是这个结果 —— 逐条依据 */
   if (o.reasons && o.reasons.length){
-    h += '<div class="why"><div class="whyt">为什么是这个结果</div><ul class="tight">';
-    for (var i=0;i<o.reasons.length;i++) h += '<li>'+o.reasons[i]+'</li>';
+    h += '<div class="why"><div class="whyt">为什么这么说</div><ul class="tight">';
+    for (var i=0;i<o.reasons.length;i++) h += '<li>'+plainify(o.reasons[i])+'</li>';
     h += '</ul></div>';
   }
   if (o.pros && o.pros.length){
     h += '<div class="pc"><div class="pc-h good">对你有利的地方</div><ul class="tight">';
-    for (var a=0;a<o.pros.length;a++) h += '<li>'+esc(o.pros[a])+'</li>';
+    for (var a=0;a<o.pros.length;a++) h += '<li>'+esc(plainify(o.pros[a]))+'</li>';
     h += '</ul></div>';
   }
   if (o.cons && o.cons.length){
     h += '<div class="pc"><div class="pc-h bad">要提防的地方</div><ul class="tight">';
-    for (var b=0;b<o.cons.length;b++) h += '<li>'+esc(o.cons[b])+'</li>';
+    for (var b=0;b<o.cons.length;b++) h += '<li>'+esc(plainify(o.cons[b]))+'</li>';
     h += '</ul></div>';
   }
-  if (o.condition) h += '<div class="cond">'+o.condition+'</div>';
+  if (o.condition) h += '<div class="cond">'+plainify(o.condition)+'</div>';
   h += '</div>';
   return h;
 }
