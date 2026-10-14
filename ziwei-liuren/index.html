@@ -710,18 +710,7 @@ nav button.on{color:var(--gold)}
         <label>所问何事（越具体越准）</label>
         <textarea id="mh-q" placeholder="例：这份工作要不要接？／我和他还有没有可能？"></textarea>
       </div>
-      <div class="field">
-        <label>起卦方法（依《梅花易數》卷一各起例）</label>
-        <select id="mh-method">
-          <option value="time">年月日时起卦（最常用）</option>
-          <option value="objnum">物数占（数眼前的东西）</option>
-          <option value="sound">声音占（数听到的声数）</option>
-          <option value="zi">字占（报几个字）</option>
-          <option value="num">报数起卦（非经典法）</option>
-        </select>
-      </div>
-
-      <div class="row hidden" id="mh-f-time">
+      <div class="row" id="mh-f-time">
         <div class="field" style="flex:1.4">
           <label>起卦日期（公历）</label>
           <input type="date" id="mh-date" min="1900-02-01" max="2100-12-31">
@@ -731,40 +720,6 @@ nav button.on{color:var(--gold)}
           <select id="mh-shizhi"></select>
         </div>
       </div>
-
-      <div class="row hidden" id="mh-f-count">
-        <div class="field">
-          <label id="mh-count-label">物数（可数之物的个数）</label>
-          <input type="number" id="mh-count" min="1" max="9999" inputmode="numeric" placeholder="例：5">
-        </div>
-        <div class="field">
-          <label>配合的时辰</label>
-          <select id="mh-shizhi2"></select>
-        </div>
-      </div>
-
-      <div class="field hidden" id="mh-f-zi">
-        <label>报几个字（用字数起卦，不问笔画）</label>
-        <input type="number" id="mh-zi" min="1" max="999" inputmode="numeric" placeholder="例：6　（一到十一个字各有定法）">
-      </div>
-      <div class="note hidden" id="mh-zi-tip"></div>
-
-      <div class="row hidden" id="mh-f-nums">
-        <div class="field">
-          <label>第一个数（定上卦）</label>
-          <input type="number" id="mh-n1" min="1" max="9999" inputmode="numeric" placeholder="随意">
-        </div>
-        <div class="field">
-          <label>第二个数（定下卦）</label>
-          <input type="number" id="mh-n2" min="1" max="9999" inputmode="numeric" placeholder="随意">
-        </div>
-      </div>
-      <div class="field hidden" id="mh-f-n3">
-        <label>第三个数（定动爻 · 可留空，留空则取前两数之和）</label>
-        <input type="number" id="mh-n3" min="1" max="9999" inputmode="numeric" placeholder="可留空">
-      </div>
-      <div class="note hidden" id="mh-num-tip">报数起卦<b>不是经典法</b>（《梅花易數》只讲物数、声数、字数、丈尺寸数）。动爻取法历代不一，这里用「第三个数定动爻，留空则取前两数之和」。</div>
-
 
       <div class="wy-wrap">
         <div class="wy-h">外应／十应（起卦那一刻你身边看到、听到、遇到的东西 · 可不选）</div>
@@ -1066,9 +1021,16 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v48 · 2026-10-05"
+var APP_BUILD = "v49 · 2026-10-05"
 var APP_CHANGELOG = [
-  ["v48", "这次的更新", [
+  ["v49", "这次的更新", [
+    "<b>用《天纪》讲义里的命例把排盘引擎验通了</b>：讲义命例「民国44年二月十四日申时（阳历 1955-03-07）阴女·木三局·命宫在未·紫微在巳」，本程序复算 <b>五项全中</b>（农历二月十四、年干支乙未、命宫未、木三局、紫微巳），天府与紫微系六星也顺推一致。这条已写成回归测试 <code>test_tianji_cases.js</code>",
+    "由此确认：<b>21 张 .ini 安星表抄录正确、本程序排盘引擎正确</b>。命例「起紫微表[木三局][十四]=巳」「命宮身宮表[二月][申]=未」逐项复核通过",
+    "顺带查清讲义自身的问题（<b>不能全当基准</b>）：命例17 写「1958-06-27 命宫未」，但该日农历五月十一，任一时辰都算不出命宫未，属讲义抄录矛盾；命例26 写「土四局」，而五行局只有水二/木三/金四/土五/火六五种，是笔误；讲义亦自承至少一张命盘图排错",
+    "把《天纪》软件实盘（用户提供的排盘 PDF）提取存为真值：<code>build/nhx_soft_sample.json</code>（12 宫全部星曜）+ <code>build/nhx_soft/</code> 原图与放大切片，供后续逐星核对",
+    "另把《天纪紫微斗数笔记详细有图版》docx 提取成文本：<code>build/tianji_docx_full.txt</code>（全文）、<code>build/tianji_docx_rules.md</code>（38 个格局 + 四化落宫断语 + 大限/小流年起法）、<code>build/tianji_docx_outline.md</code>（41 条命例清单）"
+  ]],
+  ["v48", "更早", [
     "<b>逐张核对了「天纪」排盘程序的 21 张 .ini 安星表</b>（在 H:\\天纪\\天纪简体版\\）：21 张表逐条比对，<b>20 张完全一致</b>，第 21 张（起小限表 2619 条）差异全部是原文里的分隔注释行、不是数据。同时清掉了原程序留的一条测试数据（五行局表里的 <code>* = 测试</code>）",
     "<b>修正紫微「天刑、天姚」安错宫位</b>：这两颗星原来用「节气月」起（酉/丑起正月），但《天纪》安月系諸星表与 iztro 2.6.2 都用<b>农历月</b>。与 iztro 400 盘逐盘对拍：修正前 30/292 吻合，<b>修正后 400/400 完全一致</b>",
     "<b>修正紫微「左辅、右弼」同因误用节气月</b>：口诀「辰上顺正寻左辅、戌上逆正右弼当」用的是农历月。修正后与 iztro 400/400 一致（原来约 78%）",
@@ -3919,32 +3881,8 @@ function xlrFit(k, q, topic){
 /* ================================================================
    梅花易数
    ================================================================ */
-/* 梅花：按「起卦方法」自动显隐字段 */
-var MH_USES_TIME = { time: 1, objnum: 1, sound: 1 };   /* 需要日期+时辰的方法 */
-function mhSyncMethod(){
-  var m = $('mh-method').value;
-  function sh(id, base){ var e = $(id); if (e) e.className = base; }
-  function hd(id, base){ var e = $(id); if (e) e.className = base + ' hidden'; }
-  var useTime = !!MH_USES_TIME[m];
-  /* 日期 + 时辰 */
-  if (useTime) sh('mh-f-time', 'row'); else hd('mh-f-time', 'row');
-  /* 物数 / 声数 */
-  if (m === 'objnum' || m === 'sound'){
-    sh('mh-f-count', 'row');
-    var lb = $('mh-count-label');
-    if (lb) lb.textContent = (m === 'sound') ? '声数（听到的声数）' : '物数（可数之物的个数）';
-  } else hd('mh-f-count', 'row');
-  /* 字占 */
-  if (m === 'zi'){ sh('mh-f-zi', 'field'); sh('mh-zi-tip', 'note'); }
-  else { hd('mh-f-zi', 'field'); hd('mh-zi-tip', 'note'); }
-  /* 报数 */
-  if (m === 'num'){ sh('mh-f-nums', 'row'); sh('mh-f-n3', 'field'); sh('mh-num-tip', 'note'); }
-  else { hd('mh-f-nums', 'row'); hd('mh-f-n3', 'field'); hd('mh-num-tip', 'note'); }
-  /* 经纬度 / 地名 / 真太阳时：只有用到时辰的方法才需要 */
-  /* 经纬度／地名／真太阳时已移除（用户设定）*/
-}
-$('mh-method').addEventListener('change', mhSyncMethod);
-mhSyncMethod();
+/* 梅花：起卦方法只有「年月日时起卦」一种（其余起例已按用户设定移除），
+   所以不再有「起卦方法」下拉与按方法显隐字段的逻辑。 */
 
 $('mh-go').onclick = function(){
   var btn = this;
@@ -3987,10 +3925,10 @@ function mhBuildWyBoxes(){
   }
 }
 
-/* 梅花初始化：两个时辰下拉 + 默认日期 + 初始显隐 */
+/* 梅花初始化：时辰下拉 + 默认日期 */
 function mhInit(){
-  if (!$('mh-method')) return;
-  ['mh-shizhi', 'mh-shizhi2'].forEach(function(id){
+  if (!$('mh-go')) return;
+  ['mh-shizhi'].forEach(function(id){
     var el = $(id); if (!el || el.options.length) return;
     var h = '';
     for (var i = 0; i < 12; i++) h += '<option value="' + i + '">' + ZHI.charAt(i) + '时（' + shichenRange(i) + '）</option>';
@@ -4001,86 +3939,22 @@ function mhInit(){
     var t = new Date();
     d.value = t.getFullYear() + '-' + zwPad2(t.getMonth() + 1) + '-' + zwPad2(t.getDate());
   }
-  $('mh-method').addEventListener('change', mhSyncMethod);
-  mhSyncMethod();
   mhBuildWyBoxes();
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mhInit);
 else setTimeout(mhInit, 0);
 
 function renderMeiHua(){
-  var method = $('mh-method').value;
-  var q = $('mh-q').value.trim();
-  var lng = null;
-  var useTime = !!MH_USES_TIME[method];
-  if (useTime){
-    /* 梅花不用地点与经纬度（用户设定）*/
-  }
-  var opt = { question: q };
-
-  if (method === 'time'){
-    var dt = parseDateTime($('mh-date').value, '12:00');
-    var shi = parseInt($('mh-shizhi').value, 10) || 0;
-    opt.method = 'time';
-    opt.year = dt.y; opt.month = dt.m; opt.day = dt.d;
-    opt.hour = (shi * 2) % 24; opt.minute = 0;
-    opt.trueSolar = false; opt.longitude = null;
-
-  } else if (method === 'objnum' || method === 'sound'){
-    /* 《梅花易數》卷一「物數占例」「聲音占例」：
-       上卦 = 数 mod 8；下卦 = (数 + 时数) mod 8；动爻 = (数 + 时数) mod 6 */
-    var num = parseInt($('mh-count').value, 10);
-    if (!num || num < 1) throw new Error('请填' + (method === 'sound' ? '声数' : '可数之物的个数'));
-    var dt2 = parseDateTime($('mh-date').value, '12:00');
-    var shi2 = parseInt($('mh-shizhi2').value, 10) || 0;
-    /* 用「年支序 + 农历月 + 农历日」当作基准？不 —— 物数占是「物数为上卦」，
-       下卦与动爻都用「物数 + 时数」，不涉及年月日。这里把「时数」按时辰地支序（子1…亥12）。*/
-    var shiNum = shi2 + 1;
-    var up = MeiHua.mod(num - 1, 8) + 1;
-    var low = MeiHua.mod(num + shiNum - 1, 8) + 1;
-    var dong = MeiHua.mod(num + shiNum - 1, 6) + 1;
-    var r0 = MeiHua.buildByNums ? MeiHua.buildByNums(up, low, dong, opt, {
-      method: method, num: num, shiNum: shiNum, upNum: num, lowNum: num + shiNum
-    }, (method === 'sound' ? '声音占' : '物数占') + '：数得 ' + num + '，加' + ZHI.charAt(shi2) + '时(' + shiNum + ') = ' + (num + shiNum) +
-       ' → 上卦 ' + up + '、下卦 ' + low + '、动爻 ' + dong) : null;
-    if (!r0) throw new Error('引擎缺少 buildByNums，请反馈');
-    r0.waiYing = MeiHua.waiYing(mhWySel, r0.tiTri.name);
-    $('mh-out').innerHTML = mhHtml(r0);
-    return;
-
-  } else if (method === 'zi'){
-    /* 《梅花易數》卷一「字占」：字數停勻則平分上下；不勻則少一字為上卦（天輕清）、多一字為下卦（地重濁）
-       動爻 = 上下卦總數 mod 6（十一字以上只以字數平分，又合二卦總數取爻） */
-    var zc = parseInt($('mh-zi').value, 10);
-    if (!zc || zc < 1) throw new Error('请填报几个字');
-    var upN, lowN, ziNote;
-    if (zc === 1){
-      throw new Error('单字占要拆左右笔画（左为阳画、右为阴画），本程序不做笔画 —— 请报两个字以上');
-    } else if (zc % 2 === 0){
-      upN = zc / 2; lowN = zc / 2;
-      ziNote = zc + ' 字（停匀）→ 平分：上卦 ' + upN + ' 字、下卦 ' + lowN + ' 字';
-    } else {
-      upN = (zc - 1) / 2; lowN = (zc + 1) / 2;
-      ziNote = zc + ' 字（不匀）→ 少一字为上卦：上 ' + upN + ' 字、下 ' + lowN + ' 字（天轻清、地重浊）';
-    }
-    var up2 = MeiHua.mod(upN - 1, 8) + 1;
-    var low2 = MeiHua.mod(lowN - 1, 8) + 1;
-    var dong2 = MeiHua.mod(upN + lowN - 1, 6) + 1;
-    var r1 = MeiHua.buildByNums ? MeiHua.buildByNums(up2, low2, dong2, opt, {
-      method: 'zi', ziCount: zc, upNum: upN, lowNum: lowN
-    }, '字占：' + ziNote + ' → 上卦 ' + up2 + '、下卦 ' + low2 + '、动爻 ' + dong2) : null;
-    if (!r1) throw new Error('引擎缺少 buildByNums，请反馈');
-    r1.waiYing = MeiHua.waiYing(mhWySel, r1.tiTri.name);
-    $('mh-out').innerHTML = mhHtml(r1);
-    return;
-
-  } else {
-    /* 报数起卦（非经典法）*/
-    var a = parseInt($('mh-n1').value, 10), b = parseInt($('mh-n2').value, 10), c = $('mh-n3').value;
-    if (!a || !b) throw new Error('请填第一、第二个数');
-    opt.method = 'num';
-    opt.nums = [a, b, c ? parseInt(c, 10) : (a + b)];
-  }
+  /* 起卦方法固定为「年月日时起卦」（《梅花易數》卷一「年月日時起例」），
+     其余起例（物数占／声音占／字占／报数起卦）与「起卦方法」下拉已按用户设定移除。 */
+  var opt = { question: $('mh-q').value.trim() };
+  var dt = parseDateTime($('mh-date').value, '12:00');
+  var shi = parseInt($('mh-shizhi').value, 10) || 0;
+  opt.method = 'time';
+  opt.year = dt.y; opt.month = dt.m; opt.day = dt.d;
+  opt.hour = (shi * 2) % 24; opt.minute = 0;
+  opt.trueSolar = false; opt.longitude = null;
+  /* 梅花不用地点与经纬度（用户设定）*/
 
   opt.waiYing = mhWySel;
   var r = MeiHua.qi(opt);
