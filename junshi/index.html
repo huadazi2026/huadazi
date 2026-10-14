@@ -472,10 +472,17 @@
         <input id="cfgKey" name="junshi-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
       </form>
       <label>模型名</label>
-      <input id="cfgModel" placeholder="deepseek-chat">
+      <input id="cfgModel" placeholder="deepseek-flash">
       <div class="row"><button id="btnTest">🔌 测试连接</button></div>
-      <div class="hint">支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。<br>
-      <b>要看图，模型得支持视觉</b>：常见的如 <code>qwen-vl-max</code>（通义 / 硅基流动）、<code>glm-4v</code>（智谱）、<code>gpt-4o</code>。<b>注意 DeepSeek 官方的 <code>deepseek-chat</code> 只认文字，发图会被拒</b>（遇到这种情况我会自动去掉图、只用文字再问一次）。<span id="statStore"></span></div>
+            <div class="hint">
+        支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。<br><br>
+        <b>DeepSeek 官方两个模型，直接抄：</b><br>
+        • <b>deepseek-flash</b> —— 便宜、<b>能看图</b>、100 万上下文。不知道选哪个就用这个。<br>
+        • <b>deepseek-v4-pro</b> —— 更聪明，但<b>不能看图</b>、贵一些。<br>
+        想发微信截图给它看，就得用 flash。<br><br>
+        <b>别的家能看图的：</b>qwen-vl-max（通义 / 硅基流动）、glm-4v（智谱）、gpt-4o。<br>
+        发图被拒的话，我会自动去掉图、只用文字再问一次。
+      </div>
     </div>
     <div class="grp">
       <h2>🎭 人设（军师的性格）</h2>
@@ -721,7 +728,7 @@ const QF_NOTE = "\n\n【表情】\n你可以用 /名称 直接发表情，比如
   + "别堆太多，一次一两个，用在真有情绪的地方；正经谈事的时候别加。";
 const MAX_CTX_MSGS = 24;   // 每次只带最近 24 条，省 token；背景资料永远完整带上
 
-let cfg = {base:"https://api.deepseek.com/v1", key:"", model:"deepseek-chat"};
+let cfg = {base:"https://api.deepseek.com/v1", key:"", model:"deepseek-flash"};
 let persona = "", ctxText = "";
 let convs = [];            // [{id,title,createdAt,updatedAt,msgs:[{role,content,t}]}]
 let actId = "";
@@ -846,7 +853,7 @@ function saveMsgsLegacy(){ // 保留旧键：万一出问题，原始记录还�
 function load(){
   try{ cfg = JSON.parse(localStorage.getItem(LS_CFG)||"{}") || {}; }catch(e){ cfg={}; }
   cfg.base  = cfg.base  || "https://api.deepseek.com/v1";
-  cfg.model = cfg.model || "deepseek-chat";
+  cfg.model = cfg.model || "deepseek-flash";
   cfg.key   = cfg.key   || "";
   if(cfg.qface === undefined) cfg.qface = true;
   if(cfg.theme === undefined) cfg.theme = "system";   // system / light / dark
@@ -855,6 +862,17 @@ function load(){
   if(cfg.confidence === undefined) cfg.confidence = false; // 回答末尾给「我认为…把握多少」
   if(cfg.memory === undefined) cfg.memory = true;         // 长对话自动摘要 + 暗号接前情
   if(cfg.tellDate === undefined) cfg.tellDate = true;     // 把今天的日期告诉它（否则它按训练数据那年算）
+  // DeepSeek 改过模型名：deepseek-chat 已经不在了。
+  // 老配置里存着旧名字的话，自动升一次 —— 只做一次，而且只动这一个名字，
+  // 用户自己填的别的模型绝不碰。
+  if(!cfg.modelMigrated){
+    cfg.modelMigrated = true;
+    if(!cfg.model || cfg.model === "deepseek-chat" || /^deepseek-(v3|v3\.1|v3\.2|r1|reasoner)/.test(cfg.model)){
+      cfg.model = "deepseek-flash";
+      cfg._modelChanged = true;
+    }
+    try{ localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }catch(e){}
+  }
   persona = localStorage.getItem(LS_PERSONA) || DEFAULT_PERSONA;
   // 人设一旦存进 localStorage 就是"用户的"了，改默认值对它没用。
   // 存着的正好等于某一版旧默认 —— 说明用户压根没动过 —— 那就顺手升到新版。
@@ -1704,7 +1722,7 @@ async function send(text, opts){
         c.updatedAt = Date.now();
         saveConvs(); saveMsgsLegacy(); renderAll();
         retryAfterFinally = true;
-        finalErr = "这个模型好像不认图片，已经改成只用文字再问了一次。想让它真的看图，去「设置」里把模型换成支持视觉的（qwen-vl-max / glm-4v / gpt-4o 这类）。注意 DeepSeek 官方的 deepseek-chat 不支持图片。";
+        finalErr = "这个模型好像不认图片，已经改成只用文字再问了一次。想让它真的看图，去「设置」里把模型换成支持视觉的（qwen-vl-max / glm-4v / gpt-4o 这类）。DeepSeek 官方的 deepseek-v4-pro 不支持图片，换 deepseek-flash 就能看。";
       }else{
         // 失败就撤干净：把这句话从上下文里拿掉、还回输入框。
         // 否则失败的消息会留在历史里污染后面的对话，而界面上却看不到它发成功过。
@@ -2029,17 +2047,19 @@ function statLine(){
   if($("statVer")) $("statVer").textContent = APP_VER;
   if($("statBuild")) $("statBuild").textContent = localTime(APP_BUILD);
   if($("verBadge")) $("verBadge").textContent = APP_VER;
-  $("statPersona").textContent = "　当前 " + persona.length + " 字";
-  $("statCtx").textContent = "　当前 " + ctxText.length + " 字";
+  // 都加存在性检查：这个函数在页面还没搭完时也可能被调到，
+  // 裸着写 $(...) 会炸（踩过一次：Cannot set properties of null）。
+  if($("statPersona")) $("statPersona").textContent = "　当前 " + persona.length + " 字";
+  if($("statCtx"))     $("statCtx").textContent     = "　当前 " + ctxText.length + " 字";
   let used = 0;
   try{ used = (localStorage.getItem(LS_CONV) || "").length + (localStorage.getItem(LS_MSG) || "").length; }catch(e){}
   const pct = Math.round(used / 5242880 * 100);
-  $("statStore").innerHTML = "<br>本机已占用约 " + (used/1048576).toFixed(2) + " MB（上限约 5 MB，现在 " + pct + "%）。图片比较占地方，满了就在 ☰ 里删旧对话。";
+  if($("statStore")) $("statStore").innerHTML = "<br>本机已占用约 " + (used/1048576).toFixed(2) + " MB（上限约 5 MB，现在 " + pct + "%）。图片比较占地方，满了就在 ☰ 里删旧对话。";
 }
 async function testConn(){
   const base = ($("cfgBase").value.trim() || "https://api.deepseek.com/v1").replace(/\/+$/,"");
   const key = $("cfgKey").value.trim();
-  const model = $("cfgModel").value.trim() || "deepseek-chat";
+  const model = $("cfgModel").value.trim() || "deepseek-flash";
   if(!key){ showErr("先填 API Key。"); return; }
   const btn = $("btnTest");
   btn.disabled = true; btn.textContent = "测试中…";
@@ -2190,7 +2210,7 @@ $("btnTest").addEventListener("click", testConn);
 $("btnSave").addEventListener("click", ()=>{
   cfg.base = $("cfgBase").value.trim() || "https://api.deepseek.com/v1";
   cfg.key = $("cfgKey").value.trim();
-  cfg.model = $("cfgModel").value.trim() || "deepseek-chat";
+  cfg.model = $("cfgModel").value.trim() || "deepseek-flash";
   cfg.qface = $("cfgQface").checked;
   if($("cfgAskFirst"))  cfg.askFirst   = $("cfgAskFirst").checked;
   if($("cfgConfidence"))cfg.confidence = $("cfgConfidence").checked;
