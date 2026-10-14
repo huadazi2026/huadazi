@@ -903,6 +903,8 @@ function openConv(id){
   if(!confirmLeave()) return;
   markDirty(false);
   actId = id; saveConvs(); renderAll();
+  // 把上次没来得及并进摘要的补上
+  setTimeout(()=>{ if(cfg.memory !== false) bumpSummary(active()); }, 500);
   $("overlay").classList.remove("show");
 }
 function delConv(id, el){
@@ -1443,11 +1445,73 @@ function showHookDiag(){
   el.innerHTML = out.join("<br>");
 }
 
+// 增量摘要：每次回复完顺手把"还没进摘要"的那几条并进去。
+// 为什么不用 maybeSummarize 那套：那是攒够 20 条才压一次，
+// 中间十几条是盲区 —— 聊到一半它就把前面忘了。
+// 增量法一次只压几条，快、便宜，而且从第一句到现在全程有记录。
+let _incBusy = false;
+async function bumpSummary(c){
+  if(cfg.memory === false) return;
+  if(!c || !c.msgs.length || _incBusy) return;
+  // 模型自己给的【摘要】会推进 sumAt，那样这里的「新内容」永远是空的，
+  // 增量压缩就被饿死了。所以它给过摘要之后，把 sumAt 往回退几条重压一次。
+  // 用显式标志，不能用摘要内容比对 —— 那样每次都会重压，白花钱。
+  if(c._modelSummed){
+    c._modelSummed = false;
+    if((c.sumAt || 0) >= c.msgs.length) c.sumAt = Math.max(0, c.msgs.length - 4);
+  }
+  const from = c.sumAt || 0;
+  const fresh = c.msgs.slice(from);
+  // 太短就先攒着，等有意义了再压；但也不能无限攒
+  if(fresh.length < 2 && c.msgs.length < 4) return;
+  if(!fresh.length) return;
+  _incBusy = true;
+  try{
+    const url = cfg.base.replace(/\/+$/,"") + "/chat/completions";
+    const digest = fresh.map(m => (m.role === "user" ? "我：" : "他：") +
+      String(m.content || "").replace(/\s+/g, " ").slice(0, 400)).join("\n");
+    const prev = (c.summary || "").trim();
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.key },
+      body: JSON.stringify({
+        model: cfg.model,
+        stream: false,
+        temperature: 0.2,
+        messages: [
+          { role: "system", content:
+            "你在帮一个人维护他自己的长期备忘录。下面有两部分：已有的备忘录，和刚发生的新对话。" +
+            "把新内容并进备忘录，输出合并后的完整版本。要求：\n" +
+            "1. 只留「他的处境、他的决定、他的约束、已经确认的事实、已经排除的选项」，删掉安慰、建议、寒暄；\n" +
+            "2. 用第三人称写；\n" +
+            "3. 有冲突时以新内容为准，旧的被推翻就删掉，别两条都留；\n" +
+            "4. 400 字以内，直接输出备忘录正文，不要任何前缀、不要标题、不要解释。" },
+          { role: "user", content:
+            "【已有的备忘录】\n" + (prev || "（还没有）") +
+            "\n\n【刚发生的新对话】\n" + digest }
+        ]
+      })
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const j = await res.json();
+    const txt = (((j.choices || [])[0] || {}).message || {}).content || "";
+    if(txt.trim()){
+      c.summary = txt.trim().slice(0, 800);
+      c.sumAt = c.msgs.length;
+      saveConvs();
+    }
+  }catch(e){
+    // 静默：摘要不是必须的，失败不打扰
+  }finally{
+    _incBusy = false;
+  }
+}
+
 // 聊够了就刷新摘要（每 20 条一次，静默，不挡回复）
 async function maybeSummarize(c){
   if(cfg.memory === false) return;
   if(!c || !c.msgs.length) return;
-  if(c.msgs.length - (c.sumAt || 0) < 20 && c.summary) return;
+  if(c.msgs.length - (c.sumAt || 0) < 12 && c.summary) return;   // 兜底：增量失败时补一次
   if(c.msgs.length < 6) return;                 // 太短不值得
   if(c._summing) return;
   c._summing = true;
@@ -1609,11 +1673,15 @@ async function send(text, opts){
       if(conf !== null) rec.conf = conf;
       c.msgs.push(rec);
       // 模型自己写的这轮摘要：有就用，没有就等 maybeSummarize 兜底
-      if(sum){ c.summary = sum.slice(0, 600); c.sumAt = c.msgs.length; }
+      if(sum){ c.summary = sum.slice(0, 600); c.sumAt = c.msgs.length; c._modelSummed = true; }
       c.updatedAt = Date.now();
       saveConvs(); saveMsgsLegacy();
-      // 聊长了就后台刷新一次摘要（不 await，不挡回复）
-      if(cfg.memory !== false) setTimeout(()=>{ maybeSummarize(c); }, 800);
+      // 每次回复完就顺手并一次摘要（不 await，不挡回复）。
+      // 这是"不会忘"的关键：从第一句到现在全程都有记录。
+      if(cfg.memory !== false){
+        setTimeout(()=>{ bumpSummary(c); }, 600);
+        setTimeout(()=>{ maybeSummarize(c); }, 4000);   // 兜底：增量失败时补
+      }
     }
     renderAll();
   }catch(e){
