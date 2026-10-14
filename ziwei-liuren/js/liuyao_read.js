@@ -150,9 +150,14 @@
     }
     else if (heZhi(zhi) === ctx.dayZhi) { sc += 2; notes.push('此爻与日辰相合 → <b>合住</b>，事情被牵住、不易散，也主拖延'); }
 
-    var wxFavor = relativeQin(wx, line.baseWx);
-    if (wxFavor === '生') { sc += 2; notes.push('日辰' + ctx.dayZhi + '（' + ZHI_WX[ctx.dayZhi] + '）生此爻'); }
-    else if (wxFavor === '克') { sc -= 2; notes.push('日辰' + ctx.dayZhi + '（' + ZHI_WX[ctx.dayZhi] + '）克此爻'); }
+    /* ②c 日辰的五行对本爻的生克 —— 原文「日辰四时俱旺」，日辰能生克卦中之爻。
+       注意 relativeQin(a, b) 的语义是「a 生/克 b」，所以要传（日辰五行, 本爻五行）。
+       原来写成 relativeQin(wx, line.baseWx)：既把顺序传反了，第二个参数还错用了卦宫五行
+       （baseWx 是卦宫五行，不是本爻五行）—— 结果日辰的生克从来没生效过。 */
+    var dwx = ZHI_WX[ctx.dayZhi];
+    var wxFavor = relativeQin(dwx, wx);
+    if (wxFavor === '生') { sc += 2; notes.push('日辰' + ctx.dayZhi + '（' + dwx + '）生此爻'); }
+    else if (wxFavor === '克') { sc -= 2; notes.push('日辰' + ctx.dayZhi + '（' + dwx + '）克此爻'); }
 
     /* ③ 卦中动爻：只有动爻能作用于他爻 */
     (ctx.dongLines || []).forEach(function (d) {
@@ -293,11 +298,23 @@
       else { verdict = '平'; verdictReason = '卦中无用神，以月建为用神 —— 月建与世爻无生克，事在人为'; }
     } else {
       var sc = yongMain.score;
-      var shiS = (function () {
+      var shiRes = (function () {
         var sl = lines.filter(function (L) { return L.shi; })[0];
         if (!sl) return null;
-        return scoreLine(sl, { monthZhi: monthZhi, dayZhi: dayZhi, dongLines: dongLines, kong: kong }).score;
+        return scoreLine(sl, { monthZhi: monthZhi, dayZhi: dayZhi, dongLines: dongLines, kong: kong });
       })();
+      var shiS = shiRes ? shiRes.score : null;
+      /* 把「逐爻评分」算出来的详细依据并入 notes ——
+         月建/日辰的生克、旺相休囚、旬空、回头生克、进神退神 都在 scoreLine 里算好了，
+         原来只取了它的 .score，把 notes 丢掉了，用户在界面上看不到这些理由。 */
+      if (yongMain.notes && yongMain.notes.length) {
+        notes.push('<b>用神「' + yongMain.line.qin + ' ' + yongMain.line.zhi + '」逐项看</b>（四处生克沖合）：');
+        yongMain.notes.forEach(function (x) { notes.push('　· ' + x); });
+      }
+      if (shiRes && shiRes.notes && shiRes.notes.length && shiRes !== yongMain) {
+        notes.push('<b>世爻（你自己）逐项看</b>：');
+        shiRes.notes.forEach(function (x) { notes.push('　· ' + x); });
+      }
       var total = sc + (shiS === null ? 0 : shiS * 0.4);
       if (total >= 5) verdict = '吉';
       else if (total >= 1.5) verdict = '偏吉';
