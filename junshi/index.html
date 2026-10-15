@@ -474,6 +474,8 @@
       <label>模型名</label>
       <input id="cfgModel" placeholder="deepseek-flash">
       <div class="row"><button id="btnTest">🔌 测试连接</button></div>
+      <div class="row"><button id="btnBalance">💰 查余额</button></div>
+      <div class="hint" id="balanceBox" style="display:none"></div>
             <div class="hint">
         支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。<br><br>
         <b>DeepSeek 官方两个模型，直接抄：</b><br>
@@ -2056,6 +2058,88 @@ function statLine(){
   const pct = Math.round(used / 5242880 * 100);
   if($("statStore")) $("statStore").innerHTML = "<br>本机已占用约 " + (used/1048576).toFixed(2) + " MB（上限约 5 MB，现在 " + pct + "%）。图片比较占地方，满了就在 ☰ 里删旧对话。";
 }
+// ---------- 查余额 ----------
+// DeepSeek 官方：GET /user/balance
+// 注意 base 尾巴上的 /v1 要拿掉 —— 这个接口是 /user/balance，没 v1。
+function balanceUrl(){
+  let base = (cfg.base || "https://api.deepseek.com/v1").trim().replace(/\/+$/, "");
+  base = base.replace(/\/chat\/completions$/i, "");
+  base = base.replace(/\/beta$/i, "");
+  base = base.replace(/\/v1$/i, "");
+  return base + "/user/balance";
+}
+async function checkBalance(){
+  const box = $("balanceBox");
+  const btn = $("btnBalance");
+  if(!box || !btn) return;
+  const key = ($("cfgKey") && $("cfgKey").value.trim()) || cfg.key || "";
+  box.style.display = "block";
+  if(!key){
+    box.innerHTML = '<b style="color:var(--danger-ink)">先填 API Key</b> —— 余额跟 Key 走，没 Key 查不了。';
+    return;
+  }
+  btn.disabled = true;
+  box.textContent = "正在查…";
+  try{
+    const res = await fetch(balanceUrl(), {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + key, "Accept": "application/json" }
+    });
+    const txt = await res.text();
+    if(res.status === 404 || res.status === 405){
+      box.innerHTML = "这个接口没有查余额的功能。<br><b>DeepSeek 官方有</b>" +
+        "（api.deepseek.com）；别家（硅基流动、通义、Ollama 等）要去各自平台看。";
+      return;
+    }
+    if(res.status === 401 || res.status === 403){
+      box.innerHTML = '<b style="color:var(--danger-ink)">Key 不对</b> —— 看看有没有多空格，或者已经失效了。';
+      return;
+    }
+    if(!res.ok){
+      box.innerHTML = '<b style="color:var(--danger-ink)">查不到（HTTP ' + res.status + '）</b><br>' +
+        String(txt || "").slice(0, 200);
+      return;
+    }
+    let j = null;
+    try{ j = JSON.parse(txt); }catch(e){}
+    if(!j || !Array.isArray(j.balance_infos) || !j.balance_infos.length){
+      box.innerHTML = "拿到回复了，但没看懂格式：<br>" + String(txt || "").slice(0, 200);
+      return;
+    }
+    const lines = j.balance_infos.map(b => {
+      const cur = b.currency === "USD" ? "$" : "¥";
+      const tot = parseFloat(b.total_balance);
+      const granted = parseFloat(b.granted_balance);
+      const topped = parseFloat(b.topped_up_balance);
+      const detail = [];
+      if(!isNaN(granted) && granted > 0) detail.push("赠金 " + cur + granted.toFixed(2));
+      if(!isNaN(topped) && topped > 0) detail.push("充值 " + cur + topped.toFixed(2));
+      return '<b style="font-size:17px">' + cur + (isNaN(tot) ? "?" : tot.toFixed(2)) + "</b>" +
+             (detail.length ? ' <span style="color:var(--dim)">（' + detail.join(" + ") + "）</span>" : "");
+    });
+    const head = (j.is_available === false)
+      ? '<b style="color:var(--danger-ink)">余额不够了，接口调不动了。</b>'
+      : "余额可用 ✅";
+    // 粗算还能聊多少轮（只求量级）
+    const cny = j.balance_infos.find(b => b.currency === "CNY") || j.balance_infos[0];
+    const tot = parseFloat(cny.total_balance);
+    let rough = "";
+    if(!isNaN(tot) && tot > 0){
+      const perRound = 2000/1e6*2 + 800/1e6*8;   // flash 高峰价：输入 2 元/百万、输出 8 元/百万
+      const rounds = Math.floor(tot / perRound);
+      if(rounds > 0) rough = '<br><span style="color:var(--dim)">按 deepseek-flash 高峰价粗算，' +
+                             "大概还能聊 " + rounds.toLocaleString() + " 轮左右（换更贵的模型就没这么多）。</span>";
+    }
+    box.innerHTML = head + "<br>" + lines.join("<br>") + rough;
+  }catch(e){
+    box.innerHTML = '<b style="color:var(--danger-ink)">请求没发出去</b><br>' +
+      "可能是网络问题，或者这个接口不让网页直接调（跨域被拦）。<br>" +
+      '<span style="color:var(--dim)">' + String((e && e.message) || e).slice(0, 160) + "</span>";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
 async function testConn(){
   const base = ($("cfgBase").value.trim() || "https://api.deepseek.com/v1").replace(/\/+$/,"");
   const key = $("cfgKey").value.trim();
@@ -2207,6 +2291,7 @@ $("overlay").addEventListener("click", e=>{
 });
 $("histSearch").addEventListener("input", renderHist);
 $("btnTest").addEventListener("click", testConn);
+$("btnBalance").addEventListener("click", checkBalance);
 $("btnSave").addEventListener("click", ()=>{
   cfg.base = $("cfgBase").value.trim() || "https://api.deepseek.com/v1";
   cfg.key = $("cfgKey").value.trim();
