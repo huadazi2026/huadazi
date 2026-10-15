@@ -1021,9 +1021,16 @@ function showPane(name){
   $('nav-about').onclick = function(){ showAbout(); };
 })();
 
-var APP_BUILD = "v50 · 2026-10-05"
+var APP_BUILD = "v51 · 2026-10-05"
 var APP_CHANGELOG = [
-  ["v50", "这次的更新", [
+  ["v51", "这次的更新", [
+    "<b>「继续询问」里问时间，现在真答时间了</b>：以前不管你在「继续询问」问什么，都套同一套「用神／世爻旺衰」的模板 —— 问「多久有结果」，它回你「世爻落空、先别押希望」，压根没答时间。现在加了<b>问时间专线</b>：认得出「多久／什么时候／几天／几个月／何时」这类问法，直接给应期（哪一天、哪一月），不再绕旺衰那套",
+    "<b>七门各有各的应期口径</b>：六爻＝用神值日／冲日／出空／填实／合日／冲开墓；小六壬＝人宫主数加六宫配地支；梅花＝动爻数（短应日、长应月）；奇门＝用神宫地支的值与冲、落空则等填实；大六壬＝末传地支的值与冲；八字和紫微只给年份级窗口，并会直说「要问具体时间请用六爻或奇门」",
+    "六爻还修了一个隐藏问题：<b>用神不上卦</b>（卦里没出现代表这件事的那颗星）时原本算不出应期、只会说「没给出应期」。现在按规矩<b>退回看世爻</b>算，并说明这一卦「用神不上卦」本身就主不顺、偏慢",
+    "「继续询问」的答案也接上了白话翻译（原来只有结果栏翻译了，追问那栏还是术语）；应期候选里的「用神安静 → 应值（戌）或冲（辰）之日」这类也翻成「代表这件事的那颗星是静的 → 等到值（戌）或冲（辰）那天」",
+    "顺带修掉一处会误导人的写法：读法说明里的例子地支原来是写死的「戌」「辰」，跟实算不符；现在<b>按实际结果取</b>"
+  ]],
+  ["v50", "更早", [
     "<b>结果说得更白话了</b>：结果栏里那些拗口的术语改成家常话 —— 「月建／日辰」→「这个月／今天」、「用克体／体克用／用生体／体生用／比和」→「事情压着你／你压得住／有人帮你／你在倒贴／两边合得来」、「旬空」→「落空（要等填实）」、「门迫」→「门被宫压住」、「回头生／回头克」→「变出来反帮它／反克它」、「旺相／休囚」按语境换掉",
     "这一改只在<b>显示环节</b>翻译，<b>不动任何判断</b>：引擎返回的键（如 <code>rel.key = 用克体</code>）原样保留，查表、算概率、定吉凶全都照旧。中途我一度想全局替换，结果把查表的键也换了、概率会全部退化成 50 —— 已回滚改成现在这种安全做法",
     "紫微天纪盘的「宫煞」栏撤掉了<b>天伤／天使</b>：这两颗星本程序暂不安置（表里有数据、规则未与外部实现对齐），列在那儿也不会有值，空着不如撤掉",
@@ -2711,7 +2718,7 @@ function showAsk(kind, data){
     /* 以「本栏所属的门」为准，避免跨门串答案 */
     FOLLOW.kind = kind; FOLLOW.data = data;
     if (out) out.innerHTML = "<div class=\"followans\"><div class=\"fq\">你接着问：" + esc(q2) + "</div>" +
-      "<div class=\"fr\">" + buildFollow(q2) + "</div></div>";
+      "<div class=\"fr\">" + plainify(buildFollow(q2)) + "</div></div>";
   };
 }
 
@@ -2722,10 +2729,113 @@ function groupNameOf(ss){
   if (ss === '正官' || ss === '七杀') return '官杀';
   return '印星';
 }
+/* 把一条应期候选翻成白话。原文形如：
+   「用神安静 → 应值（戌）或冲（辰）之日」
+   「用神旬空 → 应出空之日（填实：戌日；冲空：辰日）」
+   「用神发动 → 应合（寅）或值（戌）之日」
+   规则：把「用神」换成「代表这件事的那颗星」，「应X之日」换成「等到…那天」。 */
+function plainYingQi(t){
+  var x = String(t || '');
+  x = x.replace(/<\/?b>/g, '');
+  x = x.replace(/用神旬空/g, '代表这件事的那颗星落空')
+       .replace(/用神月破/g, '代表这件事的那颗星被月冲破')
+       .replace(/用神入墓/g, '代表这件事的那颗星入了墓')
+       .replace(/用神发动/g, '代表这件事的那颗星在发动')
+       .replace(/用神安静/g, '代表这件事的那颗星是静的')
+       .replace(/用神化出/g, '代表这件事的那颗星变出');
+  x = x.replace(/→\s*应/g, '→ 等到');
+  x = x.replace(/应出空之日/g, '等到出空那天');
+  x = x.replace(/填实：/g, '填实那天：').replace(/冲空：/g, '冲空那天：');
+  x = x.replace(/之日/g, ' 那天').replace(/之期/g, ' 那个时段');
+  x = x.replace(/\s+/g, ' ').trim();
+  return x;
+}
+
+/* 判断这一问是不是在问「时间」——问时间要走应期，不能套用神旺衰那套 */
+function isWhenAsk(q){
+  var t = String(q || '');
+  if (!t) return false;
+  return /多久|多长时间|多久才|什么时候|何时|几时|几天|几个月|几年|哪天|什么时候能|什么时候会|还要等|要等多久|几月|几日|近期|最近会/.test(t);
+}
+
 function buildFollow(q2){
   var k = FOLLOW.kind, d = FOLLOW.data, tp = askTopic(q2);
   var name = F_TOPIC[tp] || "这件事";
   var lines = [];
+  /* ── 问时间：直接给应期，不套用神旺衰 ── */
+  if (isWhenAsk(q2)){
+    try {
+      if (k === 'liuyao'){
+        lines.push('<b>问时间，就看「应期」</b>——卦已起好，不用重摇。' + (d.yongName ? ('（这一卦看的是「' + d.yongName + '」）') : ''));
+        var yq = d.yingQi || [];
+        /* 用神不上卦时 analyze 不产出应期（yongMain 为空）——退回用世爻算，
+           与 lyHtml 里的处理一致，不能只说「没给出应期」就完事。 */
+        if (!yq.length && d.lines){
+          var _sl = null;
+          for (var _q = 0; _q < d.lines.length; _q++) if (d.lines[_q].shi) { _sl = d.lines[_q]; break; }
+          if (_sl){
+            lines.push('<b>先说明：</b>这一卦里<b>没出现</b>代表这件事的那颗星（叫「用神不上卦」）—— 这本身就主不顺、多费周折。');
+            lines.push('按规矩，用神不上卦时<b>退回看你自己那一爻（世爻）</b>，它落在 ' + _sl.name + '：' + _sl.qin + ' ' + _sl.zhi + '（' + _sl.wuxing + '）。');
+            var _ch = (typeof LiuYaoRead !== 'undefined' && LiuYaoRead.chongZhi) ? LiuYaoRead.chongZhi(_sl.zhi) : '';
+            var _he = (typeof LiuYaoRead !== 'undefined' && LiuYaoRead.heZhi) ? LiuYaoRead.heZhi(_sl.zhi) : '';
+            if (_sl.kong) lines.push('　· 这一爻落空 → 等到<b>出空</b>那天（填实：' + _sl.zhi + ' 日；冲空：' + _ch + ' 日）');
+            if (_sl.old) lines.push('　· 这一爻在发动 → 等到<b>合</b>（' + _he + '）或<b>值</b>（' + _sl.zhi + '）那天');
+            else lines.push('　· 这一爻是静的 → 等到<b>值</b>（' + _sl.zhi + '）或<b>冲</b>（' + _ch + '）那天');
+            lines.push('<b>所以：</b>上面给的那一天（或那一月）就是最可能的时间点。用神不上卦的卦，时间上通常<b>偏慢</b>，别指望太急。');
+          } else {
+            lines.push('这一卦取不到世爻，换一句话再问。');
+          }
+        } else if (yq.length){
+          lines.push('<b>这一卦给的应期候选，按顺序看：</b>');
+          for (var _i = 0; _i < yq.length; _i++) lines.push('　' + (_i + 1) + '. ' + esc(plainYingQi(yq[_i])));
+          /* 例子里的地支动态取实际的，别写死（原来写死「戌」「辰」，跟实算不符）*/
+          var _zs = [];
+          for (var _k = 0; _k < yq.length; _k++){
+            var _m2 = String(yq[_k]).match(/[子丑寅卯辰巳午未申酉戌亥]/g);
+            if (_m2) for (var _n = 0; _n < _m2.length; _n++) if (_zs.indexOf(_m2[_n]) < 0) _zs.push(_m2[_n]);
+          }
+          lines.push('<b>怎么读：</b>上面那些' + (_zs.length ? ('「' + _zs.slice(0, 4).join('」「') + '」') : '地支') + '是<b>日子或月份的地支</b>。事情近（十天半月内）就按<b>天</b>数，事情远（一个月以上）就按<b>月</b>数 —— 原文「遠事定之以年月，近事應之於日時」。');
+          lines.push('<b>所以：</b>第一个候选就是<b>最可能的时间点</b>；到点没动静，再看第二个。要是两个都过了还没消息，说明这事急不来，过一旬（十天）重新起一卦。');
+        } else {
+          lines.push('这一卦没给出明确的应期候选，说明事情<b>时间上还没有着力点</b>：要么条件没到，要么这事本来就急不来。建议过十天（一旬）再看，或者换个说法重新起一卦。');
+        }
+      } else if (k === 'xiaoliuren'){
+        var y2 = d.yingQi || {};
+        lines.push('<b>问时间，看小六壬的「数」和「地支」</b>：');
+        if (y2.text) lines.push('　' + y2.text.replace(/<\/?b>/g, ''));
+        lines.push('<b>实际用法：</b>人宫那个数就是天数或月数 —— 数字小（1~3）按<b>天</b>看，数字大（4 以上）按<b>月</b>看。再看它配的地支与当前月／日的冲合，冲的那天、合的那个月就是应期。');
+      } else if (k === 'meihua'){
+        lines.push('<b>问时间，梅花看「卦数」</b>：');
+        var _tm = d.timing || (d.verdict && d.verdict.timing) || '';
+        if (_tm) lines.push('　' + _tm);
+        lines.push('<b>实际用法：</b>梅花定应期用的是动爻数 —— 动在第几爻，就取那个数的倍数（天数或月数）。短事应日、长事应月。');
+      } else if (k === 'qimen'){
+        lines.push('<b>问时间，奇门看「用神宫所落的地支与旬空」</b>：');
+        try {
+          var yy2 = qmPickYongShen(d, q2), gg2 = null;
+          for (var _a = 0; _a < d.gongs.length; _a++) if (d.gongs[_a].gong === yy2.gong) gg2 = d.gongs[_a];
+          if (gg2){
+            lines.push('　用神落在 <b>' + (gg2.name || '') + '宫</b>（' + (gg2.dir || '') + '），这一宫属 <b>' + (gg2.wx || '') + '</b>。');
+            lines.push('<b>实际用法：</b>奇门定应期看用神宫的地支 —— 值那个地支的日／月，或冲它的日／月，就是应期。若用神落空亡，则要等<b>填实</b>（出空）之后才算数，时间要往后推一旬。');
+          } else { lines.push('　这一盘取不到用神宫，换一句话再问。'); }
+        } catch (e2){ lines.push('　（取用神宫失败：' + esc(e2.message) + '）'); }
+      } else if (k === 'liuren'){
+        lines.push('<b>问时间，大六壬看「三传」</b>：');
+        var _sc2 = (d.sanChuan || []).map(function(x){ return (x && x.zhi) ? x.zhi : String(x); }).join(' → ');
+        if (_sc2) lines.push('　三传：<b>' + _sc2 + '</b>（初传＝起头，中传＝转折，末传＝落点）');
+        lines.push('<b>实际用法：</b>末传那个地支就是事情的落点，值它的日／月、或冲它的日／月为应期。三传走得顺（相生）就快，逆（相克）就慢。');
+      } else if (k === 'bazi'){
+        lines.push('<b>问时间，八字看「大运流年」</b>，不看单件事的应期：');
+        lines.push('　八字只能告诉你<b>哪一年</b>这个方向顺，给不出「几天／几个月」这种精度。要问具体时间，请用<b>六爻</b>或<b>奇门</b>起一卦。');
+      } else if (k === 'ziwei'){
+        lines.push('<b>问时间，紫微看「大限／小限／流年」</b>：');
+        lines.push('　紫微给的是<b>年份级别</b>的窗口（哪十年、哪一年），给不出「几天／几个月」。要问具体时间，请用<b>六爻</b>或<b>奇门</b>。');
+      } else {
+        lines.push('这一门给不出具体时间，换<b>六爻</b>或<b>奇门</b>问更合适。');
+      }
+    } catch (e){ lines.push('（算应期时出错：' + esc(e.message) + '）'); }
+    return lines.join('<br>');
+  }
   try {
     if (k === "bazi"){
       var rb = (d && d.r) ? d.r : (bzLast && bzLast.r);
@@ -3886,7 +3996,7 @@ function xlrHtml(k, q, mode){
     probText: '（' + esc(k.gong) + '宫 · ' + (topicAns ? ('问' + TOPIC_NAME[topic]) : '未指明事类') + ' · ' + esc(info.luck) + '）', condition: condition ,
     reasons: reasons});
 
-  showAsk('xiaoliuren', k);
+  showAsk('xiaoliuren', Object.assign({}, k, { yingQi: (k.analysis && k.analysis.yingQi) || null }));
   return h;
 }
 function xlrFit(k, q, topic){
@@ -4917,7 +5027,8 @@ function lyHtml(r){
        '<button class="btn ghost" id="ly-copy" style="margin-top:0" onclick="window.LY&&window.LY.copy?window.LY.copy(this):0">复制完整结论</button>'+
        '<button class="btn ghost" id="ly-download" style="margin-top:0" onclick="window.LY&&window.LY.download?window.LY.download():0">下载成文本</button></div>';
 
-  showAsk('liuyao', r);
+  /* buildFollow 要读应期与用神名，这两样在 A（analyze 结果）里，qi 的结果没有 —— 合进去 */
+  showAsk('liuyao', Object.assign({}, r, { yingQi: (A && A.yingQi) || [], yongName: (A && A.yong && A.yong.qin) || '' }));
   return h;
 
 
