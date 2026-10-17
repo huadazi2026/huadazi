@@ -475,7 +475,12 @@
       <input id="cfgModel" placeholder="deepseek-flash">
       <div class="row"><button id="btnTest">🔌 测试连接</button></div>
       <div class="row"><button id="btnBalance">💰 查余额</button></div>
+      <label>充值地址（换别家就改这里）</label>
+      <input id="cfgPayUrl" placeholder="https://platform.deepseek.com/top_up">
       <div class="hint" id="balanceBox" style="display:none"></div>
+      <div class="row" id="payRow" style="display:none">
+        <button id="btnPay">💳 去充值</button>
+      </div>
             <div class="hint">
         支持任何 OpenAI 兼容接口（DeepSeek / 硅基流动 / 通义 / 本地 Ollama 等）。Key 只存在你这台设备的浏览器里，不上传任何地方。<br><br>
         <b>DeepSeek 官方两个模型，直接抄：</b><br>
@@ -864,6 +869,8 @@ function load(){
   if(cfg.confidence === undefined) cfg.confidence = false; // 回答末尾给「我认为…把握多少」
   if(cfg.memory === undefined) cfg.memory = true;         // 长对话自动摘要 + 暗号接前情
   if(cfg.tellDate === undefined) cfg.tellDate = true;     // 把今天的日期告诉它（否则它按训练数据那年算）
+  // 充值入口。默认给 DeepSeek 开放平台；换别家（硅基流动等）就去设置里改成那家的地址。
+  if(cfg.payUrl === undefined) cfg.payUrl = "https://platform.deepseek.com/top_up";
   // DeepSeek 改过模型名：deepseek-chat 已经不在了。
   // 老配置里存着旧名字的话，自动升一次 —— 只做一次，而且只动这一个名字，
   // 用户自己填的别的模型绝不碰。
@@ -2068,6 +2075,19 @@ function balanceUrl(){
   base = base.replace(/\/v1$/i, "");
   return base + "/user/balance";
 }
+// 打开充值页。用 window.open 而不是 location.href ——
+// 免得把你当前正在聊的对话带离这个页面。
+function openPay(){
+  let url = (cfg.payUrl || "https://platform.deepseek.com/top_up").trim();
+  if(!url) return;
+  if(!/^https?:\/\//i.test(url)) url = "https://" + url;
+  const w = window.open(url, "_blank", "noopener");
+  if(!w){
+    // 被拦了就退而求其次：当前页打开（至少能到）
+    location.href = url;
+  }
+}
+
 async function checkBalance(){
   const box = $("balanceBox");
   const btn = $("btnBalance");
@@ -2131,6 +2151,8 @@ async function checkBalance(){
                              "大概还能聊 " + rounds.toLocaleString() + " 轮左右（换更贵的模型就没这么多）。</span>";
     }
     box.innerHTML = head + "<br>" + lines.join("<br>") + rough;
+    // 余额低或者不够，就把充值口摆出来；够的时候也留着，方便你随时加。
+    if($("payRow")) $("payRow").style.display = "flex";
   }catch(e){
     box.innerHTML = '<b style="color:var(--danger-ink)">请求没发出去</b><br>' +
       "可能是网络问题，或者这个接口不让网页直接调（跨域被拦）。<br>" +
@@ -2270,6 +2292,7 @@ $("btnSet").addEventListener("click", ()=>{
   if($("cfgAskFirst"))  $("cfgAskFirst").checked  = cfg.askFirst === true;
   if($("cfgConfidence"))$("cfgConfidence").checked= cfg.confidence === true;
   if($("cfgTellDate"))  $("cfgTellDate").checked  = cfg.tellDate !== false;
+  if($("cfgPayUrl"))    $("cfgPayUrl").value     = cfg.payUrl || "";
   if($("cfgMemory"))    $("cfgMemory").checked    = cfg.memory !== false;
   if($("cfgHook"))      $("cfgHook").value        = (active() && active().hook) || "";
   if($("cfgHookUse"))   $("cfgHookUse").value     = (active() && active().useHook) || "";
@@ -2292,6 +2315,7 @@ $("overlay").addEventListener("click", e=>{
 $("histSearch").addEventListener("input", renderHist);
 $("btnTest").addEventListener("click", testConn);
 $("btnBalance").addEventListener("click", checkBalance);
+$("btnPay").addEventListener("click", openPay);
 $("btnSave").addEventListener("click", ()=>{
   cfg.base = $("cfgBase").value.trim() || "https://api.deepseek.com/v1";
   cfg.key = $("cfgKey").value.trim();
@@ -2300,6 +2324,7 @@ $("btnSave").addEventListener("click", ()=>{
   if($("cfgAskFirst"))  cfg.askFirst   = $("cfgAskFirst").checked;
   if($("cfgConfidence"))cfg.confidence = $("cfgConfidence").checked;
   if($("cfgTellDate"))  cfg.tellDate   = $("cfgTellDate").checked;
+  if($("cfgPayUrl"))    cfg.payUrl = ($("cfgPayUrl").value || "").trim() || "https://platform.deepseek.com/top_up";
   if($("cfgMemory"))    cfg.memory     = $("cfgMemory").checked;
   const ac = active();
   if(ac && $("cfgHook"))    ac.hook    = ($("cfgHook").value || "").trim();
