@@ -510,6 +510,12 @@
       <div class="hint">开了它会更像医生：先问诊，再开方。少给你「正确但没用」的话。</div>
 
       <label class="row" style="align-items:center; gap:8px">
+        <input type="checkbox" id="cfgBrief" style="width:auto; flex:none">
+        <span>说话简洁（省 token）</span>
+      </label>
+      <div class="hint">日常只给结论，三五句话；技术活才留过程和步骤。关掉它，一样的话能写三百字。</div>
+
+      <label class="row" style="align-items:center; gap:8px">
         <input type="checkbox" id="cfgTellDate" style="width:auto; flex:none">
         <span>告诉它今天是几号</span>
       </label>
@@ -871,6 +877,7 @@ function load(){
   if(cfg.tellDate === undefined) cfg.tellDate = true;     // 把今天的日期告诉它（否则它按训练数据那年算）
   // 充值入口。默认给 DeepSeek 开放平台；换别家（硅基流动等）就去设置里改成那家的地址。
   if(cfg.payUrl === undefined) cfg.payUrl = "https://platform.deepseek.com/top_up";
+  if(cfg.brief === undefined) cfg.brief = true;       // 说话简洁（省 token）
   // DeepSeek 改过模型名：deepseek-chat 已经不在了。
   // 老配置里存着旧名字的话，自动升一次 —— 只做一次，而且只动这一个名字，
   // 用户自己填的别的模型绝不碰。
@@ -1348,6 +1355,19 @@ function setBusy(on){
 function stopGen(){
   if(abortCtl){ try{ abortCtl.abort(); }catch(e){} }
 }
+/* ---------- 说话要短（省钱）----------
+   默认短，但要分类：技术活留过程（不然没法核对），日常只给结论。
+   这条直接按字数算钱，所以写得硬一点。 */
+const BRIEF_NOTE = "\n\n【说话要短 —— 这直接花钱】\n"
+  + "我按字数付费。所以：\n"
+  + "1. 第一句就是答案。不铺垫、不复述我的问题、不说「希望有帮助」这类客套。\n"
+  + "2. 日常的事（想法、情绪、看法、要不要、怎么办）：只给结论 + 最关键的一两条理由，"
+  + "三五句话说完。不要小标题、不要分点罗列、不要最后再总结一遍。\n"
+  + "3. 技术活（写代码、改东西、排错、算账、对比方案）：必须保留步骤和过程 —— "
+  + "不然我没法核对改在哪。但也只写「改了什么、为什么」，不解释常识、不铺陈背景。\n"
+  + "4. 不确定就一句「我不确定」，别用长段落掩盖。\n"
+  + "5. 我要是想听长的，我会说「详细说说」。默认就是短的。";
+
 /* ---------- 告诉它今天是几号 ---------- */
 // 不告诉它日期，它就按训练数据截止那年去推。
 // 表现就是：你说明年，它算成今年（因为它以为现在还是 2024）。
@@ -1619,10 +1639,14 @@ async function send(text, opts){
   abortCtl = new AbortController();
 
   const _ac = active();
+  // 注意：这里不再调 sumInstruction()。
+  // 让模型每轮多吐一段【摘要】是纯浪费 —— 它吐出来，我存进 sumAt，
+  // 然后 bumpSummary 又把它重压一遍，等于同一件事做两次、多付一次输出钱。
+  // 现在只靠 bumpSummary 增量压缩，省钱而且结果一样。
   const _extra =
       (cfg.askFirst ? ASK_FIRST_NOTE : "")
+    + (cfg.brief !== false ? BRIEF_NOTE : "")
     + hookBlock()
-    + (cfg.memory !== false ? sumInstruction() : "")
     + (cfg.confidence ? confInstruction() : "");
   const sys = persona + dateNote() + SYS_NOTE + ctxText + (cfg.qface === false ? "" : QF_NOTE) + _extra;
   const history = c.msgs.slice(-MAX_CTX_MSGS).map(toApiMsg);
@@ -2292,6 +2316,7 @@ $("btnSet").addEventListener("click", ()=>{
   if($("cfgAskFirst"))  $("cfgAskFirst").checked  = cfg.askFirst === true;
   if($("cfgConfidence"))$("cfgConfidence").checked= cfg.confidence === true;
   if($("cfgTellDate"))  $("cfgTellDate").checked  = cfg.tellDate !== false;
+  if($("cfgBrief"))     $("cfgBrief").checked     = cfg.brief !== false;
   if($("cfgPayUrl"))    $("cfgPayUrl").value     = cfg.payUrl || "";
   if($("cfgMemory"))    $("cfgMemory").checked    = cfg.memory !== false;
   if($("cfgHook"))      $("cfgHook").value        = (active() && active().hook) || "";
@@ -2324,6 +2349,7 @@ $("btnSave").addEventListener("click", ()=>{
   if($("cfgAskFirst"))  cfg.askFirst   = $("cfgAskFirst").checked;
   if($("cfgConfidence"))cfg.confidence = $("cfgConfidence").checked;
   if($("cfgTellDate"))  cfg.tellDate   = $("cfgTellDate").checked;
+  if($("cfgBrief"))     cfg.brief     = $("cfgBrief").checked;
   if($("cfgPayUrl"))    cfg.payUrl = ($("cfgPayUrl").value || "").trim() || "https://platform.deepseek.com/top_up";
   if($("cfgMemory"))    cfg.memory     = $("cfgMemory").checked;
   const ac = active();
